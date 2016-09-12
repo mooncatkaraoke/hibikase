@@ -1,0 +1,10 @@
+# Build directories
+/build-*/
+
+# Image thumbnails
+Thumbs.db
+.DS_Store
+
+# Qt Creator
+CMakeLists.txt.user
+*.pro.user
