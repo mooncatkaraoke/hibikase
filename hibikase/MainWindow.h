@@ -15,7 +15,9 @@
 
 #include <memory>
 
+#include <QElapsedTimer>
 #include <QMainWindow>
+#include <QTimer>
 
 #include "KaraokeData/Song.h"
 
@@ -37,8 +39,16 @@ private slots:
     void on_actionAbout_Hibikase_triggered();
     void on_actionSave_As_triggered();
 
+    void on_playButton_clicked();
+
+    void UpdateTime();
+
 private:
     Ui::MainWindow* ui;
 
     std::unique_ptr<KaraokeData::Song> m_song;
+
+    QTimer* m_timer = new QTimer(this);
+    QElapsedTimer m_playback_timer;
+    bool m_is_playing = false;
 };

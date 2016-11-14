@@ -30,6 +30,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    ui->timeLabel->setTextFormat(Qt::PlainText);
+
+    connect(m_timer, SIGNAL(timeout()), this, SLOT(UpdateTime()));
 }
 
 MainWindow::~MainWindow()
@@ -57,7 +61,7 @@ void MainWindow::on_actionOpen_triggered()
     }
 
     // TODO: Encoding
-    ui->plainTextEdit->setPlainText(QString::fromUtf8(m_song->GetRaw().c_str()));
+    ui->mainLyrics->setPlainText(QString::fromUtf8(m_song->GetRaw().c_str()));
 }
 
 void MainWindow::on_actionSave_As_triggered()
@@ -66,7 +70,7 @@ void MainWindow::on_actionSave_As_triggered()
         return;
 
     // TODO: Encoding
-    QByteArray data = ui->plainTextEdit->toPlainText().toUtf8();
+    QByteArray data = ui->mainLyrics->toPlainText().toUtf8();
     // TODO: Copying here is inefficient. We should be updating the Song live anyway
     m_song = KaraokeData::Load(std::vector<char>(data.constBegin(), data.constEnd()));
     QString save_path = QFileDialog::getSaveFileName(this);
@@ -96,4 +100,40 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
                        "\n"
                        "You should have received a copy of the GNU General Public License "
                        "along with this program. If not, see <http://www.gnu.org/licenses/>.");
+}
+
+void MainWindow::on_playButton_clicked()
+{
+    m_is_playing = !m_is_playing;
+
+    if (m_is_playing)
+    {
+        m_playback_timer.start();
+        m_timer->start(10);  // TODO: Can this be done every frame instead?
+
+        ui->playButton->setText(QStringLiteral("Stop"));
+    }
+    else
+    {
+        m_timer->stop();
+
+        // TODO: This string is also in the UI file. Can it be deduplicated?
+        ui->playButton->setText(QStringLiteral("Play"));
+    }
+
+    UpdateTime();
+}
+
+void MainWindow::UpdateTime()
+{
+    QString text;
+    if (m_is_playing)
+    {
+        qint64 ms = m_playback_timer.elapsed();
+        text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
+                                         .arg(ms / 1000 % 60, 2, 10, QChar('0'))
+                                         .arg(ms / 10 % 100,  2, 10, QChar('0'));
+    }
+    ui->timeLabel->setText(text);
+    update();
 }
