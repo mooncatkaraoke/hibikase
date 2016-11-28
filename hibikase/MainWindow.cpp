@@ -104,6 +104,9 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
 
 void MainWindow::on_playButton_clicked()
 {
+    if (!m_song)
+        return;
+
     m_is_playing = !m_is_playing;
 
     if (m_is_playing)
