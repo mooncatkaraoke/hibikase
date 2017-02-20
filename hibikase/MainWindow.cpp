@@ -138,5 +138,4 @@ void MainWindow::UpdateTime()
                                          .arg(ms / 10 % 100,  2, 10, QChar('0'));
     }
     ui->timeLabel->setText(text);
-    update();
 }
