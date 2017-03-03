@@ -15,43 +15,29 @@
 
 #include <memory>
 
-#include <QElapsedTimer>
-#include <QMainWindow>
-#include <QTimer>
+#include <QPlainTextEdit>
+#include <QWidget>
 
-#include "KaraokeData/Song.h"
+#include <KaraokeData/Song.h>
 
-namespace Ui {
-class MainWindow;
-}
-
-class MainWindow : public QMainWindow
+class LyricsEditor : public QWidget
 {
     Q_OBJECT
-
 public:
-    explicit MainWindow(QWidget* parent = 0);
-    ~MainWindow();
+    explicit LyricsEditor(QWidget *parent = 0);
+
+    // TODO: Get rid of the need for this function by continually updating the song
+    void RebuildSong();
+
+public slots:
+    void ReloadSong(KaraokeData::Song* song);
 
 signals:
-    void SongReplaced(KaraokeData::Song* song);
 
-private slots:
-    void on_actionOpen_triggered();
-    void on_actionAbout_Qt_triggered();
-    void on_actionAbout_Hibikase_triggered();
-    void on_actionSave_As_triggered();
-
-    void on_playButton_clicked();
-
-    void UpdateTime();
+public slots:
 
 private:
-    Ui::MainWindow* ui;
+    QPlainTextEdit* m_text_edit;
 
-    std::unique_ptr<KaraokeData::Song> m_song;
-
-    QTimer* m_timer = new QTimer(this);
-    QElapsedTimer m_playback_timer;
-    bool m_is_playing = false;
+    KaraokeData::Song* m_song_ref;
 };

@@ -12,7 +12,8 @@ SOURCES += main.cpp\
     KaraokeData/SoramimiMoonCatSong.cpp \
     KaraokeContainer/Container.cpp \
     KaraokeContainer/PlainContainer.cpp \
-    KaraokeData/VsqxParser.cpp
+    KaraokeData/VsqxParser.cpp \
+    LyricsEditor.cpp
 
 HEADERS  += MainWindow.h \
     KaraokeData/Song.h \
@@ -20,6 +21,7 @@ HEADERS  += MainWindow.h \
     KaraokeContainer/Container.h \
     KaraokeContainer/PlainContainer.h \
     KaraokeData/ReadOnlySong.h \
-    KaraokeData/VsqxParser.h
+    KaraokeData/VsqxParser.h \
+    LyricsEditor.h
 
 FORMS    += MainWindow.ui

@@ -80,6 +80,7 @@ public:
     virtual std::string GetRaw() const override;
     virtual std::vector<Line*> GetLines() override;
     virtual void AddLine(const std::vector<Syllable*>& syllables) override;
+    virtual void RemoveAllLines() override;
 
 private:
     std::vector<SoramimiMoonCatLine> m_lines;

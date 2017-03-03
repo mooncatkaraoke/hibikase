@@ -71,6 +71,7 @@ public:
         return result;
     }
     virtual void AddLine(const std::vector<Syllable*>&) override { throw not_editable; }
+    virtual void RemoveAllLines() override { throw not_editable; }
 
     bool m_valid = false;
     std::vector<ReadOnlyLine> m_lines;

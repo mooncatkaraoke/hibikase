@@ -33,7 +33,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->timeLabel->setTextFormat(Qt::PlainText);
 
+    connect(this, SIGNAL(SongReplaced(KaraokeData::Song*)),
+            ui->mainLyrics, SLOT(ReloadSong(KaraokeData::Song*)));
     connect(m_timer, SIGNAL(timeout()), this, SLOT(UpdateTime()));
+
+    // TODO: Add a way to create a Soramimi/MoonCat song instead of having to use Load
+    m_song = KaraokeData::Load({});
+    emit SongReplaced(m_song.get());
 }
 
 MainWindow::~MainWindow()
@@ -49,31 +55,28 @@ void MainWindow::on_actionOpen_triggered()
 
     std::unique_ptr<KaraokeContainer::Container> container =
             KaraokeContainer::Load(load_path.toUtf8().constData());
-    m_song = KaraokeData::Load(container->ReadLyricsFile());
+    std::unique_ptr<KaraokeData::Song> song = KaraokeData::Load(container->ReadLyricsFile());
 
-    if (!m_song->IsEditable())
+    if (!song->IsEditable())
     {
         // TODO: Add a way to create a Soramimi/MoonCat song instead of having to use Load
         std::unique_ptr<KaraokeData::Song> converted_song = KaraokeData::Load({});
-        for (KaraokeData::Line* line : m_song->GetLines())
+        for (KaraokeData::Line* line : song->GetLines())
             converted_song->AddLine(line->GetSyllables());
         m_song = std::move(converted_song);
     }
+    else
+    {
+        m_song = std::move(song);
+    }
 
-    // TODO: Encoding
-    ui->mainLyrics->setPlainText(QString::fromUtf8(m_song->GetRaw().c_str()));
+    emit SongReplaced(m_song.get());
 }
 
 void MainWindow::on_actionSave_As_triggered()
 {
-    if (!m_song)
-        return;
-
-    // TODO: Encoding
-    QByteArray data = ui->mainLyrics->toPlainText().toUtf8();
-    // TODO: Copying here is inefficient. We should be updating the Song live anyway
-    m_song = KaraokeData::Load(std::vector<char>(data.constBegin(), data.constEnd()));
     QString save_path = QFileDialog::getSaveFileName(this);
+    ui->mainLyrics->RebuildSong();
     KaraokeContainer::PlainContainer::SaveLyricsFile(save_path.toUtf8().constData(),
                                                      m_song->GetRaw());
 }
@@ -104,9 +107,6 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
 
 void MainWindow::on_playButton_clicked()
 {
-    if (!m_song)
-        return;
-
     m_is_playing = !m_is_playing;
 
     if (m_is_playing)

@@ -42,6 +42,7 @@ public:
     virtual std::vector<Line*> GetLines() = 0;
     // TODO: Should be const std::vector<const Syllable*>&
     virtual void AddLine(const std::vector<Syllable*>& syllables) = 0;
+    virtual void RemoveAllLines() = 0;
 };
 
 std::unique_ptr<Song> Load(const std::vector<char>& data);

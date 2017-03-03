@@ -234,4 +234,9 @@ void SoramimiMoonCatSong::AddLine(const std::vector<Syllable*>& syllables)
     m_lines.emplace_back(syllables);
 }
 
+void SoramimiMoonCatSong::RemoveAllLines()
+{
+    m_lines.clear();
+}
+
 }
