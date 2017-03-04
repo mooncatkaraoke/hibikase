@@ -16,6 +16,7 @@
 #include <memory>
 
 #include <QPlainTextEdit>
+#include <QPoint>
 #include <QWidget>
 
 #include <KaraokeData/Song.h>
@@ -34,7 +35,10 @@ public slots:
 
 signals:
 
-public slots:
+private slots:
+    void ShowContextMenu(const QPoint& point);
+    void SyllabifyBasic();
+    void Romanize();
 
 private:
     QPlainTextEdit* m_text_edit;
