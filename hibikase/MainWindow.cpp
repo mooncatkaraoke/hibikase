@@ -53,8 +53,7 @@ void MainWindow::on_actionOpen_triggered()
     if (load_path.isEmpty())
         return;
 
-    std::unique_ptr<KaraokeContainer::Container> container =
-            KaraokeContainer::Load(load_path.toUtf8().constData());
+    std::unique_ptr<KaraokeContainer::Container> container = KaraokeContainer::Load(load_path);
     std::unique_ptr<KaraokeData::Song> song = KaraokeData::Load(container->ReadLyricsFile());
 
     if (!song->IsEditable())
@@ -77,8 +76,7 @@ void MainWindow::on_actionSave_As_triggered()
 {
     QString save_path = QFileDialog::getSaveFileName(this);
     ui->mainLyrics->RebuildSong();
-    KaraokeContainer::PlainContainer::SaveLyricsFile(save_path.toUtf8().constData(),
-                                                     m_song->GetRaw());
+    KaraokeContainer::PlainContainer::SaveLyricsFile(save_path, m_song->GetRawBytes());
 }
 
 void MainWindow::on_actionAbout_Qt_triggered()

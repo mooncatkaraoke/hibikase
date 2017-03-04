@@ -4,7 +4,8 @@
 // http://creativecommons.org/publicdomain/zero/1.0/
 
 #include <memory>
-#include <string>
+
+#include <QString>
 
 #include "KaraokeContainer/Container.h"
 #include "KaraokeContainer/PlainContainer.h"
@@ -12,7 +13,7 @@
 namespace KaraokeContainer
 {
 
-std::unique_ptr<Container> Load(const std::string& path)
+std::unique_ptr<Container> Load(const QString& path)
 {
     return std::make_unique<PlainContainer>(path);
 }

@@ -6,7 +6,9 @@
 #pragma once
 
 #include <exception>
-#include <vector>
+
+#include <QString>
+#include <QVector>
 
 #include "KaraokeData/Song.h"
 
@@ -24,16 +26,18 @@ class NotEditable final : public std::exception
 class ReadOnlySyllable final : public Syllable
 {
 public:
-    ReadOnlySyllable(const std::string& text, Centiseconds start, Centiseconds end)
+    // Note: This default constructor won't initialize class members properly
+    ReadOnlySyllable() {}
+    ReadOnlySyllable(const QString& text, Centiseconds start, Centiseconds end)
         : m_text(text), m_start(start), m_end(end)
     {
     }
 
-    virtual std::string GetText() const override { return m_text; }
+    virtual QString GetText() const override { return m_text; }
     virtual Centiseconds GetStart() const override { return m_start; }
     virtual Centiseconds GetEnd() const override { return m_end; }
 
-    std::string m_text;
+    QString m_text;
     Centiseconds m_start;
     Centiseconds m_end;
 };
@@ -41,40 +45,41 @@ public:
 class ReadOnlyLine final : public Line
 {
 public:
-    virtual std::vector<Syllable*> GetSyllables() override
+    virtual QVector<Syllable*> GetSyllables() override
     {
-        std::vector<Syllable*> result;
+        QVector<Syllable*> result;
         result.reserve(m_syllables.size());
         for (ReadOnlySyllable& syllable : m_syllables)
             result.push_back(&syllable);
         return result;
     }
-    virtual Centiseconds GetStart() const override { throw not_editable; }
-    virtual Centiseconds GetEnd() const override { throw not_editable; }
-    const std::string& GetRaw() const { throw not_editable; }
+    Centiseconds GetStart() const override { throw not_editable; }
+    Centiseconds GetEnd() const override { throw not_editable; }
+    QString GetRaw() const { throw not_editable; }
 
-    std::vector<ReadOnlySyllable> m_syllables;
+    QVector<ReadOnlySyllable> m_syllables;
 };
 
 class ReadOnlySong final : public Song
 {
 public:
-    virtual bool IsValid() const override { return m_valid; }
-    virtual bool IsEditable() const override { return false; }
-    virtual std::string GetRaw() const override { throw not_editable; }
-    virtual std::vector<Line*> GetLines() override
+    bool IsValid() const override { return m_valid; }
+    bool IsEditable() const override { return false; }
+    QString GetRaw() const override { throw not_editable; }
+    QByteArray GetRawBytes() const override { throw not_editable; }
+    QVector<Line*> GetLines() override
     {
-        std::vector<Line*> result;
+        QVector<Line*> result;
         result.reserve(m_lines.size());
         for (ReadOnlyLine& line : m_lines)
             result.push_back(&line);
         return result;
     }
-    virtual void AddLine(const std::vector<Syllable*>&) override { throw not_editable; }
-    virtual void RemoveAllLines() override { throw not_editable; }
+    void AddLine(const QVector<Syllable*>&) override { throw not_editable; }
+    void RemoveAllLines() override { throw not_editable; }
 
     bool m_valid = false;
-    std::vector<ReadOnlyLine> m_lines;
+    QVector<ReadOnlyLine> m_lines;
 };
 
 }

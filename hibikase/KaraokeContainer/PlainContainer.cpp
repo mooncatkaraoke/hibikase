@@ -3,50 +3,39 @@
 // This additional permission does not apply to Hibikase as a whole.
 // http://creativecommons.org/publicdomain/zero/1.0/
 
-#include <fstream>
-#include <iterator>
-#include <string>
-#include <vector>
+#include <QByteArray>
+#include <QFile>
+#include <QIODevice>
+#include <QString>
 
+#include "KaraokeContainer/Container.h"
 #include "KaraokeContainer/PlainContainer.h"
 
 namespace KaraokeContainer
 {
 
-PlainContainer::PlainContainer(const std::string& path)
+PlainContainer::PlainContainer(const QString& path)
     : m_path(path)
 {
 }
 
-std::vector<char> PlainContainer::ReadLyricsFile()
+QByteArray PlainContainer::ReadLyricsFile()
 {
-    // TODO: This doesn't work with non-ASCII paths on Windows
-    std::ifstream file(m_path, std::ios::binary);
+    QFile file(m_path);
     // TODO: Should this be an exception?
-    if (!file.is_open())
+    if (!file.open(QIODevice::ReadOnly))
         return {};
-
-    // TODO: This way of getting the file size is apparently not guaranteed to work
-    file.seekg(0, std::ios::end);
-    size_t file_size = file.tellg();
-    file.seekg(0);
-
-    std::vector<char> data;
-    data.reserve(file_size);
-    data.assign(std::istreambuf_iterator<char>(file),
-                std::istreambuf_iterator<char>());
-
-    return data;
+    return file.readAll();
 }
 
-void PlainContainer::SaveLyricsFile(std::string path, const std::string& content)
+void PlainContainer::SaveLyricsFile(const QString& path, const QByteArray& content)
 {
-    std::ofstream file(path, std::ios::binary);
+    QFile file(path);
     // TODO: Should this be an exception?
-    if (!file.is_open())
+    if (!file.open(QIODevice::WriteOnly))
         return;
-
-    file.write(content.data(), content.size());
+    // TODO: Check if this fails?
+    file.write(content.constData(), content.size());
 }
 
 }

@@ -5,10 +5,11 @@
 
 #pragma once
 
-#include <cinttypes>
 #include <memory>
-#include <string>
 #include <vector>
+
+#include <QString>
+#include <QByteArray>
 
 namespace KaraokeContainer
 {
@@ -16,9 +17,9 @@ namespace KaraokeContainer
 class Container
 {
 public:
-    virtual std::vector<char> ReadLyricsFile() = 0;
+    virtual QByteArray ReadLyricsFile() = 0;
 };
 
-std::unique_ptr<Container> Load(const std::string& path);
+std::unique_ptr<Container> Load(const QString& path);
 
 }

@@ -4,7 +4,8 @@
 // http://creativecommons.org/publicdomain/zero/1.0/
 
 #include <memory>
-#include <vector>
+
+#include <QByteArray>
 
 #include "KaraokeData/Song.h"
 #include "KaraokeData/SoramimiMoonCatSong.h"
@@ -13,7 +14,7 @@
 namespace KaraokeData
 {
 
-std::unique_ptr<Song> Load(const std::vector<char>& data)
+std::unique_ptr<Song> Load(const QByteArray& data)
 {
     std::unique_ptr<Song> vsqx = ParseVsqx(data);
     if (vsqx->IsValid())

@@ -5,11 +5,10 @@
 
 #include <chrono>
 #include <memory>
-#include <string>
-#include <vector>
 
-#include <QXmlStreamReader>
 #include <QByteArray>
+#include <QString>
+#include <QXmlStreamReader>
 
 #include "KaraokeData/ReadOnlySong.h"
 #include "KaraokeData/Song.h"
@@ -18,14 +17,12 @@
 namespace KaraokeData
 {
 
-std::unique_ptr<Song> ParseVsqx(const std::vector<char>& data)
+std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
 {
     std::unique_ptr<ReadOnlySong> song = std::make_unique<ReadOnlySong>();
     song->m_valid = false;
 
-    // TODO: This code isn't supposed to require Qt
-    QByteArray byte_array = QByteArray::fromRawData(data.data(), data.size());
-    QXmlStreamReader reader(byte_array);
+    QXmlStreamReader reader(data);
 
     if (!reader.readNextStartElement())
         return song;
@@ -78,7 +75,7 @@ std::unique_ptr<Song> ParseVsqx(const std::vector<char>& data)
             {
                 if (reader.name() == QStringLiteral("musicalPart"))
                 {
-                    song->m_lines.emplace_back();
+                    song->m_lines.append(ReadOnlyLine());
 
                     while (reader.readNextStartElement())
                     {
@@ -104,23 +101,21 @@ std::unique_ptr<Song> ParseVsqx(const std::vector<char>& data)
 
                             if (position_ticks != -1 && duration_ticks != -1 && !lyric.isEmpty())
                             {
-                                std::string text = lyric.toUtf8().constData();
-                                if (text.back() == '-')
+                                if (lyric.endsWith('-'))
                                 {
-                                    if (text.size() == 1)
-                                        text.back() = '/';
-                                    else
-                                        text.pop_back();
+                                    lyric.chop(1);
+                                    if (lyric.isEmpty())
+                                        lyric.append('/');
                                 }
                                 else
                                 {
-                                    text += ' ';
+                                    lyric.append(' ');
                                 }
                                 auto start = std::chrono::duration_cast<Centiseconds>(
                                             tick_duration * position_ticks);
                                 auto end = std::chrono::duration_cast<Centiseconds>(
                                             tick_duration * (position_ticks + duration_ticks));
-                                song->m_lines.back().m_syllables.emplace_back(text, start, end);
+                                song->m_lines.back().m_syllables.append(ReadOnlySyllable(lyric, start, end));
                             }
                         }
                         else
@@ -129,9 +124,9 @@ std::unique_ptr<Song> ParseVsqx(const std::vector<char>& data)
                         }
                     }
 
-                    std::string& last_text = song->m_lines.back().m_syllables.back().m_text;
-                    if (!last_text.empty() && last_text[last_text.size() - 1] == ' ')
-                        last_text.pop_back();
+                    QString& last_lyric = song->m_lines.back().m_syllables.back().m_text;
+                    if (last_lyric.endsWith(' '))
+                        last_lyric.chop(1);
                 }
                 else
                 {

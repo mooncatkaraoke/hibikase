@@ -6,9 +6,12 @@
 #pragma once
 
 #include <chrono>
-#include <string>
 #include <ratio>
-#include <vector>
+
+#include <QByteArray>
+#include <QList>
+#include <QString>
+#include <QVector>
 
 #include "KaraokeData/Song.h"
 
@@ -26,15 +29,17 @@ class SoramimiMoonCatSyllable final : public Syllable
     friend class SoramimiMoonCatLine;
 
 public:
-    SoramimiMoonCatSyllable(const std::string& text, Centiseconds start,
+    // Note: This default constructor won't initialize class members properly
+    SoramimiMoonCatSyllable();
+    SoramimiMoonCatSyllable(const QString& text, Centiseconds start,
                             Centiseconds end);
 
-    virtual std::string GetText() const override { return m_text; }
-    virtual Centiseconds GetStart() const override { return m_start; }
-    virtual Centiseconds GetEnd() const override { return m_end; }
+    QString GetText() const override { return m_text; }
+    Centiseconds GetStart() const override { return m_start; }
+    Centiseconds GetEnd() const override { return m_end; }
 
 private:
-    std::string m_text;
+    QString m_text;
     Centiseconds m_start;
     Centiseconds m_end;
 };
@@ -42,28 +47,24 @@ private:
 class SoramimiMoonCatLine final : public Line
 {
 public:
-    SoramimiMoonCatLine(const std::string& content);
-    SoramimiMoonCatLine(const std::vector<Syllable*>& syllables);
+    SoramimiMoonCatLine(const QString& content);
+    SoramimiMoonCatLine(const QVector<Syllable*>& syllables);
 
-    virtual std::vector<Syllable*> GetSyllables() override;
-    virtual Centiseconds GetStart() const override { return m_start; }
-    virtual Centiseconds GetEnd() const override { return m_end; }
-    const std::string& GetRaw() const { return m_raw_content; }
+    QVector<Syllable*> GetSyllables() override;
+    Centiseconds GetStart() const override { return m_start; }
+    Centiseconds GetEnd() const override { return m_end; }
+    QString GetRaw() const { return m_raw_content; }
 
 private:
-    void Serialize(const std::vector<Syllable*>& syllables);
+    void Serialize(const QVector<Syllable*>& syllables);
     void Deserialize();
 
-    static std::string SerializeTime(Centiseconds time);
-    static std::string SerializeNumber(int number, size_t digits);
+    static QString SerializeTime(Centiseconds time);
+    static QString SerializeNumber(int number, int digits);
 
-    // Returns -1 if there aren't as many digits as requested.
-    // Does not check that the position is in range.
-    static int DeserializeNumber(const std::string& string, size_t position, size_t digits);
+    QString m_raw_content;
 
-    std::string m_raw_content;
-
-    std::vector<SoramimiMoonCatSyllable> m_syllables;
+    QVector<SoramimiMoonCatSyllable> m_syllables;
     Centiseconds m_start;
     Centiseconds m_end;
 };
@@ -71,19 +72,20 @@ private:
 class SoramimiMoonCatSong final : public Song
 {
 public:
-    SoramimiMoonCatSong(const std::vector<char>& data);
+    SoramimiMoonCatSong(const QByteArray& data);
     // TODO: Use this constructor when converting, and remove the AddLine function
-    SoramimiMoonCatSong(const std::vector<Line*>& lines);
+    SoramimiMoonCatSong(const QVector<Line*>& lines);
 
-    virtual bool IsValid() const override { return true; }
-    virtual bool IsEditable() const override { return true; }
-    virtual std::string GetRaw() const override;
-    virtual std::vector<Line*> GetLines() override;
-    virtual void AddLine(const std::vector<Syllable*>& syllables) override;
-    virtual void RemoveAllLines() override;
+    bool IsValid() const override { return true; }
+    bool IsEditable() const override { return true; }
+    QString GetRaw() const override;
+    QByteArray GetRawBytes() const override;
+    QVector<Line*> GetLines() override;
+    void AddLine(const QVector<Syllable*>& syllables) override;
+    void RemoveAllLines() override;
 
 private:
-    std::vector<SoramimiMoonCatLine> m_lines;
+    QList<SoramimiMoonCatLine> m_lines;
 };
 
 }

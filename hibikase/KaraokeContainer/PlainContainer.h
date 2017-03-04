@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include <QByteArray>
+#include <QString>
 
 #include "KaraokeContainer/Container.h"
 
@@ -16,14 +16,14 @@ namespace KaraokeContainer
 class PlainContainer final : public Container
 {
 public:
-    PlainContainer(const std::string& path);
+    PlainContainer(const QString& path);
 
-    virtual std::vector<char> ReadLyricsFile() override;
+    QByteArray ReadLyricsFile() override;
 
-    static void SaveLyricsFile(std::string path, const std::string& content);
+    static void SaveLyricsFile(const QString& path, const QByteArray& content);
 
 private:
-    std::string m_path;
+    QString m_path;
 };
 
 }

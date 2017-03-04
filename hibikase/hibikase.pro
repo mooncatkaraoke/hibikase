@@ -13,7 +13,8 @@ SOURCES += main.cpp\
     KaraokeContainer/Container.cpp \
     KaraokeContainer/PlainContainer.cpp \
     KaraokeData/VsqxParser.cpp \
-    LyricsEditor.cpp
+    LyricsEditor.cpp \
+    Settings.cpp
 
 HEADERS  += MainWindow.h \
     KaraokeData/Song.h \
@@ -22,6 +23,7 @@ HEADERS  += MainWindow.h \
     KaraokeContainer/PlainContainer.h \
     KaraokeData/ReadOnlySong.h \
     KaraokeData/VsqxParser.h \
-    LyricsEditor.h
+    LyricsEditor.h \
+    Settings.h
 
 FORMS    += MainWindow.ui

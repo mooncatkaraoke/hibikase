@@ -29,10 +29,9 @@ LyricsEditor::LyricsEditor(QWidget *parent) : QWidget(parent)
 }
 
 void LyricsEditor::RebuildSong() {
-    // TODO: Encoding
+    // TODO: We shouldn't be re-encoding here
     QByteArray data = m_text_edit->toPlainText().toUtf8();
-    std::unique_ptr<KaraokeData::Song> new_song =
-            KaraokeData::Load(std::vector<char>(data.constBegin(), data.constEnd()));
+    std::unique_ptr<KaraokeData::Song> new_song = KaraokeData::Load(data);
 
     m_song_ref->RemoveAllLines();
     for (KaraokeData::Line* line : new_song->GetLines())
@@ -41,6 +40,5 @@ void LyricsEditor::RebuildSong() {
 
 void LyricsEditor::ReloadSong(KaraokeData::Song* song) {
     m_song_ref = song;
-    // TODO: Encoding
-    m_text_edit->setPlainText(QString::fromUtf8(song->GetRaw().c_str()));
+    m_text_edit->setPlainText(song->GetRaw());
 }

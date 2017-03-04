@@ -6,13 +6,14 @@
 #pragma once
 
 #include <memory>
-#include <vector>
+
+#include <QByteArray>
 
 #include "KaraokeData/Song.h"
 
 namespace KaraokeData
 {
 
-std::unique_ptr<Song> ParseVsqx(const std::vector<char>& data);
+std::unique_ptr<Song> ParseVsqx(const QByteArray& data);
 
 }
