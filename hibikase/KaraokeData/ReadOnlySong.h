@@ -33,9 +33,9 @@ public:
     {
     }
 
-    virtual QString GetText() const override { return m_text; }
-    virtual Centiseconds GetStart() const override { return m_start; }
-    virtual Centiseconds GetEnd() const override { return m_end; }
+    QString GetText() const override { return m_text; }
+    Centiseconds GetStart() const override { return m_start; }
+    Centiseconds GetEnd() const override { return m_end; }
 
     QString m_text;
     Centiseconds m_start;
@@ -55,9 +55,12 @@ public:
     }
     Centiseconds GetStart() const override { throw not_editable; }
     Centiseconds GetEnd() const override { throw not_editable; }
-    QString GetRaw() const { throw not_editable; }
+    QString GetPrefix() const override { return m_prefix; }
+    QString GetSuffix() const override { return m_suffix; }
 
     QVector<ReadOnlySyllable> m_syllables;
+    QString m_prefix;
+    QString m_suffix;
 };
 
 class ReadOnlySong final : public Song

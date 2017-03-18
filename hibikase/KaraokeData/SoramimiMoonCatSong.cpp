@@ -54,6 +54,8 @@ void SoramimiMoonCatLine::Serialize(const QVector<Syllable*>& syllables)
 {
     m_raw_content.clear();
 
+    m_raw_content += m_prefix;
+
     Centiseconds previous_time = Centiseconds::min();
     size_t last_character_of_previous_text = 0;
     for (const Syllable* syllable : syllables)
@@ -81,6 +83,8 @@ void SoramimiMoonCatLine::Serialize(const QVector<Syllable*>& syllables)
         previous_time = end;
     }
 
+    m_raw_content += m_suffix;
+
     Deserialize();
 }
 
@@ -92,15 +96,19 @@ void SoramimiMoonCatLine::Deserialize()
 
     bool first_timecode = true;
     Centiseconds previous_time;
-    size_t previous_index;
+    size_t previous_index = 0;
 
     // Without this check, the m_raw_content.size() - 10 calculation below can underflow
     if (m_raw_content.size() < 10)
-      return;
+    {
+        m_suffix = m_raw_content;
+        return;
+    }
 
     // Loops from first character to the last character that possibly can be
     // the start of a timecode (the tenth character from the end)
-    for (int i = 0; i <= m_raw_content.size() - 10; ++i) {
+    for (int i = 0; i <= m_raw_content.size() - 10; ++i)
+    {
         if (m_raw_content[i] == '[' && m_raw_content[i + 3] == ':' &&
             m_raw_content[i + 6] == ':' && m_raw_content[i + 9] == ']')
         {
@@ -122,6 +130,7 @@ void SoramimiMoonCatLine::Deserialize()
 
                 if (first_timecode)
                 {
+                    m_prefix = m_raw_content.left(i);
                     first_timecode = false;
                 }
                 else
@@ -145,7 +154,7 @@ void SoramimiMoonCatLine::Deserialize()
             }
         }
     }
-    // TODO: Handle text before the first timecode and after the last timecode
+    m_suffix = m_raw_content.mid(previous_index);
 }
 
 QString SoramimiMoonCatLine::SerializeTime(Centiseconds time)

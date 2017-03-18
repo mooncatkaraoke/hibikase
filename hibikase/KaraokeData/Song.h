@@ -33,6 +33,8 @@ public:
     virtual QVector<Syllable*> GetSyllables() = 0;
     virtual Centiseconds GetStart() const = 0;
     virtual Centiseconds GetEnd() const = 0;
+    virtual QString GetPrefix() const = 0;
+    virtual QString GetSuffix() const = 0;
 };
 
 class Song

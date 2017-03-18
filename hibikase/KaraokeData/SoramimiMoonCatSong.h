@@ -53,6 +53,8 @@ public:
     QVector<Syllable*> GetSyllables() override;
     Centiseconds GetStart() const override { return m_start; }
     Centiseconds GetEnd() const override { return m_end; }
+    QString GetPrefix() const override { return m_prefix; }
+    QString GetSuffix() const override { return m_suffix; }
     QString GetRaw() const { return m_raw_content; }
 
 private:
@@ -67,6 +69,8 @@ private:
     QVector<SoramimiMoonCatSyllable> m_syllables;
     Centiseconds m_start;
     Centiseconds m_end;
+    QString m_prefix;
+    QString m_suffix;
 };
 
 class SoramimiMoonCatSong final : public Song
