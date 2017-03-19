@@ -20,6 +20,8 @@
 namespace KaraokeData
 {
 
+static const QString PLACEHOLDER_TIMECODE = QStringLiteral("[99:99:99]");
+
 SoramimiMoonCatSyllable::SoramimiMoonCatSyllable()
 {
 }
@@ -50,6 +52,20 @@ QVector<Syllable*> SoramimiMoonCatLine::GetSyllables()
     for (SoramimiMoonCatSyllable& syllable : m_syllables)
         result.push_back(&syllable);
     return result;
+}
+
+void SoramimiMoonCatLine::SetSyllableSplitPoints(QVector<int> split_points)
+{
+    m_raw_content = GetText();
+    int characters_added = 0;
+
+    for (int split_point : split_points)
+    {
+        m_raw_content.insert(split_point + characters_added, PLACEHOLDER_TIMECODE);
+        characters_added += PLACEHOLDER_TIMECODE.size();
+    }
+
+    Deserialize();
 }
 
 void SoramimiMoonCatLine::Serialize(const QVector<Syllable*>& syllables)

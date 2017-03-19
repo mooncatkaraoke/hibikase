@@ -57,6 +57,7 @@ public:
     Centiseconds GetEnd() const override { throw not_editable; }
     QString GetPrefix() const override { return m_prefix; }
     QString GetSuffix() const override { return m_suffix; }
+    void SetSyllableSplitPoints(QVector<int>) override { throw not_editable; }
 
     QVector<ReadOnlySyllable> m_syllables;
     QString m_prefix;

@@ -19,6 +19,7 @@
 #include <QVBoxLayout>
 
 #include "LyricsEditor.h"
+#include "TextTransform/Syllabify.h"
 
 LyricsEditor::LyricsEditor(QWidget *parent) : QWidget(parent)
 {
@@ -43,7 +44,7 @@ void LyricsEditor::RebuildSong()
 
     m_song_ref->RemoveAllLines();
     for (KaraokeData::Line* line : new_song->GetLines())
-        m_song_ref->AddLine(line->GetSyllables());
+        m_song_ref->AddLine(line->GetSyllables(), line->GetPrefix(), line->GetSuffix());
 }
 
 void LyricsEditor::ReloadSong(KaraokeData::Song* song)
@@ -55,7 +56,7 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
 void LyricsEditor::ShowContextMenu(const QPoint& point)
 {
     bool has_selection = m_text_edit->textCursor().hasSelection();
-    has_selection = false; // Temporarily disabled until this is done
+    has_selection = true; // TODO: Remove this line once the selection actually is used
 
     QMenu* menu = m_text_edit->createStandardContextMenu(point);
     menu->addSeparator();
@@ -69,12 +70,20 @@ void LyricsEditor::ShowContextMenu(const QPoint& point)
 
 void LyricsEditor::SyllabifyBasic()
 {
+    // TODO: Only use the selection, not the whole document
     /*QTextCursor cursor = m_text_edit->textCursor();
     int start = cursor.position();
     int end = cursor.anchor();*/
+
+    RebuildSong();
+
+    for (KaraokeData::Line* line : m_song_ref->GetLines())
+        line->SetSyllableSplitPoints(TextTransform::SyllabifyBasic(line->GetText()));
+
+    m_text_edit->setPlainText(m_song_ref->GetRaw());
 }
 
 void LyricsEditor::Romanize()
 {
-
+    // TODO: Only use the selection, not the whole document
 }

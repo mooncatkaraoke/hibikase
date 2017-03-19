@@ -57,6 +57,8 @@ public:
     QString GetPrefix() const override { return m_prefix; }
     QString GetSuffix() const override { return m_suffix; }
     QString GetRaw() const { return m_raw_content; }
+    // All split points must be unique and in ascending order
+    void SetSyllableSplitPoints(QVector<int> split_points) override;
 
 private:
     void Serialize(const QVector<Syllable*>& syllables);

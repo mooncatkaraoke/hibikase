@@ -14,7 +14,8 @@ SOURCES += main.cpp\
     KaraokeContainer/PlainContainer.cpp \
     KaraokeData/VsqxParser.cpp \
     LyricsEditor.cpp \
-    Settings.cpp
+    Settings.cpp \
+    TextTransform/Syllabify.cpp
 
 HEADERS  += MainWindow.h \
     KaraokeData/Song.h \
@@ -24,6 +25,7 @@ HEADERS  += MainWindow.h \
     KaraokeData/ReadOnlySong.h \
     KaraokeData/VsqxParser.h \
     LyricsEditor.h \
-    Settings.h
+    Settings.h \
+    TextTransform/Syllabify.h
 
 FORMS    += MainWindow.ui
