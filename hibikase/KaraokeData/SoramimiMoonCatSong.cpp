@@ -36,7 +36,9 @@ SoramimiMoonCatLine::SoramimiMoonCatLine(const QString& content)
     Deserialize();
 }
 
-SoramimiMoonCatLine::SoramimiMoonCatLine(const QVector<Syllable*>& syllables)
+SoramimiMoonCatLine::SoramimiMoonCatLine(const QVector<Syllable*>& syllables,
+                                         QString prefix, QString suffix)
+    : m_prefix(prefix), m_suffix(suffix)
 {
     Serialize(syllables);
 }
@@ -93,6 +95,7 @@ void SoramimiMoonCatLine::Deserialize()
     m_syllables.clear();
     m_start = Centiseconds::max();
     m_end = Centiseconds::min();
+    m_prefix.clear();
 
     bool first_timecode = true;
     Centiseconds previous_time;
@@ -186,7 +189,7 @@ SoramimiMoonCatSong::SoramimiMoonCatSong(const QByteArray& data)
 SoramimiMoonCatSong::SoramimiMoonCatSong(const QVector<Line*>& lines)
 {
     for (Line* line : lines)
-        m_lines.append(SoramimiMoonCatLine(line->GetSyllables()));
+        m_lines.append(SoramimiMoonCatLine(line->GetSyllables(), line->GetPrefix(), line->GetSuffix()));
 }
 
 QString SoramimiMoonCatSong::GetRaw() const
@@ -221,9 +224,9 @@ QVector<Line*> SoramimiMoonCatSong::GetLines()
     return result;
 }
 
-void SoramimiMoonCatSong::AddLine(const QVector<Syllable*>& syllables)
+void SoramimiMoonCatSong::AddLine(const QVector<Syllable*>& syllables, QString prefix, QString suffix)
 {
-    m_lines.append(SoramimiMoonCatLine(syllables));
+    m_lines.append(SoramimiMoonCatLine(syllables, prefix, suffix));
 }
 
 void SoramimiMoonCatSong::RemoveAllLines()

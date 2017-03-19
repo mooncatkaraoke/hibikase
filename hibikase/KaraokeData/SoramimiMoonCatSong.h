@@ -48,7 +48,8 @@ class SoramimiMoonCatLine final : public Line
 {
 public:
     SoramimiMoonCatLine(const QString& content);
-    SoramimiMoonCatLine(const QVector<Syllable*>& syllables);
+    SoramimiMoonCatLine(const QVector<Syllable*>& syllables,
+                        QString prefix = QString(), QString suffix = QString());
 
     QVector<Syllable*> GetSyllables() override;
     Centiseconds GetStart() const override { return m_start; }
@@ -85,7 +86,7 @@ public:
     QString GetRaw() const override;
     QByteArray GetRawBytes() const override;
     QVector<Line*> GetLines() override;
-    void AddLine(const QVector<Syllable*>& syllables) override;
+    void AddLine(const QVector<Syllable*>& syllables, QString prefix, QString suffix) override;
     void RemoveAllLines() override;
 
 private:

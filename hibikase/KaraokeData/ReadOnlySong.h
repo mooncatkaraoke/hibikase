@@ -78,7 +78,7 @@ public:
             result.push_back(&line);
         return result;
     }
-    void AddLine(const QVector<Syllable*>&) override { throw not_editable; }
+    void AddLine(const QVector<Syllable*>&, QString, QString) override { throw not_editable; }
     void RemoveAllLines() override { throw not_editable; }
 
     bool m_valid = false;
