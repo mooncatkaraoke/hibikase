@@ -157,9 +157,14 @@ void SoramimiMoonCatLine::Deserialize()
                     const QStringRef text(&m_raw_content, previous_index, i - previous_index);
                     const bool empty = text.count(' ') == text.size();
                     if (empty)
-                        m_syllables.back().m_text += text;
+                    {
+                        if (!m_syllables.isEmpty())
+                            m_syllables.back().m_text += text;
+                    }
                     else
+                    {
                         m_syllables.append(SoramimiMoonCatSyllable(text.toString(), previous_time, time));
+                    }
                 }
 
                 previous_index = i + 10;
