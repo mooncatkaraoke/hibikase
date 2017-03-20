@@ -15,7 +15,8 @@ SOURCES += main.cpp\
     KaraokeData/VsqxParser.cpp \
     LyricsEditor.cpp \
     Settings.cpp \
-    TextTransform/Syllabify.cpp
+    TextTransform/Syllabify.cpp \
+    TextTransform/HangulUtils.cpp
 
 HEADERS  += MainWindow.h \
     KaraokeData/Song.h \
@@ -26,6 +27,7 @@ HEADERS  += MainWindow.h \
     KaraokeData/VsqxParser.h \
     LyricsEditor.h \
     Settings.h \
-    TextTransform/Syllabify.h
+    TextTransform/Syllabify.h \
+    TextTransform/HangulUtils.h
 
 FORMS    += MainWindow.ui

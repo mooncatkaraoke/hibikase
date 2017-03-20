@@ -7,51 +7,11 @@
 #include <QString>
 #include <QVector>
 
+#include "TextTransform/HangulUtils.h"
 #include "TextTransform/Syllabify.h"
 
 namespace TextTransform
 {
-
-// initial = 초성, medial = 중성, final = 종성
-
-static bool IsHangulMedial(uint c)
-{
-    return (c >= 0x1161 && c <= 0x11A7) || (c >= 0xD7B0 && c <= 0xD7C6);
-}
-
-static bool IsHangulMedial(QString text, int i)
-{
-    return i < text.size() && IsHangulMedial(text[i].unicode());
-}
-
-static bool EndsWithHangulMedial(QChar c)
-{
-    return IsHangulMedial(c.unicode()) ||
-           (c.unicode() >= 0xAC00 && c.unicode() <= 0xD7A3 && c.unicode() % 28 == 0);
-}
-
-static bool IsHangulFinal(uint c)
-{
-    return (c >= 0x11A8 && c <= 0x11FF) || (c >= 0xD7CB && c <= 0xD7FB);
-}
-
-static bool IsHangulFinal(QString text, int i)
-{
-    return i < text.size() && IsHangulFinal(text[i].unicode());
-}
-
-static bool EndsWithHangulFinal(QChar c)
-{
-    return IsHangulFinal(c.unicode()) ||
-           (c.unicode() >= 0xAC00 && c.unicode() <= 0xD7A3 && c.unicode() % 28 != 0);
-}
-
-static bool IsHangulSyllableEnd(const QString& text, int i)
-{
-    return (EndsWithHangulFinal(text[i]) && !IsHangulFinal(text, i + 1) ||
-           (EndsWithHangulMedial(text[i]) && !IsHangulMedial(text, i + 1) &&
-            !IsHangulFinal(text, i + 1)));
-}
 
 static bool IsCJKSyllableEnd(const QString& text, int i)
 {
