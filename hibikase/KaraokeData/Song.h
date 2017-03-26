@@ -22,6 +22,8 @@ typedef std::chrono::duration<int32_t, std::centi> Centiseconds;
 class Syllable
 {
 public:
+    virtual ~Syllable() = default;
+
     virtual QString GetText() const = 0;
     virtual Centiseconds GetStart() const = 0;
     virtual Centiseconds GetEnd() const = 0;
@@ -30,6 +32,8 @@ public:
 class Line
 {
 public:
+    virtual ~Line() = default;
+
     virtual QVector<Syllable*> GetSyllables() = 0;
     virtual Centiseconds GetStart() const = 0;
     virtual Centiseconds GetEnd() const = 0;
@@ -44,6 +48,8 @@ public:
 class Song
 {
 public:
+    virtual ~Song() = default;
+
     virtual bool IsValid() const = 0;
     virtual bool IsEditable() const = 0;
     virtual QString GetRaw() const = 0;
