@@ -38,7 +38,7 @@ signals:
 private slots:
     void ShowContextMenu(const QPoint& point);
     void SyllabifyBasic();
-    void Romanize();
+    void RomanizeHangul();
 
 private:
     QPlainTextEdit* m_text_edit;

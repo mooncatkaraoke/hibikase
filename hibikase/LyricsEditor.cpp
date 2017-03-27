@@ -19,6 +19,7 @@
 #include <QVBoxLayout>
 
 #include "LyricsEditor.h"
+#include "TextTransform/RomanizeHangul.h"
 #include "TextTransform/Syllabify.h"
 
 LyricsEditor::LyricsEditor(QWidget *parent) : QWidget(parent)
@@ -63,7 +64,8 @@ void LyricsEditor::ShowContextMenu(const QPoint& point)
     QMenu* syllabify = menu->addMenu(QStringLiteral("Syllabify"));
     syllabify->setEnabled(has_selection);
     syllabify->addAction(QStringLiteral("Basic"), this, SLOT(SyllabifyBasic()));
-    menu->addAction(QStringLiteral("Romanize"), this, SLOT(Romanize()))->setEnabled(has_selection);
+    menu->addAction(QStringLiteral("Romanize Hangul"), this,
+                    SLOT(RomanizeHangul()))->setEnabled(has_selection);
 
     menu->exec(m_text_edit->mapToGlobal(point));
 }
@@ -83,7 +85,14 @@ void LyricsEditor::SyllabifyBasic()
     m_text_edit->setPlainText(m_song_ref->GetRaw());
 }
 
-void LyricsEditor::Romanize()
+void LyricsEditor::RomanizeHangul()
 {
     // TODO: Only use the selection, not the whole document
+
+    RebuildSong();
+
+    for (KaraokeData::Line* line : m_song_ref->GetLines())
+        TextTransform::RomanizeHangul(line);
+
+    m_text_edit->setPlainText(m_song_ref->GetRaw());
 }

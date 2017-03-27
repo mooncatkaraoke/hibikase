@@ -25,6 +25,7 @@ public:
     virtual ~Syllable() = default;
 
     virtual QString GetText() const = 0;
+    virtual void SetText(const QString& text) = 0;
     virtual Centiseconds GetStart() const = 0;
     virtual Centiseconds GetEnd() const = 0;
 };
@@ -38,7 +39,9 @@ public:
     virtual Centiseconds GetStart() const = 0;
     virtual Centiseconds GetEnd() const = 0;
     virtual QString GetPrefix() const = 0;
+    virtual void SetPrefix(const QString& text) = 0;
     virtual QString GetSuffix() const = 0;
+    virtual void SetSuffix(const QString& text) = 0;
     // TODO: GetText() is supposed to be const
     virtual QString GetText();
     // All split points must be unique and in ascending order

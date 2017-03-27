@@ -6,10 +6,12 @@
 #pragma once
 
 #include <chrono>
+#include <memory>
 #include <ratio>
+#include <vector>
 
 #include <QByteArray>
-#include <QList>
+#include <QObject>
 #include <QString>
 #include <QVector>
 
@@ -24,19 +26,23 @@ namespace KaraokeData
 typedef std::chrono::duration<int32_t> Seconds;
 typedef std::chrono::duration<int32_t, std::ratio<60, 1>> Minutes;
 
-class SoramimiMoonCatSyllable final : public Syllable
+class SoramimiMoonCatSyllable final : public QObject, public Syllable
 {
+    Q_OBJECT
+
     friend class SoramimiMoonCatLine;
 
 public:
-    // Note: This default constructor won't initialize class members properly
-    SoramimiMoonCatSyllable();
     SoramimiMoonCatSyllable(const QString& text, Centiseconds start,
                             Centiseconds end);
 
     QString GetText() const override { return m_text; }
+    void SetText(const QString& text) override;
     Centiseconds GetStart() const override { return m_start; }
     Centiseconds GetEnd() const override { return m_end; }
+
+signals:
+    void Changed();
 
 private:
     QString m_text;
@@ -44,8 +50,10 @@ private:
     Centiseconds m_end;
 };
 
-class SoramimiMoonCatLine final : public Line
+class SoramimiMoonCatLine final : public QObject, public Line
 {
+    Q_OBJECT
+
 public:
     SoramimiMoonCatLine(const QString& content);
     SoramimiMoonCatLine(const QVector<Syllable*>& syllables,
@@ -55,10 +63,15 @@ public:
     Centiseconds GetStart() const override { return m_start; }
     Centiseconds GetEnd() const override { return m_end; }
     QString GetPrefix() const override { return m_prefix; }
+    void SetPrefix(const QString& text) override;
     QString GetSuffix() const override { return m_suffix; }
+    void SetSuffix(const QString& text) override;
     QString GetRaw() const { return m_raw_content; }
     // All split points must be unique and in ascending order
     void SetSyllableSplitPoints(QVector<int> split_points) override;
+
+private slots:
+    void Serialize();
 
 private:
     void Serialize(const QVector<Syllable*>& syllables);
@@ -69,15 +82,17 @@ private:
 
     QString m_raw_content;
 
-    QVector<SoramimiMoonCatSyllable> m_syllables;
+    std::vector<std::unique_ptr<SoramimiMoonCatSyllable>> m_syllables;
     Centiseconds m_start;
     Centiseconds m_end;
     QString m_prefix;
     QString m_suffix;
 };
 
-class SoramimiMoonCatSong final : public Song
+class SoramimiMoonCatSong final : public QObject, public Song
 {
+    Q_OBJECT
+
 public:
     SoramimiMoonCatSong(const QByteArray& data);
     // TODO: Use this constructor when converting, and remove the AddLine function
@@ -92,7 +107,7 @@ public:
     void RemoveAllLines() override;
 
 private:
-    QList<SoramimiMoonCatLine> m_lines;
+    std::vector<std::unique_ptr<SoramimiMoonCatLine>> m_lines;
 };
 
 }

@@ -5,6 +5,10 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = hibikase
 TEMPLATE = app
 
+win32 {
+    msvc:QMAKE_CXXFLAGS += /utf-8
+}
+
 
 SOURCES += main.cpp\
         MainWindow.cpp \
@@ -16,6 +20,7 @@ SOURCES += main.cpp\
     LyricsEditor.cpp \
     Settings.cpp \
     TextTransform/Syllabify.cpp \
+    TextTransform/RomanizeHangul.cpp \
     TextTransform/HangulUtils.cpp
 
 HEADERS  += MainWindow.h \
@@ -28,6 +33,7 @@ HEADERS  += MainWindow.h \
     LyricsEditor.h \
     Settings.h \
     TextTransform/Syllabify.h \
+    TextTransform/RomanizeHangul.h \
     TextTransform/HangulUtils.h
 
 FORMS    += MainWindow.ui

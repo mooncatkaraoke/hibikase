@@ -13,9 +13,24 @@ namespace TextTransform
 
 // initial = 초성, medial = 중성, final = 종성
 
+bool IsPrecomposedHangulSyllable(QChar c)
+{
+    return c.unicode() >= 0xAC00 && c.unicode() <= 0xD7A3;
+}
+
+bool IsHangulInitial(uint c)
+{
+    return (c >= 0x1100 && c <= 0x115F) || (c >= 0xA960 && c <= 0xA97C);
+}
+
+bool IsHangulInitial(const QString& text, int i)
+{
+    return i < text.size() ? IsHangulInitial(text[i].unicode()) : false;
+}
+
 bool IsHangulMedial(uint c)
 {
-    return (c >= 0x1161 && c <= 0x11A7) || (c >= 0xD7B0 && c <= 0xD7C6);
+    return (c >= 0x1160 && c <= 0x11A7) || (c >= 0xD7B0 && c <= 0xD7C6);
 }
 
 bool IsHangulMedial(const QString& text, int i)
@@ -26,7 +41,7 @@ bool IsHangulMedial(const QString& text, int i)
 bool EndsWithHangulMedial(QChar c)
 {
     return IsHangulMedial(c.unicode()) ||
-           (c.unicode() >= 0xAC00 && c.unicode() <= 0xD7A3 && c.unicode() % 28 == 0);
+           (IsPrecomposedHangulSyllable(c) && c.unicode() % 28 == 0);
 }
 
 bool IsHangulFinal(uint c)
@@ -42,7 +57,23 @@ bool IsHangulFinal(const QString& text, int i)
 bool EndsWithHangulFinal(QChar c)
 {
     return IsHangulFinal(c.unicode()) ||
-           (c.unicode() >= 0xAC00 && c.unicode() <= 0xD7A3 && c.unicode() % 28 != 0);
+           (IsPrecomposedHangulSyllable(c) && c.unicode() % 28 != 0);
+}
+
+bool IsHangulJamo(QChar c)
+{
+    return IsHangulInitial(c.unicode()) || IsHangulMedial(c.unicode()) ||
+           IsHangulFinal(c.unicode());
+}
+
+bool IsHangulJamo(const QString& text, int i)
+{
+    return i < text.size() && IsHangulJamo(text[i].unicode());
+}
+
+bool IsHangul(QChar c)
+{
+    return IsPrecomposedHangulSyllable(c) || IsHangulJamo(c);
 }
 
 bool IsHangulSyllableEnd(const QString& text, int i)

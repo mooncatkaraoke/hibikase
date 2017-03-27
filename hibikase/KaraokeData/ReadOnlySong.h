@@ -34,6 +34,7 @@ public:
     }
 
     QString GetText() const override { return m_text; }
+    void SetText(const QString&) override { throw not_editable; }
     Centiseconds GetStart() const override { return m_start; }
     Centiseconds GetEnd() const override { return m_end; }
 
@@ -56,7 +57,9 @@ public:
     Centiseconds GetStart() const override { throw not_editable; }
     Centiseconds GetEnd() const override { throw not_editable; }
     QString GetPrefix() const override { return m_prefix; }
+    void SetPrefix(const QString&) override { throw not_editable; }
     QString GetSuffix() const override { return m_suffix; }
+    void SetSuffix(const QString&) override { throw not_editable; }
     void SetSyllableSplitPoints(QVector<int>) override { throw not_editable; }
 
     QVector<ReadOnlySyllable> m_syllables;
