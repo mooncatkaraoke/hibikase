@@ -5,7 +5,6 @@
 
 #include <QChar>
 #include <QHash>
-#include <QPair>
 #include <QString>
 #include <QVector>
 
@@ -58,7 +57,6 @@ static const QHash<QChar, QString> CLUSTER_DECOMPOSITIONS = {
 };
 
 static const QHash<QString, QString> CLUSTER_ELISION = {
-
     {UnicodeLiteral("ᆨᆺ"), UnicodeLiteral("ᆨ")},
     {UnicodeLiteral("ᆫᆽ"), UnicodeLiteral("ᆫ")},
     {UnicodeLiteral("ᆫᇂ"), UnicodeLiteral("ᆫ")},
@@ -90,46 +88,7 @@ static const QHash<QChar, QChar> FINAL_HOMOPHONES = {
     {QChar(u'ᆿ'), QChar(u'ᆨ')},
     {QChar(u'ᇀ'), QChar(u'ᆮ')},
     {QChar(u'ᇁ'), QChar(u'ᆸ')},
-};
-
-static const QHash<QChar, QChar> PALATALIZATION = {
-    {QChar(u'ᄃ'), QChar(u'ᄌ')},
-    {QChar(u'ᄐ'), QChar(u'ᄎ')},
-};
-
-static const QHash<QPair<QChar, QChar>, QPair<QChar, QChar>> CONSONANT_ASSIMILATION = {
-    {qMakePair(u'ᆨ', u'ᄂ'), qMakePair(u'ᆼ', u'ᄂ')},
-    {qMakePair(u'ᆨ', u'ᄅ'), qMakePair(u'ᆼ', u'ᄂ')},
-    {qMakePair(u'ᆨ', u'ᄆ'), qMakePair(u'ᆼ', u'ᄆ')},
-    {qMakePair(u'ᆨ', u'ᄒ'), qMakePair('\0', u'ᄁ')},
-
-    {qMakePair(u'ᆫ', u'ᄅ'), qMakePair(u'ᆯ', u'ᄅ')},
-
-    {qMakePair(u'ᆮ', u'ᄂ'), qMakePair(u'ᆫ', u'ᄂ')},
-    {qMakePair(u'ᆮ', u'ᄅ'), qMakePair(u'ᆫ', u'ᄂ')},
-    {qMakePair(u'ᆮ', u'ᄆ'), qMakePair(u'ᆫ', u'ᄆ')},
-    {qMakePair(u'ᆮ', u'ᄒ'), qMakePair('\0', u'ᄐ')},
-
-    {qMakePair(u'ᆯ', u'ᄂ'), qMakePair(u'ᆯ', u'ᄅ')},
-
-    {qMakePair(u'ᆷ', u'ᄅ'), qMakePair(u'ᆷ', u'ᄂ')},
-
-    {qMakePair(u'ᆸ', u'ᄂ'), qMakePair(u'ᆷ', u'ᄂ')},
-    {qMakePair(u'ᆸ', u'ᄅ'), qMakePair(u'ᆷ', u'ᄂ')},
-    {qMakePair(u'ᆸ', u'ᄆ'), qMakePair(u'ᆷ', u'ᄆ')},
-    {qMakePair(u'ᆸ', u'ᄒ'), qMakePair('\0', u'ᄑ')},
-
-    {qMakePair(u'ᆼ', u'ᄅ'), qMakePair(u'ᆼ', u'ᄂ')},
-
-    {qMakePair(u'ᇂ', u'ᄀ'), qMakePair('\0', u'ᄏ')},
-    {qMakePair(u'ᇂ', u'ᄂ'), qMakePair(u'ᆫ', u'ᄂ')},
-    {qMakePair(u'ᇂ', u'ᄃ'), qMakePair('\0', u'ᄐ')},
-    {qMakePair(u'ᇂ', u'ᄅ'), qMakePair(u'ᆫ', u'ᄂ')},
-    {qMakePair(u'ᇂ', u'ᄆ'), qMakePair(u'ᆫ', u'ᄆ')},
-    {qMakePair(u'ᇂ', u'ᄇ'), qMakePair('\0', u'ᄑ')},
-    {qMakePair(u'ᇂ', u'ᄉ'), qMakePair('\0', u'ᄊ')},
-    {qMakePair(u'ᇂ', u'ᄌ'), qMakePair('\0', u'ᄎ')},
-    {qMakePair(u'ᇂ', u'ᄒ'), qMakePair('\0', u'ᄐ')},
+    {QChar(u'ᇂ'), QChar(u'ᆮ')},
 };
 
 static const QHash<QChar, QString> INITIALS = {
@@ -186,7 +145,6 @@ static const QHash<QChar, QString> FINALS = {
     {QChar(u'ᆷ'), QStringLiteral("m")},
     {QChar(u'ᆸ'), QStringLiteral("p")},
     {QChar(u'ᆼ'), QStringLiteral("ng")},
-    {QChar(u'ᇂ'), QStringLiteral("t")},
 };
 
 struct Syllable
@@ -262,46 +220,118 @@ static QString DecomposeHangul(QString text)
     return result;
 }
 
-static void AssimilateConstants(QString* finals, Syllable* next_syllable)
+// Returns the matching value from the lookup table if one exists.
+// Otherwise, returns the passed-in value.
+template <class A, class B>
+static B Lookup(const QHash<A, B> lookup_table, A value)
 {
-    if (finals->isEmpty() || next_syllable->initials.isEmpty())
+    return lookup_table.value(value, value);
+}
+
+// The passed-in syllable must contain at least one initial
+static void Palatalize(Syllable* syllable)
+{
+    static const QHash<QChar, QChar> PALATALIZATION = {
+        {QChar(u'ᄃ'), QChar(u'ᄌ')},
+        {QChar(u'ᄐ'), QChar(u'ᄎ')},
+    };
+
+    if (syllable->medials != UnicodeLiteral("ᅵ"))
         return;
 
-    QChar next_initial = next_syllable->initials[0];
-    bool i_affects_next_initial = false;
+    const int last_index = syllable->initials.size() - 1;
+    const QChar c = syllable->initials[last_index];
+    syllable->initials.replace(last_index, 1, Lookup(PALATALIZATION, c));
+}
 
+static void Resyllabify(QString* finals, Syllable* next_syllable)
+{
+    if (finals->isEmpty())
+        return;
+
+    const QChar last_final = (*finals)[finals->size() - 1];
+    if (last_final == QChar(u'ᆼ') || next_syllable->initials != UnicodeLiteral("ᄋ"))
+        return;
+
+    next_syllable->initials = Lookup(FINAL_TO_INITIAL, last_final);
+    finals->chop(1);
+    Palatalize(next_syllable);
+}
+
+static void Aspirate(QString* finals, Syllable* next_syllable)
+{
+    static const QHash<QChar, QChar> ASPIRATION = {
+        {QChar(u'ᄀ'), QChar(u'ᄏ')},
+        {QChar(u'ᄃ'), QChar(u'ᄐ')},
+        {QChar(u'ᄇ'), QChar(u'ᄑ')},
+        {QChar(u'ᄉ'), QChar(u'ᄊ')},
+        {QChar(u'ᄌ'), QChar(u'ᄎ')},
+    };
+
+    if (!finals->isEmpty() && !next_syllable->initials.isEmpty() &&
+        next_syllable->initials[0] == QChar(u'ᄒ'))
     {
         const QChar last_final = (*finals)[finals->size() - 1];
-        if (last_final != QChar(u'ᆼ') && next_initial == QChar(u'ᄋ'))
+        const QChar last_final_pronunciation = Lookup(FINAL_HOMOPHONES, last_final);
+        auto it = ASPIRATION.constFind(Lookup(FINAL_TO_INITIAL, last_final_pronunciation));
+        if (it != ASPIRATION.constEnd())
         {
-            next_initial = FINAL_TO_INITIAL.value(last_final, last_final);
-            i_affects_next_initial = true;
             finals->chop(1);
+            next_syllable->initials[0] = it.value();
+            Palatalize(next_syllable);
         }
     }
 
-    if (!finals->isEmpty())
+    if (!finals->isEmpty() && !next_syllable->initials.isEmpty() &&
+        (*finals)[finals->size() - 1] == QChar(u'ᇂ'))
     {
-        i_affects_next_initial &= next_initial == QChar(u'ᄒ');
-
-        QChar last_final = (*finals)[finals->size() - 1];
-        QPair<QChar, QChar> consonants = qMakePair(last_final, next_initial);
-        const QChar last_final_pronunciation = FINAL_HOMOPHONES.value(last_final, last_final);
-        QPair<QChar, QChar> consonants_pronunciation = qMakePair(last_final_pronunciation,
-                                                                 next_initial);
-        consonants = CONSONANT_ASSIMILATION.value(consonants_pronunciation, consonants);
-        last_final = consonants.first;
-        next_initial = consonants.second;
-
-        finals->chop(1);
-        if (!last_final.isNull())
-            finals->append(last_final);
+        const QChar next_initial = next_syllable->initials[0];
+        auto it = ASPIRATION.constFind(next_initial);
+        if (it != ASPIRATION.constEnd())
+        {
+            finals->chop(1);
+            next_syllable->initials[0] = it.value();
+        }
     }
+}
 
-    if (i_affects_next_initial && next_syllable->medials == UnicodeLiteral("ᅵ"))
-        next_initial = PALATALIZATION.value(next_initial, next_initial);
+static void AssimilateL(QCharRef final, QCharRef initial)
+{
+    if (final == QChar(u'ᆯ') && initial == QChar(u'ᄂ'))
+        final = QChar(u'ᆯ');
+    else if (final == QChar(u'ᆫ') && initial == QChar(u'ᄅ'))
+        initial = QChar(u'ᄅ');
+    else if (final != QChar(u'ᆯ') && initial == QChar(u'ᄅ'))
+        initial = QChar(u'ᄂ');
+}
 
-    next_syllable->initials.replace(0, 1, next_initial);
+static void AssimilateNasal(QCharRef final, QCharRef initial)
+{
+    static const QHash<QChar, QChar> NASALIZATION = {
+        {QChar(u'ᆨ'), QChar(u'ᆼ')},
+        {QChar(u'ᆮ'), QChar(u'ᆫ')},
+        {QChar(u'ᆸ'), QChar(u'ᆷ')},
+    };
+
+    if (initial == QChar(u'ᄂ') || initial == QChar(u'ᄆ'))
+    {
+        auto it = NASALIZATION.constFind(Lookup(FINAL_HOMOPHONES, QChar(final)));
+        if (it != NASALIZATION.constEnd())
+            final = it.value();
+    }
+}
+
+static void AssimilateConstants(QString* finals, Syllable* next_syllable)
+{
+    Resyllabify(finals, next_syllable);
+    Aspirate(finals, next_syllable);
+    if (!finals->isEmpty() && !next_syllable->initials.isEmpty())
+    {
+        QCharRef last_final = (*finals)[finals->size() - 1];
+        QCharRef first_initial = next_syllable->initials[0];
+        AssimilateL(last_final, first_initial);
+        AssimilateNasal(last_final, first_initial);
+    }
 }
 
 static QString RomanizeHangul(const Syllable& syllable, Syllable* next_syllable)
@@ -309,18 +339,18 @@ static QString RomanizeHangul(const Syllable& syllable, Syllable* next_syllable)
     QString result;
 
     for (QChar c : syllable.initials)
-        result += INITIALS.value(c, QString(c));
+        result += Lookup(INITIALS, c);
 
     for (QChar c : syllable.medials)
-        result += MEDIALS.value(c, QString(c));
+        result += Lookup(MEDIALS, c);
 
     QString finals;
     for (QChar c : syllable.finals)
-        finals += CLUSTER_DECOMPOSITIONS.value(c, QString(c));
+        finals += Lookup(CLUSTER_DECOMPOSITIONS, c);
 
     AssimilateConstants(&finals, next_syllable);
 
-    finals = CLUSTER_ELISION.value(finals, finals);
+    finals = Lookup(CLUSTER_ELISION, finals);
 
     AssimilateConstants(&finals, next_syllable);
 
@@ -331,7 +361,7 @@ static QString RomanizeHangul(const Syllable& syllable, Syllable* next_syllable)
     }
 
     for (QChar c : finals)
-        result += FINALS.value(FINAL_HOMOPHONES.value(c, c), QString(c));
+        result += Lookup(FINALS, Lookup(FINAL_HOMOPHONES, c));
 
     return result;
 }
