@@ -23,7 +23,7 @@
 namespace KaraokeData
 {
 
-static const QString PLACEHOLDER_TIMECODE = QStringLiteral("[99:99:99]");
+static const QString PLACEHOLDER_TIMECODE = QStringLiteral("[99:59:99]");
 
 SoramimiMoonCatSyllable::SoramimiMoonCatSyllable(const QString& text,
                                                  Centiseconds start, Centiseconds end)
