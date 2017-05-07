@@ -298,9 +298,9 @@ static void Aspirate(QString* finals, Syllable* next_syllable)
 static void AssimilateL(QCharRef final, QCharRef initial)
 {
     if (final == QChar(u'ᆯ') && initial == QChar(u'ᄂ'))
-        final = QChar(u'ᆯ');
-    else if (final == QChar(u'ᆫ') && initial == QChar(u'ᄅ'))
         initial = QChar(u'ᄅ');
+    else if (final == QChar(u'ᆫ') && initial == QChar(u'ᄅ'))
+        final = QChar(u'ᆯ');
     else if (final != QChar(u'ᆯ') && initial == QChar(u'ᄅ'))
         initial = QChar(u'ᄂ');
 }
