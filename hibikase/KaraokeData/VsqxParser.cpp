@@ -17,6 +17,11 @@
 namespace KaraokeData
 {
 
+enum VsqVersion {
+    VSQ3,
+    VSQ4
+};
+
 std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
 {
     std::unique_ptr<ReadOnlySong> song = std::make_unique<ReadOnlySong>();
@@ -27,8 +32,19 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
     if (!reader.readNextStartElement())
         return song;
 
-    if (reader.name() != QStringLiteral("vsq3"))
+    VsqVersion version;
+    if (reader.name() == QStringLiteral("vsq3"))
+        version = VSQ3;
+    else if (reader.name() == QStringLiteral("vsq4"))
+        version = VSQ4;
+    else
         return song;
+
+    static const QString bpmName{version == VSQ3 ? QStringLiteral("bpm") : QStringLiteral("v")};
+    static const QString musicalPartName{version == VSQ3 ? QStringLiteral("musicalPart") : QStringLiteral("vsPart")};
+    static const QString posTickName{version == VSQ3 ? QStringLiteral("posTick") : QStringLiteral("t")};
+    static const QString durTickName{version == VSQ3 ? QStringLiteral("durTick") : QStringLiteral("dur")};
+    static const QString lyricName{version == VSQ3 ? QStringLiteral("lyric") : QStringLiteral("y")};
 
     std::chrono::nanoseconds tick_duration(0);
     int resolution = 0;
@@ -50,7 +66,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                 {
                     while (reader.readNextStartElement())
                     {
-                        if (reader.name() == QStringLiteral("bpm"))
+                        if (reader.name() == bpmName)
                             bpm_times_100 = reader.readElementText().toInt();
                         else
                             reader.skipCurrentElement();
@@ -73,7 +89,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
         {
             while (reader.readNextStartElement())
             {
-                if (reader.name() == QStringLiteral("musicalPart"))
+                if (reader.name() == musicalPartName)
                 {
                     song->m_lines.append(ReadOnlyLine());
 
@@ -89,11 +105,11 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                             while (reader.readNextStartElement())
                             {
                                 QStringRef name3 = reader.name();
-                                if (name3 == QStringLiteral("posTick"))
+                                if (name3 == posTickName)
                                     position_ticks = reader.readElementText().toInt();
-                                else if (name3 == QStringLiteral("durTick"))
+                                else if (name3 == durTickName)
                                     duration_ticks = reader.readElementText().toInt();
-                                else if (name3 == QStringLiteral("lyric"))
+                                else if (name3 == lyricName)
                                     lyric = reader.readElementText();
                                 else
                                     reader.skipCurrentElement();
