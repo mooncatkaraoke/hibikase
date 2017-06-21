@@ -36,8 +36,12 @@ static bool IsCJKSyllableEnd(const QString& text, int i)
            (codepoint >= 0x4E00 && codepoint <= 0xA48F) ||
            (codepoint >= 0xF900 && codepoint <= 0xFAFF) ||
            (codepoint >= 0xFF66 && codepoint <= 0xFF9D) ||
+           (codepoint >= 0x16FE0 && codepoint <= 0x16FE1) ||
+           (codepoint >= 0x17000 && codepoint <= 0x187FF) ||
+           (codepoint >= 0x1B000 && codepoint <= 0x1B12F) ||
+           (codepoint >= 0x1B170 && codepoint <= 0x1B2FF) ||
            (codepoint >= 0x20000 && codepoint <= 0x2A6DF) ||
-           (codepoint >= 0x2A700 && codepoint <= 0x2CEAF) ||
+           (codepoint >= 0x2A700 && codepoint <= 0x2EBEF) ||
            (codepoint >= 0x2F800 && codepoint <= 0x2FA1F);
 }
 
