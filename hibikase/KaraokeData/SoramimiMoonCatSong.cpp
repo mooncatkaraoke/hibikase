@@ -108,7 +108,7 @@ void SoramimiMoonCatLine::Serialize(const QVector<Syllable*>& syllables)
             if (m_raw_content[last_character_of_previous_text] == ' ')
             {
                 // If the previous syllable ended with a space, put the space
-                // between the two timecode instead of before. This isn't
+                // between the two timecodes instead of before. This isn't
                 // strictly required, but it's common practice because Soramimi
                 // Karaoke Tools doesn't handle adjacent timecodes perfectly.
                 m_raw_content.remove(last_character_of_previous_text, 1);
