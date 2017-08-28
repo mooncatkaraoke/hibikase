@@ -213,17 +213,7 @@ QString SoramimiMoonCatLine::SerializeTime(Centiseconds time)
     Seconds seconds = std::chrono::duration_cast<Seconds>(time - minutes);
     Centiseconds centiseconds = time - minutes - seconds;
 
-    // If the time is a bit too large, cram the minutes into two digits
-    // anyway. Not doing this would lead to the placeholder timecode
-    // [99:99:99] being changed into [100:39:99] when serializing.
-    if (minutes == Minutes(100) && seconds <= Seconds(39))
-    {
-        minutes -= Minutes(1);
-        seconds += Seconds(60);
-    }
-
-    // TODO: What if the time is even bigger than [99:99:99]?
-
+    // TODO: What if minutes >= 100?
     return "[" + SerializeNumber(minutes.count(), 2) + ":" +
                  SerializeNumber(seconds.count(), 2) + ":" +
                  SerializeNumber(centiseconds.count(), 2) + "]";
