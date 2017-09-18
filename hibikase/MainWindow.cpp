@@ -16,12 +16,14 @@
 
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QRadioButton>
 #include <QString>
 
 #include "KaraokeContainer/Container.h"
 #include "KaraokeContainer/PlainContainer.h"
 #include "KaraokeData/Song.h"
 
+#include "LyricsEditor.h"
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
@@ -36,6 +38,20 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(SongReplaced(KaraokeData::Song*)),
             ui->mainLyrics, SLOT(ReloadSong(KaraokeData::Song*)));
     connect(m_timer, SIGNAL(timeout()), this, SLOT(UpdateTime()));
+
+    connect(ui->timingRadioButton, &QRadioButton::toggled, [this](bool checked) {
+        if (checked)
+            ui->mainLyrics->SetMode(LyricsEditor::Mode::Timing);
+    });
+    connect(ui->textRadioButton, &QRadioButton::toggled, [this](bool checked) {
+        if (checked)
+            ui->mainLyrics->SetMode(LyricsEditor::Mode::Text);
+    });
+    connect(ui->rawRadioButton, &QRadioButton::toggled, [this](bool checked) {
+        if (checked)
+            ui->mainLyrics->SetMode(LyricsEditor::Mode::Raw);
+    });
+    ui->textRadioButton->setChecked(true);
 
     // TODO: Add a way to create a Soramimi/MoonCat song instead of having to use Load
     m_song = KaraokeData::Load({});

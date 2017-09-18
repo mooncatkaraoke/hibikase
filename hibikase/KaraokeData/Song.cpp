@@ -33,6 +33,20 @@ QString Line::GetText()
     return text;
 }
 
+QString Song::GetText()
+{
+    // TODO: Performance cost of GetLines() copying pointers into a QVector?
+    const QVector<Line*> lines = GetLines();
+
+    QString text;
+    for (Line* line : lines)
+    {
+        text += line->GetText();
+        text += '\n';
+    }
+    return text;
+}
+
 std::unique_ptr<Song> Load(const QByteArray& data)
 {
     std::unique_ptr<Song> vsqx = ParseVsqx(data);

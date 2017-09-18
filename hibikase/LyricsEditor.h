@@ -25,7 +25,17 @@ class LyricsEditor : public QWidget
 {
     Q_OBJECT
 public:
+
+    enum class Mode
+    {
+        Timing,
+        Text,
+        Raw
+    };
+
     explicit LyricsEditor(QWidget *parent = 0);
+
+    void SetMode(Mode mode);
 
     // TODO: Get rid of the need for this function by continually updating the song
     void RebuildSong();
@@ -33,15 +43,14 @@ public:
 public slots:
     void ReloadSong(KaraokeData::Song* song);
 
-signals:
-
 private slots:
     void ShowContextMenu(const QPoint& point);
     void SyllabifyBasic();
     void RomanizeHangul();
 
 private:
-    QPlainTextEdit* m_text_edit;
+    QPlainTextEdit* m_raw_text_edit;
+    QPlainTextEdit* m_rich_text_edit;
 
     KaraokeData::Song* m_song_ref;
 };

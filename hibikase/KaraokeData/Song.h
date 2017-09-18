@@ -62,6 +62,8 @@ public:
     virtual void AddLine(const QVector<Syllable*>& syllables,
                          QString prefix = QString(), QString suffix = QString()) = 0;
     virtual void RemoveAllLines() = 0;
+    // TODO: GetText() is supposed to be const
+    virtual QString GetText();
 };
 
 std::unique_ptr<Song> Load(const QByteArray& data);
