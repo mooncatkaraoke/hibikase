@@ -35,9 +35,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->timeLabel->setTextFormat(Qt::PlainText);
 
-    connect(this, SIGNAL(SongReplaced(KaraokeData::Song*)),
-            ui->mainLyrics, SLOT(ReloadSong(KaraokeData::Song*)));
-    connect(m_timer, SIGNAL(timeout()), this, SLOT(UpdateTime()));
+    connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
+    connect(m_timer, &QTimer::timeout, this, &MainWindow::UpdateTime);
 
     connect(ui->timingRadioButton, &QRadioButton::toggled, [this](bool checked) {
         if (checked)

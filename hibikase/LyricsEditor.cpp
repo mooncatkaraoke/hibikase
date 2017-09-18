@@ -28,8 +28,8 @@ LyricsEditor::LyricsEditor(QWidget *parent) : QWidget(parent)
     m_rich_text_edit = new QPlainTextEdit();
 
     m_raw_text_edit->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_raw_text_edit, SIGNAL(customContextMenuRequested(const QPoint&)),
-            this, SLOT(ShowContextMenu(const QPoint&)));
+    connect(m_raw_text_edit, &QPlainTextEdit::customContextMenuRequested,
+            this, &LyricsEditor::ShowContextMenu);
 
     m_rich_text_edit->setReadOnly(true);
 

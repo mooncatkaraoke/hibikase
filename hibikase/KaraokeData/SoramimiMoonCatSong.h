@@ -70,10 +70,8 @@ public:
     // All split points must be unique and in ascending order
     void SetSyllableSplitPoints(QVector<int> split_points) override;
 
-private slots:
-    void Serialize();
-
 private:
+    void Serialize();
     void Serialize(const QVector<Syllable*>& syllables);
     void Deserialize();
 

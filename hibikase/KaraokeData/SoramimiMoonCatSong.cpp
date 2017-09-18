@@ -187,8 +187,8 @@ void SoramimiMoonCatLine::Deserialize()
                     {
                         m_syllables.emplace_back(std::make_unique<SoramimiMoonCatSyllable>(
                                                  text.toString(), previous_time, time));
-                        QObject::connect(m_syllables.back().get(), SIGNAL(Changed()),
-                                         this, SLOT(Serialize()));
+                        connect(m_syllables.back().get(), &SoramimiMoonCatSyllable::Changed,
+                                this, [this] { Serialize(); });
                     }
                 }
 
