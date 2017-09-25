@@ -15,7 +15,12 @@
 namespace KaraokeData
 {
 
-QString Line::GetText()
+QString Line::GetText() const
+{
+    return m_text;
+}
+
+void Line::BuildText()
 {
     // TODO: Performance cost of GetSyllables() copying pointers into a QVector?
     const QVector<Syllable*> syllables = GetSyllables();
@@ -24,13 +29,12 @@ QString Line::GetText()
     for (const Syllable* syllable : syllables)
         size += syllable->GetText().size();
 
-    QString text;
-    text.reserve(size);
-    text += GetPrefix();
+    m_text.clear();
+    m_text.reserve(size);
+    m_text += GetPrefix();
     for (const Syllable* syllable : syllables)
-        text += syllable->GetText();
-    text += GetSuffix();
-    return text;
+        m_text += syllable->GetText();
+    m_text += GetSuffix();
 }
 
 QString Song::GetText()

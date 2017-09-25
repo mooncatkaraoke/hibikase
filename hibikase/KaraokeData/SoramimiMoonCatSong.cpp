@@ -41,6 +41,7 @@ SoramimiMoonCatLine::SoramimiMoonCatLine(const QString& content)
     : m_raw_content(content)
 {
     Deserialize();
+    BuildText();
 }
 
 SoramimiMoonCatLine::SoramimiMoonCatLine(const QVector<Syllable*>& syllables,
@@ -49,6 +50,7 @@ SoramimiMoonCatLine::SoramimiMoonCatLine(const QVector<Syllable*>& syllables,
 {
     Serialize(syllables);
     Deserialize();
+    BuildText();
 }
 
 QVector<Syllable*> SoramimiMoonCatLine::GetSyllables()
@@ -64,12 +66,14 @@ void SoramimiMoonCatLine::SetPrefix(const QString& text)
 {
     m_prefix = text;
     Serialize();
+    BuildText();
 }
 
 void SoramimiMoonCatLine::SetSuffix(const QString& text)
 {
     m_suffix = text;
     Serialize();
+    BuildText();
 }
 
 void SoramimiMoonCatLine::SetSyllableSplitPoints(QVector<int> split_points)
@@ -189,6 +193,8 @@ void SoramimiMoonCatLine::Deserialize()
                                                  text.toString(), previous_time, time));
                         connect(m_syllables.back().get(), &SoramimiMoonCatSyllable::Changed,
                                 this, [this] { Serialize(); });
+                        connect(m_syllables.back().get(), &SoramimiMoonCatSyllable::Changed,
+                                this, &SoramimiMoonCatLine::BuildText);
                     }
                 }
 

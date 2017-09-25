@@ -68,6 +68,11 @@ public:
     void SetPrefix(const QString&) override { throw not_editable; }
     QString GetSuffix() const override { return m_suffix; }
     void SetSuffix(const QString&) override { throw not_editable; }
+    QString GetText() const override
+    {
+        const_cast<ReadOnlyLine*>(this)->BuildText();
+        return Line::GetText();
+    }
     void SetSyllableSplitPoints(QVector<int>) override { throw not_editable; }
 
     std::vector<std::unique_ptr<ReadOnlySyllable>> m_syllables;

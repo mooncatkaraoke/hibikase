@@ -47,10 +47,15 @@ public:
     virtual void SetPrefix(const QString& text) = 0;
     virtual QString GetSuffix() const = 0;
     virtual void SetSuffix(const QString& text) = 0;
-    // TODO: GetText() is supposed to be const
-    virtual QString GetText();
+    virtual QString GetText() const;
     // All split points must be unique and in ascending order
     virtual void SetSyllableSplitPoints(QVector<int> split_points) = 0;
+
+protected slots:
+    virtual void BuildText();
+
+protected:
+    QString m_text;
 };
 
 class Song : public QObject
