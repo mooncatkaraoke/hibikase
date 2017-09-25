@@ -91,7 +91,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
             {
                 if (reader.name() == musicalPartName)
                 {
-                    song->m_lines.append(ReadOnlyLine());
+                    song->m_lines.emplace_back(std::make_unique<ReadOnlyLine>());
 
                     while (reader.readNextStartElement())
                     {
@@ -131,7 +131,8 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                                             tick_duration * position_ticks);
                                 auto end = std::chrono::duration_cast<Centiseconds>(
                                             tick_duration * (position_ticks + duration_ticks));
-                                song->m_lines.back().m_syllables.append(ReadOnlySyllable(lyric, start, end));
+                                song->m_lines.back()->m_syllables.emplace_back(
+                                            std::make_unique<ReadOnlySyllable>(lyric, start, end));
                             }
                         }
                         else
@@ -140,7 +141,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                         }
                     }
 
-                    QString& last_lyric = song->m_lines.back().m_syllables.back().m_text;
+                    QString& last_lyric = song->m_lines.back()->m_syllables.back()->m_text;
                     if (last_lyric.endsWith(' '))
                         last_lyric.chop(1);
                 }

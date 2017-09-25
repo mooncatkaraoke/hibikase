@@ -26,7 +26,7 @@ namespace KaraokeData
 typedef std::chrono::duration<int32_t> Seconds;
 typedef std::chrono::duration<int32_t, std::ratio<60, 1>> Minutes;
 
-class SoramimiMoonCatSyllable final : public QObject, public Syllable
+class SoramimiMoonCatSyllable final : public Syllable
 {
     Q_OBJECT
 
@@ -50,7 +50,7 @@ private:
     Centiseconds m_end;
 };
 
-class SoramimiMoonCatLine final : public QObject, public Line
+class SoramimiMoonCatLine final : public Line
 {
     Q_OBJECT
 
@@ -87,7 +87,7 @@ private:
     QString m_suffix;
 };
 
-class SoramimiMoonCatSong final : public QObject, public Song
+class SoramimiMoonCatSong final : public Song
 {
     Q_OBJECT
 

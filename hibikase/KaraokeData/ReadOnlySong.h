@@ -6,25 +6,31 @@
 #pragma once
 
 #include <exception>
+#include <memory>
+#include <vector>
 
 #include <QString>
-#include <QVector>
 
 #include "KaraokeData/Song.h"
+
+namespace
+{
+    class NotEditable final : public std::exception
+    {
+        virtual const char* what() const throw()
+        {
+            return "Not editable";
+        }
+    } not_editable;
+}
 
 namespace KaraokeData
 {
 
-class NotEditable final : public std::exception
-{
-    virtual const char* what() const throw()
-    {
-        return "Not editable";
-    }
-} not_editable;
-
 class ReadOnlySyllable final : public Syllable
 {
+    Q_OBJECT
+
 public:
     // Note: This default constructor won't initialize class members properly
     ReadOnlySyllable() {}
@@ -45,13 +51,15 @@ public:
 
 class ReadOnlyLine final : public Line
 {
+    Q_OBJECT
+
 public:
     virtual QVector<Syllable*> GetSyllables() override
     {
         QVector<Syllable*> result;
         result.reserve(m_syllables.size());
-        for (ReadOnlySyllable& syllable : m_syllables)
-            result.push_back(&syllable);
+        for (std::unique_ptr<ReadOnlySyllable>& syllable : m_syllables)
+            result.push_back(syllable.get());
         return result;
     }
     Centiseconds GetStart() const override { throw not_editable; }
@@ -62,13 +70,15 @@ public:
     void SetSuffix(const QString&) override { throw not_editable; }
     void SetSyllableSplitPoints(QVector<int>) override { throw not_editable; }
 
-    QVector<ReadOnlySyllable> m_syllables;
+    std::vector<std::unique_ptr<ReadOnlySyllable>> m_syllables;
     QString m_prefix;
     QString m_suffix;
 };
 
 class ReadOnlySong final : public Song
 {
+    Q_OBJECT
+
 public:
     bool IsValid() const override { return m_valid; }
     bool IsEditable() const override { return false; }
@@ -78,15 +88,15 @@ public:
     {
         QVector<Line*> result;
         result.reserve(m_lines.size());
-        for (ReadOnlyLine& line : m_lines)
-            result.push_back(&line);
+        for (std::unique_ptr<ReadOnlyLine>& line : m_lines)
+            result.push_back(line.get());
         return result;
     }
     void AddLine(const QVector<Syllable*>&, QString, QString) override { throw not_editable; }
     void RemoveAllLines() override { throw not_editable; }
 
     bool m_valid = false;
-    QVector<ReadOnlyLine> m_lines;
+    std::vector<std::unique_ptr<ReadOnlyLine>> m_lines;
 };
 
 }

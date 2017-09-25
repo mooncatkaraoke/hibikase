@@ -11,6 +11,7 @@
 #include <ratio>
 
 #include <QByteArray>
+#include <QObject>
 #include <QString>
 #include <QVector>
 
@@ -19,8 +20,10 @@ namespace KaraokeData
 
 typedef std::chrono::duration<int32_t, std::centi> Centiseconds;
 
-class Syllable
+class Syllable : public QObject
 {
+    Q_OBJECT
+
 public:
     virtual ~Syllable() = default;
 
@@ -30,8 +33,10 @@ public:
     virtual Centiseconds GetEnd() const = 0;
 };
 
-class Line
+class Line : public QObject
 {
+    Q_OBJECT
+
 public:
     virtual ~Line() = default;
 
@@ -48,8 +53,10 @@ public:
     virtual void SetSyllableSplitPoints(QVector<int> split_points) = 0;
 };
 
-class Song
+class Song : public QObject
 {
+    Q_OBJECT
+
 public:
     virtual ~Song() = default;
 
