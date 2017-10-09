@@ -11,6 +11,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include <chrono>
 #include <utility>
 
 #include <QAction>
@@ -57,6 +58,43 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
     m_song_ref = song;
     m_raw_text_edit->setPlainText(song->GetRaw());
     m_rich_text_edit->setPlainText(song->GetText());
+}
+
+void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
+{
+    QTextCharFormat active;
+    active.setBackground(Qt::green);
+    QTextCharFormat inactive;
+    inactive.setBackground(Qt::white);
+
+    QTextCursor cursor(m_rich_text_edit->document());
+    cursor.setPosition(0, QTextCursor::MoveAnchor);
+
+    size_t i = 0;
+    for (KaraokeData::Line* line : m_song_ref->GetLines())
+    {
+        const bool line_is_active = line->GetStart() <= time && line->GetEnd() >= time;
+        if (!line_is_active)
+        {
+            cursor.setPosition(i, QTextCursor::MoveAnchor);
+            i += line->GetText().size();
+            cursor.setPosition(i, QTextCursor::KeepAnchor);
+            cursor.setCharFormat(inactive);
+        }
+        else
+        {
+            for (KaraokeData::Syllable* syllable : line->GetSyllables())
+            {
+                cursor.setPosition(i, QTextCursor::MoveAnchor);
+                i += syllable->GetText().size();
+                cursor.setPosition(i, QTextCursor::KeepAnchor);
+                const bool syllable_is_active = syllable->GetStart() <= time && syllable->GetEnd() >= time;
+                cursor.setCharFormat(syllable_is_active ? active : inactive);
+            }
+        }
+
+        i++;  // For the newline character
+    }
 }
 
 void LyricsEditor::SetMode(Mode mode)

@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <memory>
 
 #include <QPlainTextEdit>
@@ -42,6 +43,7 @@ public:
 
 public slots:
     void ReloadSong(KaraokeData::Song* song);
+    void UpdateTime(std::chrono::milliseconds time);
 
 private slots:
     void ShowContextMenu(const QPoint& point);

@@ -11,6 +11,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include <chrono>
 #include <memory>
 #include <utility>
 
@@ -143,12 +144,14 @@ void MainWindow::on_playButton_clicked()
 void MainWindow::UpdateTime()
 {
     QString text;
+    qint64 ms = -1;
     if (m_is_playing)
     {
-        qint64 ms = m_playback_timer.elapsed();
+        ms = m_playback_timer.elapsed();
         text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
                                          .arg(ms / 1000 % 60, 2, 10, QChar('0'))
                                          .arg(ms / 10 % 100,  2, 10, QChar('0'));
     }
+    ui->mainLyrics->UpdateTime(std::chrono::milliseconds(ms));
     ui->timeLabel->setText(text);
 }
