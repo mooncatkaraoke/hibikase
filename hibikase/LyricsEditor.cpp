@@ -34,6 +34,9 @@ LyricsEditor::LyricsEditor(QWidget *parent) : QWidget(parent)
 
     m_rich_text_edit->setReadOnly(true);
 
+    m_raw_text_edit->setTabChangesFocus(true);
+    m_rich_text_edit->setTabChangesFocus(true);
+
     QVBoxLayout* main_layout = new QVBoxLayout();
     main_layout->setMargin(0);
     main_layout->addWidget(m_raw_text_edit);
