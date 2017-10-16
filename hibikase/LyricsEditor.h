@@ -15,12 +15,15 @@
 
 #include <chrono>
 #include <memory>
+#include <vector>
 
 #include <QPlainTextEdit>
 #include <QPoint>
 #include <QWidget>
 
-#include <KaraokeData/Song.h>
+#include "KaraokeData/Song.h"
+
+#include "LineTimingDecorations.h"
 
 class LyricsEditor : public QWidget
 {
@@ -34,7 +37,7 @@ public:
         Raw
     };
 
-    explicit LyricsEditor(QWidget *parent = 0);
+    explicit LyricsEditor(QWidget* parent = 0);
 
     void SetMode(Mode mode);
 
@@ -53,6 +56,7 @@ private slots:
 private:
     QPlainTextEdit* m_raw_text_edit;
     QPlainTextEdit* m_rich_text_edit;
+    std::vector<std::unique_ptr<LineTimingDecorations>> m_line_timing_decorations;
 
     KaraokeData::Song* m_song_ref;
 };

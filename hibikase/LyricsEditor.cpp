@@ -12,6 +12,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <chrono>
+#include <memory>
 #include <utility>
 
 #include <QAction>
@@ -23,7 +24,7 @@
 #include "TextTransform/RomanizeHangul.h"
 #include "TextTransform/Syllabify.h"
 
-LyricsEditor::LyricsEditor(QWidget *parent) : QWidget(parent)
+LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
 {
     m_raw_text_edit = new QPlainTextEdit();
     m_rich_text_edit = new QPlainTextEdit();
@@ -54,50 +55,36 @@ void LyricsEditor::RebuildSong()
     m_song_ref->RemoveAllLines();
     for (KaraokeData::Line* line : new_song->GetLines())
         m_song_ref->AddLine(line->GetSyllables(), line->GetPrefix(), line->GetSuffix());
+
+    ReloadSong(m_song_ref);
 }
 
 void LyricsEditor::ReloadSong(KaraokeData::Song* song)
 {
     m_song_ref = song;
+
     m_raw_text_edit->setPlainText(song->GetRaw());
     m_rich_text_edit->setPlainText(song->GetText());
+
+    QTextDocument* document = m_rich_text_edit->document();
+    const QVector<KaraokeData::Line*> lines = song->GetLines();
+    m_line_timing_decorations.clear();
+    m_line_timing_decorations.reserve(lines.size());
+    size_t i = 0;
+    for (KaraokeData::Line* line : lines)
+    {
+        auto decorations = std::make_unique<LineTimingDecorations>(line, i, document);
+        m_line_timing_decorations.emplace_back(std::move(decorations));
+
+        i += line->GetText().size();
+        i++;  // For the newline character
+    }
 }
 
 void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
 {
-    QTextCharFormat active;
-    active.setBackground(Qt::green);
-    QTextCharFormat inactive;
-    inactive.setBackground(Qt::white);
-
-    QTextCursor cursor(m_rich_text_edit->document());
-    cursor.setPosition(0, QTextCursor::MoveAnchor);
-
-    size_t i = 0;
-    for (KaraokeData::Line* line : m_song_ref->GetLines())
-    {
-        const bool line_is_active = line->GetStart() <= time && line->GetEnd() >= time;
-        if (!line_is_active)
-        {
-            cursor.setPosition(i, QTextCursor::MoveAnchor);
-            i += line->GetText().size();
-            cursor.setPosition(i, QTextCursor::KeepAnchor);
-            cursor.setCharFormat(inactive);
-        }
-        else
-        {
-            for (KaraokeData::Syllable* syllable : line->GetSyllables())
-            {
-                cursor.setPosition(i, QTextCursor::MoveAnchor);
-                i += syllable->GetText().size();
-                cursor.setPosition(i, QTextCursor::KeepAnchor);
-                const bool syllable_is_active = syllable->GetStart() <= time && syllable->GetEnd() >= time;
-                cursor.setCharFormat(syllable_is_active ? active : inactive);
-            }
-        }
-
-        i++;  // For the newline character
-    }
+    for (auto& decorations : m_line_timing_decorations)
+        decorations->Update(time);
 }
 
 void LyricsEditor::SetMode(Mode mode)

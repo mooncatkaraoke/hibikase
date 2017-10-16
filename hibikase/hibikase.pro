@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     Settings.cpp \
     TextTransform/Syllabify.cpp \
     TextTransform/RomanizeHangul.cpp \
-    TextTransform/HangulUtils.cpp
+    TextTransform/HangulUtils.cpp \
+    LineTimingDecorations.cpp
 
 HEADERS  += MainWindow.h \
     KaraokeData/Song.h \
@@ -34,6 +35,7 @@ HEADERS  += MainWindow.h \
     Settings.h \
     TextTransform/Syllabify.h \
     TextTransform/RomanizeHangul.h \
-    TextTransform/HangulUtils.h
+    TextTransform/HangulUtils.h \
+    LineTimingDecorations.h
 
 FORMS    += MainWindow.ui

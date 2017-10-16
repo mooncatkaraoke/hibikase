@@ -11,15 +11,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include <QApplication>
+#pragma once
 
-#include "MainWindow.h"
+#include <chrono>
 
-int main(int argc, char* argv[])
+#include <QObject>
+#include <QTextDocument>
+
+#include "KaraokeData/Song.h"
+
+class LineTimingDecorations : public QObject
 {
-    QApplication a(argc, argv);
-    MainWindow w;
-    w.showMaximized();
+    Q_OBJECT
 
-    return a.exec();
-}
+public:
+    explicit LineTimingDecorations(KaraokeData::Line* line, size_t position,
+                                   QTextDocument* document, QObject* parent = nullptr);
+
+    void Update(std::chrono::milliseconds time);
+
+private:
+    // TODO: Use a const reference instead
+    KaraokeData::Line* m_line;
+    size_t m_position;
+    QTextDocument* m_document;
+};
