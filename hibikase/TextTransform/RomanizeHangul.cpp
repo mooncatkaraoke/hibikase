@@ -27,14 +27,6 @@
 namespace TextTransform
 {
 
-// There seems to be an encoding problem with QStringLiteral on Windows...
-// TODO: Is there a cleaner fix than using fromUtf8 as a workaround?
-#if defined(_MSC_VER)
-    #define UnicodeLiteral(a) QString::fromUtf8(a)
-#else
-    #define UnicodeLiteral(a) QStringLiteral(a)
-#endif
-
 static const QHash<QChar, QChar> FINAL_TO_INITIAL = {
     {QChar(u'ᆨ'), QChar(u'ᄀ')},
     {QChar(u'ᆩ'), QChar(u'ᄁ')},
@@ -55,40 +47,40 @@ static const QHash<QChar, QChar> FINAL_TO_INITIAL = {
 };
 
 static const QHash<QChar, QString> CLUSTER_DECOMPOSITIONS = {
-    {QChar(u'ᆪ'), UnicodeLiteral("ᆨᆺ")},
-    {QChar(u'ᆬ'), UnicodeLiteral("ᆫᆽ")},
-    {QChar(u'ᆭ'), UnicodeLiteral("ᆫᇂ")},
-    {QChar(u'ᆰ'), UnicodeLiteral("ᆯᆨ")},
-    {QChar(u'ᆱ'), UnicodeLiteral("ᆯᆷ")},
-    {QChar(u'ᆲ'), UnicodeLiteral("ᆯᆸ")},
-    {QChar(u'ᆳ'), UnicodeLiteral("ᆯᆺ")},
-    {QChar(u'ᆴ'), UnicodeLiteral("ᆯᇀ")},
-    {QChar(u'ᆵ'), UnicodeLiteral("ᆯᇁ")},
-    {QChar(u'ᆶ'), UnicodeLiteral("ᆯᇂ")},
-    {QChar(u'ᆹ'), UnicodeLiteral("ᆸᆺ")},
+    {QChar(u'ᆪ'), QStringLiteral(u"ᆨᆺ")},
+    {QChar(u'ᆬ'), QStringLiteral(u"ᆫᆽ")},
+    {QChar(u'ᆭ'), QStringLiteral(u"ᆫᇂ")},
+    {QChar(u'ᆰ'), QStringLiteral(u"ᆯᆨ")},
+    {QChar(u'ᆱ'), QStringLiteral(u"ᆯᆷ")},
+    {QChar(u'ᆲ'), QStringLiteral(u"ᆯᆸ")},
+    {QChar(u'ᆳ'), QStringLiteral(u"ᆯᆺ")},
+    {QChar(u'ᆴ'), QStringLiteral(u"ᆯᇀ")},
+    {QChar(u'ᆵ'), QStringLiteral(u"ᆯᇁ")},
+    {QChar(u'ᆶ'), QStringLiteral(u"ᆯᇂ")},
+    {QChar(u'ᆹ'), QStringLiteral(u"ᆸᆺ")},
 };
 
 static const QHash<QString, QString> CLUSTER_ELISION = {
-    {UnicodeLiteral("ᆨᆺ"), UnicodeLiteral("ᆨ")},
-    {UnicodeLiteral("ᆫᆽ"), UnicodeLiteral("ᆫ")},
-    {UnicodeLiteral("ᆫᇂ"), UnicodeLiteral("ᆫ")},
-    {UnicodeLiteral("ᆯᆨ"), UnicodeLiteral("ᆨ")},
-    {UnicodeLiteral("ᆯᆷ"), UnicodeLiteral("ᆷ")},
-    {UnicodeLiteral("ᆯᆸ"), UnicodeLiteral("ᆯ")},
-    {UnicodeLiteral("ᆯᆺ"), UnicodeLiteral("ᆯ")},
-    {UnicodeLiteral("ᆯᇀ"), UnicodeLiteral("ᆯ")},
-    {UnicodeLiteral("ᆯᇁ"), UnicodeLiteral("ᇁ")},
-    {UnicodeLiteral("ᆯᇂ"), UnicodeLiteral("ᆯ")},
-    {UnicodeLiteral("ᆸᆺ"), UnicodeLiteral("ᆸ")},
+    {QStringLiteral(u"ᆨᆺ"), QStringLiteral(u"ᆨ")},
+    {QStringLiteral(u"ᆫᆽ"), QStringLiteral(u"ᆫ")},
+    {QStringLiteral(u"ᆫᇂ"), QStringLiteral(u"ᆫ")},
+    {QStringLiteral(u"ᆯᆨ"), QStringLiteral(u"ᆨ")},
+    {QStringLiteral(u"ᆯᆷ"), QStringLiteral(u"ᆷ")},
+    {QStringLiteral(u"ᆯᆸ"), QStringLiteral(u"ᆯ")},
+    {QStringLiteral(u"ᆯᆺ"), QStringLiteral(u"ᆯ")},
+    {QStringLiteral(u"ᆯᇀ"), QStringLiteral(u"ᆯ")},
+    {QStringLiteral(u"ᆯᇁ"), QStringLiteral(u"ᇁ")},
+    {QStringLiteral(u"ᆯᇂ"), QStringLiteral(u"ᆯ")},
+    {QStringLiteral(u"ᆸᆺ"), QStringLiteral(u"ᆸ")},
 
     // The combinations below can occur when the last consonant of a
     // cluster changes due to assimilation with the next initial
     // consonant. The pronunciations are unconfirmed.
-    {UnicodeLiteral("ᆨᆫ"), UnicodeLiteral("ᆼ")},
-    {UnicodeLiteral("ᆫᆫ"), UnicodeLiteral("ᆫ")},
-    {UnicodeLiteral("ᆯᆫ"), UnicodeLiteral("ᆯ")},
-    {UnicodeLiteral("ᆯᆼ"), UnicodeLiteral("ᆯ")},
-    {UnicodeLiteral("ᆸᆫ"), UnicodeLiteral("ᆷ")},
+    {QStringLiteral(u"ᆨᆫ"), QStringLiteral(u"ᆼ")},
+    {QStringLiteral(u"ᆫᆫ"), QStringLiteral(u"ᆫ")},
+    {QStringLiteral(u"ᆯᆫ"), QStringLiteral(u"ᆯ")},
+    {QStringLiteral(u"ᆯᆼ"), QStringLiteral(u"ᆯ")},
+    {QStringLiteral(u"ᆸᆫ"), QStringLiteral(u"ᆷ")},
 };
 
 static const QHash<QChar, QChar> FINAL_HOMOPHONES = {
@@ -248,7 +240,7 @@ static void Palatalize(Syllable* syllable)
         {QChar(u'ᄐ'), QChar(u'ᄎ')},
     };
 
-    if (syllable->medials != UnicodeLiteral("ᅵ"))
+    if (syllable->medials != QStringLiteral(u"ᅵ"))
         return;
 
     const int last_index = syllable->initials.size() - 1;
@@ -262,7 +254,7 @@ static void Resyllabify(QString* finals, Syllable* next_syllable)
         return;
 
     const QChar last_final = (*finals)[finals->size() - 1];
-    if (last_final == QChar(u'ᆼ') || next_syllable->initials != UnicodeLiteral("ᄋ"))
+    if (last_final == QChar(u'ᆼ') || next_syllable->initials != QStringLiteral(u"ᄋ"))
         return;
 
     next_syllable->initials = Lookup(FINAL_TO_INITIAL, last_final);
@@ -366,8 +358,8 @@ static QString RomanizeHangul(const Syllable& syllable, Syllable* next_syllable)
 
     AssimilateConstants(&finals, next_syllable);
 
-    if (finals.right(1) == UnicodeLiteral("ᆯ") &&
-        next_syllable->initials.left(1) == UnicodeLiteral("ᄅ"))
+    if (finals.right(1) == QStringLiteral(u"ᆯ") &&
+        next_syllable->initials.left(1) == QStringLiteral(u"ᄅ"))
     {
         next_syllable->initials.replace(0, 1, 'l');
     }
