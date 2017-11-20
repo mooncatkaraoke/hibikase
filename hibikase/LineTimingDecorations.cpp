@@ -61,7 +61,7 @@ LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, size_t pos
 {
     auto syllables = m_line->GetSyllables();
     m_syllables.reserve(syllables.size());
-    size_t i = m_position;
+    size_t i = m_position + m_line->GetPrefix().size();
     for (KaraokeData::Syllable* syllable : syllables)
     {
         const size_t start_index = i;
