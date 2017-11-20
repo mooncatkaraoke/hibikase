@@ -21,37 +21,62 @@
 
 #include "LineTimingDecorations.h"
 
+static QTextCharFormat ActiveColor()
+{
+    QTextCharFormat color;
+    color.setBackground(Qt::green);
+    return color;
+}
+
+static QTextCharFormat InactiveColor()
+{
+    QTextCharFormat color;
+    color.setBackground(Qt::white);
+    return color;
+}
+
+LineTimingDecorations::SyllableDecorations::SyllableDecorations(size_t start_index,
+        size_t end_index, Milliseconds start_time, Milliseconds end_time)
+    : m_start_index(start_index), m_end_index(end_index),
+      m_start_time(start_time), m_end_time(end_time)
+{
+}
+
+void LineTimingDecorations::SyllableDecorations::Update(Milliseconds time, QTextDocument* document)
+{
+    const bool is_active = m_start_time <= time && m_end_time >= time;
+    if (is_active == m_was_active)
+        return;
+    m_was_active = is_active;
+
+    QTextCursor cursor(document);
+    cursor.setPosition(m_start_index, QTextCursor::MoveAnchor);
+    cursor.setPosition(m_end_index, QTextCursor::KeepAnchor);
+    cursor.setCharFormat(is_active ? ActiveColor() : InactiveColor());
+}
+
 LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, size_t position,
                                              QTextDocument* document, QObject* parent)
     : QObject(parent), m_line(line), m_position(position), m_document(document)
 {
+    auto syllables = m_line->GetSyllables();
+    m_syllables.reserve(syllables.size());
+    size_t i = m_position;
+    for (KaraokeData::Syllable* syllable : syllables)
+    {
+        const size_t start_index = i;
+        i += syllable->GetText().size();
+        m_syllables.emplace_back(start_index, i, syllable->GetStart(), syllable->GetEnd());
+    }
 }
 
-void LineTimingDecorations::Update(std::chrono::milliseconds time)
+void LineTimingDecorations::Update(Milliseconds time)
 {
-    QTextCharFormat active;
-    active.setBackground(Qt::green);
-    QTextCharFormat inactive;
-    inactive.setBackground(Qt::white);
+    const bool is_active = m_line->GetStart() <= time && m_line->GetEnd() >= time;
+    if (!is_active && !m_was_active)
+        return;
+    m_was_active = is_active;
 
-    QTextCursor cursor(m_document);
-    const bool line_is_active = m_line->GetStart() <= time && m_line->GetEnd() >= time;
-    if (!line_is_active)
-    {
-        cursor.setPosition(m_position, QTextCursor::MoveAnchor);
-        cursor.setPosition(m_position + m_line->GetText().size(), QTextCursor::KeepAnchor);
-        cursor.setCharFormat(inactive);
-    }
-    else
-    {
-        size_t i = m_position;
-        for (KaraokeData::Syllable* syllable : m_line->GetSyllables())
-        {
-            cursor.setPosition(i, QTextCursor::MoveAnchor);
-            i += syllable->GetText().size();
-            cursor.setPosition(i, QTextCursor::KeepAnchor);
-            const bool syllable_is_active = syllable->GetStart() <= time && syllable->GetEnd() >= time;
-            cursor.setCharFormat(syllable_is_active ? active : inactive);
-        }
-    }
+    for (SyllableDecorations& syllable : m_syllables)
+        syllable.Update(time, m_document);
 }
