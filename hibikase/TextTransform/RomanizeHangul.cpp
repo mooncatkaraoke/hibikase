@@ -60,20 +60,6 @@ static const QHash<QChar, QString> CLUSTER_DECOMPOSITIONS = {
     {QChar(u'ᆹ'), QStringLiteral(u"ᆸᆺ")},
 };
 
-static const QHash<QString, QString> CLUSTER_ELISION = {
-    {QStringLiteral(u"ᆨᆺ"), QStringLiteral(u"ᆨ")},
-    {QStringLiteral(u"ᆫᆽ"), QStringLiteral(u"ᆫ")},
-    {QStringLiteral(u"ᆫᇂ"), QStringLiteral(u"ᆫ")},
-    {QStringLiteral(u"ᆯᆨ"), QStringLiteral(u"ᆨ")},
-    {QStringLiteral(u"ᆯᆷ"), QStringLiteral(u"ᆷ")},
-    {QStringLiteral(u"ᆯᆸ"), QStringLiteral(u"ᆯ")},
-    {QStringLiteral(u"ᆯᆺ"), QStringLiteral(u"ᆯ")},
-    {QStringLiteral(u"ᆯᇀ"), QStringLiteral(u"ᆯ")},
-    {QStringLiteral(u"ᆯᇁ"), QStringLiteral(u"ᇁ")},
-    {QStringLiteral(u"ᆯᇂ"), QStringLiteral(u"ᆯ")},
-    {QStringLiteral(u"ᆸᆺ"), QStringLiteral(u"ᆸ")},
-};
-
 static const QHash<QChar, QChar> FINAL_HOMOPHONES = {
     {QChar(u'ᆩ'), QChar(u'ᆨ')},
     {QChar(u'ᆺ'), QChar(u'ᆮ')},
@@ -201,6 +187,16 @@ struct Syllable
     }
 };
 
+static bool operator==(const Syllable& lhs, const Syllable& rhs)
+{
+    return lhs.initials == rhs.initials && lhs.medials == rhs.medials && lhs.finals == rhs.finals;
+}
+
+static bool operator!=(const Syllable& lhs, const Syllable& rhs)
+{
+    return !(lhs == rhs);
+}
+
 static QString DecomposeHangul(QString text)
 {
     QString result;
@@ -290,6 +286,24 @@ static void Aspirate(QString* finals, Syllable* next_syllable)
     }
 }
 
+static void ElideCluster(const Syllable& syllable, QString* finals, const Syllable& next_syllable)
+{
+    if (finals->size() != 2)
+        return;
+
+    const QChar next = !next_syllable.initials.isEmpty() ? next_syllable.initials[0] : QChar('\0');
+    const bool next_is_k = next == QChar(u'ᄀ') || next == QChar(u'ᄁ') || next == QChar(u'ᄏ');
+    const bool special_lk_case = !next_is_k && (*finals)[1] == QChar(u'ᆨ');
+
+    const bool special_lp_case = syllable == QStringLiteral(u"밟") ||
+            (syllable == QStringLiteral(u"넓") &&
+            (next_syllable == QStringLiteral(u"둥") || next_syllable == QStringLiteral(u"죽")));
+
+    const bool remove_first = (*finals)[1] == QChar(u'ᇁ') || (*finals)[1] == QChar(u'ᆷ') ||
+                              special_lk_case || special_lp_case;
+    finals->remove(remove_first ? 0 : 1, 1);
+}
+
 static void AssimilateL(QCharRef final, QCharRef initial)
 {
     if (final == QChar(u'ᆯ') && initial == QChar(u'ᄂ'))
@@ -334,7 +348,7 @@ static QString RomanizeHangul(const Syllable& syllable, Syllable* next_syllable)
 
     Resyllabify(&finals, next_syllable);
     Aspirate(&finals, next_syllable);
-    finals = Lookup(CLUSTER_ELISION, finals);
+    ElideCluster(syllable, &finals, *next_syllable);
     if (!finals.isEmpty() && !next_syllable->initials.isEmpty())
     {
         QCharRef last_final = finals[finals.size() - 1];
