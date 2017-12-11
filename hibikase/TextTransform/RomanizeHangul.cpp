@@ -72,15 +72,6 @@ static const QHash<QString, QString> CLUSTER_ELISION = {
     {QStringLiteral(u"ᆯᇁ"), QStringLiteral(u"ᇁ")},
     {QStringLiteral(u"ᆯᇂ"), QStringLiteral(u"ᆯ")},
     {QStringLiteral(u"ᆸᆺ"), QStringLiteral(u"ᆸ")},
-
-    // The combinations below can occur when the last consonant of a
-    // cluster changes due to assimilation with the next initial
-    // consonant. The pronunciations are unconfirmed.
-    {QStringLiteral(u"ᆨᆫ"), QStringLiteral(u"ᆼ")},
-    {QStringLiteral(u"ᆫᆫ"), QStringLiteral(u"ᆫ")},
-    {QStringLiteral(u"ᆯᆫ"), QStringLiteral(u"ᆯ")},
-    {QStringLiteral(u"ᆯᆼ"), QStringLiteral(u"ᆯ")},
-    {QStringLiteral(u"ᆸᆫ"), QStringLiteral(u"ᆷ")},
 };
 
 static const QHash<QChar, QChar> FINAL_HOMOPHONES = {
@@ -325,19 +316,6 @@ static void AssimilateNasal(QCharRef final, QCharRef initial)
     }
 }
 
-static void AssimilateConstants(QString* finals, Syllable* next_syllable)
-{
-    Resyllabify(finals, next_syllable);
-    Aspirate(finals, next_syllable);
-    if (!finals->isEmpty() && !next_syllable->initials.isEmpty())
-    {
-        QCharRef last_final = (*finals)[finals->size() - 1];
-        QCharRef first_initial = next_syllable->initials[0];
-        AssimilateL(last_final, first_initial);
-        AssimilateNasal(last_final, first_initial);
-    }
-}
-
 static QString RomanizeHangul(const Syllable& syllable, Syllable* next_syllable)
 {
     QString result;
@@ -348,15 +326,22 @@ static QString RomanizeHangul(const Syllable& syllable, Syllable* next_syllable)
     for (QChar c : syllable.medials)
         result += Lookup(MEDIALS, c);
 
+    // The order of the transformations below is very important - be careful with changing it
+
     QString finals;
     for (QChar c : syllable.finals)
         finals += Lookup(CLUSTER_DECOMPOSITIONS, c);
 
-    AssimilateConstants(&finals, next_syllable);
-
+    Resyllabify(&finals, next_syllable);
+    Aspirate(&finals, next_syllable);
     finals = Lookup(CLUSTER_ELISION, finals);
-
-    AssimilateConstants(&finals, next_syllable);
+    if (!finals.isEmpty() && !next_syllable->initials.isEmpty())
+    {
+        QCharRef last_final = finals[finals.size() - 1];
+        QCharRef first_initial = next_syllable->initials[0];
+        AssimilateL(last_final, first_initial);
+        AssimilateNasal(last_final, first_initial);
+    }
 
     if (finals.right(1) == QStringLiteral(u"ᆯ") &&
         next_syllable->initials.left(1) == QStringLiteral(u"ᄅ"))
