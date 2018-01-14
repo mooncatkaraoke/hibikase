@@ -24,6 +24,8 @@
 
 #include "KaraokeData/Song.h"
 
+class QPaintEvent;
+
 class SyllableDecorations final : public QWidget
 {
     Q_OBJECT
@@ -34,15 +36,17 @@ public:
     explicit SyllableDecorations(QPlainTextEdit* text_edit, size_t start_index, size_t end_index,
                                  Milliseconds start_time, Milliseconds end_time);
 
-    void Update(Milliseconds time);
+    void Update(Milliseconds time, QTextDocument* document, bool line_is_inactivating);
+
+protected:
+    void paintEvent(QPaintEvent*) override;
 
 private:
-    QPlainTextEdit* GetTextEdit() const;
-
     const size_t m_start_index;
     const size_t m_end_index;
     const Milliseconds m_start_time;
     const Milliseconds m_end_time;
+    qreal m_progress_line_width = 0;
     bool m_was_active = false;
 };
 
@@ -61,5 +65,6 @@ private:
     // TODO: Use a const reference instead
     KaraokeData::Line* m_line;
     size_t m_position;
+    QPlainTextEdit* m_text_edit;
     bool m_was_active = false;
 };
