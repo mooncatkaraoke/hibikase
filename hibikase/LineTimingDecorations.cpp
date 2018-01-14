@@ -12,10 +12,12 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <chrono>
+#include <memory>
 
 #include <QObject>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QWidget>
 
 #include "KaraokeData/Song.h"
 
@@ -35,29 +37,34 @@ static QTextCharFormat InactiveColor()
     return color;
 }
 
-LineTimingDecorations::SyllableDecorations::SyllableDecorations(size_t start_index,
+SyllableDecorations::SyllableDecorations(QPlainTextEdit* text_edit, size_t start_index,
         size_t end_index, Milliseconds start_time, Milliseconds end_time)
-    : m_start_index(start_index), m_end_index(end_index),
+    : QWidget(text_edit), m_start_index(start_index), m_end_index(end_index),
       m_start_time(start_time), m_end_time(end_time)
 {
 }
 
-void LineTimingDecorations::SyllableDecorations::Update(Milliseconds time, QTextDocument* document)
+void SyllableDecorations::Update(Milliseconds time)
 {
     const bool is_active = m_start_time <= time && m_end_time >= time;
     if (is_active == m_was_active)
         return;
     m_was_active = is_active;
 
-    QTextCursor cursor(document);
+    QTextCursor cursor(GetTextEdit()->document());
     cursor.setPosition(m_start_index, QTextCursor::MoveAnchor);
     cursor.setPosition(m_end_index, QTextCursor::KeepAnchor);
     cursor.setCharFormat(is_active ? ActiveColor() : InactiveColor());
 }
 
+QPlainTextEdit* SyllableDecorations::GetTextEdit() const
+{
+    return static_cast<QPlainTextEdit*>(parentWidget());
+}
+
 LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, size_t position,
-                                             QTextDocument* document, QObject* parent)
-    : QObject(parent), m_line(line), m_position(position), m_document(document)
+                                             QPlainTextEdit* text_edit, QObject* parent)
+    : QObject(parent), m_line(line), m_position(position)
 {
     auto syllables = m_line->GetSyllables();
     m_syllables.reserve(syllables.size());
@@ -66,17 +73,18 @@ LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, size_t pos
     {
         const size_t start_index = i;
         i += syllable->GetText().size();
-        m_syllables.emplace_back(start_index, i, syllable->GetStart(), syllable->GetEnd());
+        m_syllables.emplace_back(std::make_unique<SyllableDecorations>(
+                        text_edit, start_index, i, syllable->GetStart(), syllable->GetEnd()));
     }
 }
 
-void LineTimingDecorations::Update(Milliseconds time)
+void LineTimingDecorations::Update(std::chrono::milliseconds time)
 {
     const bool is_active = m_line->GetStart() <= time && m_line->GetEnd() >= time;
     if (!is_active && !m_was_active)
         return;
     m_was_active = is_active;
 
-    for (SyllableDecorations& syllable : m_syllables)
-        syllable.Update(time, m_document);
+    for (std::unique_ptr<SyllableDecorations>& syllable : m_syllables)
+        syllable->Update(time);
 }

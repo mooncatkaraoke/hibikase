@@ -74,14 +74,13 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
     m_raw_text_edit->setPlainText(song->GetRaw());
     m_rich_text_edit->setPlainText(song->GetText());
 
-    QTextDocument* document = m_rich_text_edit->document();
     const QVector<KaraokeData::Line*> lines = song->GetLines();
     m_line_timing_decorations.clear();
     m_line_timing_decorations.reserve(lines.size());
     size_t i = 0;
     for (KaraokeData::Line* line : lines)
     {
-        auto decorations = std::make_unique<LineTimingDecorations>(line, i, document);
+        auto decorations = std::make_unique<LineTimingDecorations>(line, i, m_rich_text_edit);
         m_line_timing_decorations.emplace_back(std::move(decorations));
 
         i += line->GetText().size();
