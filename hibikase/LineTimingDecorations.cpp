@@ -46,7 +46,7 @@ SyllableDecorations::SyllableDecorations(QPlainTextEdit* text_edit, size_t start
 
 void SyllableDecorations::Update(Milliseconds time)
 {
-    const bool is_active = m_start_time <= time && m_end_time >= time;
+    const bool is_active = m_start_time <= time && m_end_time > time;
     if (is_active == m_was_active)
         return;
     m_was_active = is_active;
@@ -80,7 +80,7 @@ LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, size_t pos
 
 void LineTimingDecorations::Update(std::chrono::milliseconds time)
 {
-    const bool is_active = m_line->GetStart() <= time && m_line->GetEnd() >= time;
+    const bool is_active = m_line->GetStart() <= time && m_line->GetEnd() > time;
     if (!is_active && !m_was_active)
         return;
     m_was_active = is_active;
