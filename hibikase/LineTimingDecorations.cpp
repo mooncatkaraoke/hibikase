@@ -50,29 +50,19 @@ static QTextCharFormat InactiveColor()
     return color;
 }
 
-SyllableDecorations::SyllableDecorations(QPlainTextEdit* text_edit, size_t start_index,
+SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, size_t start_index,
         size_t end_index, Milliseconds start_time, Milliseconds end_time)
-    : QWidget(text_edit->viewport()), m_start_index(start_index), m_end_index(end_index),
-      m_start_time(start_time), m_end_time(end_time)
+    : QWidget(text_edit->viewport()), m_text_edit(text_edit), m_start_index(start_index),
+      m_end_index(end_index), m_start_time(start_time), m_end_time(end_time)
 {
-    QTextCursor cursor(text_edit->document());
-    cursor.setPosition(start_index);
-    const QRect start_rect = text_edit->cursorRect(cursor);
-    cursor.setPosition(end_index);
-    const QRect end_rect = text_edit->cursorRect(cursor);
+    CalculateGeometry();
 
-    const int left = std::min(start_rect.left(), end_rect.left()) - SYLLABLE_MARKER_WIDTH;
-    const int top = std::max(start_rect.bottom(), end_rect.bottom());
-    const int width = std::abs(end_rect.left() - start_rect.left()) + SYLLABLE_MARKER_WIDTH;
-    const int height = SYLLABLE_MARKER_HEIGHT + PROGRESS_LINE_HEIGHT;
-    setGeometry(QRect(left, top, width, height));
     setPalette(Qt::transparent);
     setAttribute(Qt::WA_TransparentForMouseEvents);
     setVisible(true);
 }
 
-void SyllableDecorations::Update(Milliseconds time, QTextDocument* document,
-                                 bool line_is_inactivating)
+void SyllableDecorations::Update(Milliseconds time, bool line_is_inactivating)
 {
     const bool is_active = m_start_time <= time && m_end_time > time;
     if (!line_is_inactivating && !is_active && !m_was_active)
@@ -96,7 +86,7 @@ void SyllableDecorations::Update(Milliseconds time, QTextDocument* document,
         return;
     m_was_active = is_active;
 
-    QTextCursor cursor(document);
+    QTextCursor cursor(m_text_edit->document());
     cursor.setPosition(m_start_index, QTextCursor::MoveAnchor);
     cursor.setPosition(m_end_index, QTextCursor::KeepAnchor);
     cursor.setCharFormat(is_active ? ActiveColor() : InactiveColor());
@@ -104,6 +94,8 @@ void SyllableDecorations::Update(Milliseconds time, QTextDocument* document,
 
 void SyllableDecorations::paintEvent(QPaintEvent*)
 {
+    CalculateGeometry();
+
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setPen(QPen(Qt::gray));
@@ -123,9 +115,24 @@ void SyllableDecorations::paintEvent(QPaintEvent*)
     painter.fillPath(path, QBrush(Qt::gray));
 }
 
+void SyllableDecorations::CalculateGeometry()
+{
+    QTextCursor cursor(m_text_edit->document());
+    cursor.setPosition(m_start_index);
+    const QRect start_rect = m_text_edit->cursorRect(cursor);
+    cursor.setPosition(m_end_index);
+    const QRect end_rect = m_text_edit->cursorRect(cursor);
+
+    const int left = std::min(start_rect.left(), end_rect.left()) - SYLLABLE_MARKER_WIDTH;
+    const int top = std::max(start_rect.bottom(), end_rect.bottom());
+    const int width = std::abs(end_rect.left() - start_rect.left()) + SYLLABLE_MARKER_WIDTH;
+    const int height = SYLLABLE_MARKER_HEIGHT + PROGRESS_LINE_HEIGHT;
+    setGeometry(QRect(left, top, width, height));
+}
+
 LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, size_t position,
                                              QPlainTextEdit* text_edit, QObject* parent)
-    : QObject(parent), m_line(line), m_position(position), m_text_edit(text_edit)
+    : QObject(parent), m_line(line), m_position(position)
 {
     auto syllables = m_line->GetSyllables();
     m_syllables.reserve(syllables.size());
@@ -147,5 +154,5 @@ void LineTimingDecorations::Update(std::chrono::milliseconds time)
     m_was_active = is_active;
 
     for (std::unique_ptr<SyllableDecorations>& syllable : m_syllables)
-        syllable->Update(time, m_text_edit->document(), !is_active);
+        syllable->Update(time, !is_active);
 }

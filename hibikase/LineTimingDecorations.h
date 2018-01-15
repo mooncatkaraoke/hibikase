@@ -33,15 +33,18 @@ class SyllableDecorations final : public QWidget
     using Milliseconds = std::chrono::milliseconds;
 
 public:
-    explicit SyllableDecorations(QPlainTextEdit* text_edit, size_t start_index, size_t end_index,
+    explicit SyllableDecorations(const QPlainTextEdit* text_edit, size_t start_index, size_t end_index,
                                  Milliseconds start_time, Milliseconds end_time);
 
-    void Update(Milliseconds time, QTextDocument* document, bool line_is_inactivating);
+    void Update(Milliseconds time, bool line_is_inactivating);
 
 protected:
     void paintEvent(QPaintEvent*) override;
 
 private:
+    void CalculateGeometry();
+
+    const QPlainTextEdit* const m_text_edit;
     const size_t m_start_index;
     const size_t m_end_index;
     const Milliseconds m_start_time;
@@ -65,6 +68,5 @@ private:
     // TODO: Use a const reference instead
     KaraokeData::Line* m_line;
     size_t m_position;
-    QPlainTextEdit* m_text_edit;
     bool m_was_active = false;
 };
