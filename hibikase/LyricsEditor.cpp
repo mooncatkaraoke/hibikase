@@ -84,6 +84,7 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
     for (KaraokeData::Line* line : lines)
     {
         auto decorations = std::make_unique<LineTimingDecorations>(line, i, m_rich_text_edit);
+        decorations->Update(m_time);
         m_line_timing_decorations.emplace_back(std::move(decorations));
 
         i += line->GetText().size();
@@ -95,6 +96,8 @@ void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
 {
     for (auto& decorations : m_line_timing_decorations)
         decorations->Update(time);
+
+    m_time = time;
 }
 
 void LyricsEditor::SetMode(Mode mode)

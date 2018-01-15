@@ -17,6 +17,7 @@
 #include <memory>
 
 #include <QBrush>
+#include <QColor>
 #include <QObject>
 #include <QPainter>
 #include <QPainterPath>
@@ -36,18 +37,20 @@ static constexpr int SYLLABLE_MARKER_WIDTH = 4;
 static constexpr int SYLLABLE_MARKER_HEIGHT = 4;
 static constexpr int PROGRESS_LINE_HEIGHT = 1;
 
-static QTextCharFormat ActiveColor()
-{
-    QTextCharFormat color;
-    color.setBackground(Qt::green);
-    return color;
-}
+static const QColor COLOR_NOT_PLAYING(0x77, 0x55, 0x77);
+static const QColor COLOR_PLAYING(0x00, 0x00, 0x00);
+static const QColor COLOR_PLAYED(0x55, 0x77, 0x55);
 
-static QTextCharFormat InactiveColor()
+using Milliseconds = std::chrono::milliseconds;
+
+static TimingState GetTimingState(Milliseconds current, Milliseconds start, Milliseconds end)
 {
-    QTextCharFormat color;
-    color.setBackground(Qt::white);
-    return color;
+    if (start > current)
+        return TimingState::NotPlayed;
+    else if (end > current)
+        return TimingState::Playing;
+    else
+        return TimingState::Played;
 }
 
 SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, size_t start_index,
@@ -64,8 +67,8 @@ SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, size_t
 
 void SyllableDecorations::Update(Milliseconds time, bool line_is_inactivating)
 {
-    const bool is_active = m_start_time <= time && m_end_time > time;
-    if (!line_is_inactivating && !is_active && !m_was_active)
+    const TimingState state = GetTimingState(time, m_start_time, m_end_time);
+    if (!line_is_inactivating && state == m_state && state != TimingState::Playing)
         return;
 
     if (!line_is_inactivating && m_start_time <= time)
@@ -82,14 +85,22 @@ void SyllableDecorations::Update(Milliseconds time, bool line_is_inactivating)
 
     update();
 
-    if (is_active == m_was_active)
+    if (state == m_state)
         return;
-    m_was_active = is_active;
+    m_state = state;
 
     QTextCursor cursor(m_text_edit->document());
     cursor.setPosition(m_start_index, QTextCursor::MoveAnchor);
     cursor.setPosition(m_end_index, QTextCursor::KeepAnchor);
-    cursor.setCharFormat(is_active ? ActiveColor() : InactiveColor());
+
+    QTextCharFormat color;
+    if (state == TimingState::NotPlayed)
+        color.setForeground(COLOR_NOT_PLAYING);
+    else if (state == TimingState::Playing)
+        color.setForeground(COLOR_PLAYING);
+    else
+        color.setForeground(COLOR_PLAYED);
+    cursor.setCharFormat(color);
 }
 
 void SyllableDecorations::paintEvent(QPaintEvent*)
@@ -148,11 +159,11 @@ LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, size_t pos
 
 void LineTimingDecorations::Update(std::chrono::milliseconds time)
 {
-    const bool is_active = m_line->GetStart() <= time && m_line->GetEnd() > time;
-    if (!is_active && !m_was_active)
+    const TimingState state = GetTimingState(time, m_line->GetStart(), m_line->GetEnd());
+    if (state == m_state && state != TimingState::Playing)
         return;
-    m_was_active = is_active;
+    m_state = state;
 
     for (std::unique_ptr<SyllableDecorations>& syllable : m_syllables)
-        syllable->Update(time, !is_active);
+        syllable->Update(time, state != TimingState::Playing);
 }

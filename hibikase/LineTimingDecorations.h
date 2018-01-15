@@ -26,6 +26,14 @@
 
 class QPaintEvent;
 
+enum class TimingState
+{
+    Uninitialized,
+    NotPlayed,
+    Playing,
+    Played
+};
+
 class SyllableDecorations final : public QWidget
 {
     Q_OBJECT
@@ -50,7 +58,7 @@ private:
     const Milliseconds m_start_time;
     const Milliseconds m_end_time;
     qreal m_progress_line_width = 0;
-    bool m_was_active = false;
+    TimingState m_state = TimingState::Uninitialized;
 };
 
 class LineTimingDecorations final : public QObject
@@ -68,5 +76,5 @@ private:
     // TODO: Use a const reference instead
     KaraokeData::Line* m_line;
     size_t m_position;
-    bool m_was_active = false;
+    TimingState m_state = TimingState::Uninitialized;
 };
