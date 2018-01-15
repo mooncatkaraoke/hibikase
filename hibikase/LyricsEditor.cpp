@@ -39,6 +39,9 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     m_raw_text_edit->setTabChangesFocus(true);
     m_rich_text_edit->setTabChangesFocus(true);
 
+    m_raw_text_edit->setLineWrapMode(QPlainTextEdit::NoWrap);
+    m_rich_text_edit->setLineWrapMode(QPlainTextEdit::NoWrap);
+
     QFont large_font;
     large_font.setPointSize(14);
     m_rich_text_edit->setFont(large_font);
