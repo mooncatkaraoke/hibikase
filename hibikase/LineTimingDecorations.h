@@ -57,7 +57,7 @@ private:
     const size_t m_end_index;
     const Milliseconds m_start_time;
     const Milliseconds m_end_time;
-    qreal m_progress_line_width = 0;
+    qreal m_progress = 0;
     TimingState m_state = TimingState::Uninitialized;
 };
 

@@ -73,14 +73,12 @@ void SyllableDecorations::Update(Milliseconds time, bool line_is_inactivating)
 
     if (!line_is_inactivating && m_start_time <= time)
     {
-        const qreal progress = static_cast<qreal>((time - m_start_time).count()) /
-                               (m_end_time - m_start_time).count();
-        const int max_width = width() - SYLLABLE_MARKER_WIDTH;
-        m_progress_line_width = max_width * std::min<qreal>(1.0, progress);
+        m_progress = std::min<qreal>(1.0, static_cast<qreal>((time - m_start_time).count()) /
+                                          (m_end_time - m_start_time).count());
     }
     else
     {
-        m_progress_line_width = 0;
+        m_progress = 0;
     }
 
     update();
@@ -111,10 +109,11 @@ void SyllableDecorations::paintEvent(QPaintEvent*)
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setPen(QPen(Qt::gray));
 
-    if (m_progress_line_width != 0)
+    if (m_progress != 0)
     {
+        const int max_width = width() - SYLLABLE_MARKER_WIDTH;
         painter.drawRect(QRectF(SYLLABLE_MARKER_WIDTH, SYLLABLE_MARKER_HEIGHT,
-                                m_progress_line_width, PROGRESS_LINE_HEIGHT));
+                                max_width * m_progress, PROGRESS_LINE_HEIGHT));
     }
 
     QPainterPath path;
