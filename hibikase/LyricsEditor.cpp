@@ -135,6 +135,8 @@ void LyricsEditor::ShowContextMenu(const QPoint& point)
                     SLOT(RomanizeHangul()))->setEnabled(has_selection);
 
     menu->exec(m_raw_text_edit->mapToGlobal(point));
+
+    delete menu;
 }
 
 void LyricsEditor::SyllabifyBasic()
