@@ -438,15 +438,13 @@ void RomanizeHangul(KaraokeData::Line* line)
 {
     QVector<KaraokeData::Syllable*> syllables = line->GetSyllables();
 
-    QString text;
     if (syllables.isEmpty())
     {
-        text = line->GetSuffix();
-        line->SetPrefix(RomanizeHangul(DecomposeHangul(line->GetPrefix()), &text));
+        line->SetPrefix(RomanizeHangul(DecomposeHangul(line->GetPrefix()), &QString()));
     }
     else
     {
-        text = syllables[0]->GetText();
+        QString text = syllables[0]->GetText();
         line->SetPrefix(RomanizeHangul(DecomposeHangul(line->GetPrefix()), &text));
         for (int i = 1; i < syllables.size(); ++i)
         {
@@ -454,11 +452,8 @@ void RomanizeHangul(KaraokeData::Line* line)
             syllables[i - 1]->SetText(RomanizeHangul(text, &next_text));
             text = next_text;
         }
-        QString next_text = line->GetSuffix();
-        syllables.last()->SetText(RomanizeHangul(text, &next_text));
-        text = next_text;
+        syllables.last()->SetText(RomanizeHangul(text, &QString()));
     }
-    line->SetSuffix(RomanizeHangul(text, &QString()));
 }
 
 }

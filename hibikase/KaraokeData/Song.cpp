@@ -37,7 +37,7 @@ void Line::BuildText()
     // TODO: Performance cost of GetSyllables() copying pointers into a QVector?
     const QVector<Syllable*> syllables = GetSyllables();
 
-    int size = GetPrefix().size() + GetSuffix().size();
+    int size = GetPrefix().size();
     for (const Syllable* syllable : syllables)
         size += syllable->GetText().size();
 
@@ -46,7 +46,6 @@ void Line::BuildText()
     m_text += GetPrefix();
     for (const Syllable* syllable : syllables)
         m_text += syllable->GetText();
-    m_text += GetSuffix();
 }
 
 QString Song::GetText()

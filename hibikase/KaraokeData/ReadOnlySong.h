@@ -78,8 +78,6 @@ public:
     Centiseconds GetEnd() const override { throw not_editable; }
     QString GetPrefix() const override { return m_prefix; }
     void SetPrefix(const QString&) override { throw not_editable; }
-    QString GetSuffix() const override { return m_suffix; }
-    void SetSuffix(const QString&) override { throw not_editable; }
     QString GetText() const override
     {
         const_cast<ReadOnlyLine*>(this)->BuildText();
@@ -89,7 +87,6 @@ public:
 
     std::vector<std::unique_ptr<ReadOnlySyllable>> m_syllables;
     QString m_prefix;
-    QString m_suffix;
 };
 
 class ReadOnlySong final : public Song
@@ -109,7 +106,7 @@ public:
             result.push_back(line.get());
         return result;
     }
-    void AddLine(const QVector<Syllable*>&, QString, QString) override { throw not_editable; }
+    void AddLine(const QVector<Syllable*>&, QString) override { throw not_editable; }
     void RemoveAllLines() override { throw not_editable; }
 
     bool m_valid = false;

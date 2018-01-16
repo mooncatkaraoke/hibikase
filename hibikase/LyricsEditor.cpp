@@ -65,7 +65,7 @@ void LyricsEditor::RebuildSong()
 
     m_song_ref->RemoveAllLines();
     for (KaraokeData::Line* line : new_song->GetLines())
-        m_song_ref->AddLine(line->GetSyllables(), line->GetPrefix(), line->GetSuffix());
+        m_song_ref->AddLine(line->GetSyllables(), line->GetPrefix());
 
     ReloadSong(m_song_ref);
 }

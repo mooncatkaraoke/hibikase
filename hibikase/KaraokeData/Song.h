@@ -57,8 +57,6 @@ public:
     virtual Centiseconds GetEnd() const = 0;
     virtual QString GetPrefix() const = 0;
     virtual void SetPrefix(const QString& text) = 0;
-    virtual QString GetSuffix() const = 0;
-    virtual void SetSuffix(const QString& text) = 0;
     virtual QString GetText() const;
     // All split points must be unique and in ascending order
     virtual void SetSyllableSplitPoints(QVector<int> split_points) = 0;
@@ -83,8 +81,7 @@ public:
     virtual QByteArray GetRawBytes() const = 0;
     virtual QVector<Line*> GetLines() = 0;
     // TODO: Should be const QVector<const Syllable*>&
-    virtual void AddLine(const QVector<Syllable*>& syllables,
-                         QString prefix = QString(), QString suffix = QString()) = 0;
+    virtual void AddLine(const QVector<Syllable*>& syllables, QString prefix = QString()) = 0;
     virtual void RemoveAllLines() = 0;
     // TODO: GetText() is supposed to be const
     virtual QString GetText();

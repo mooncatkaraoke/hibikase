@@ -36,6 +36,7 @@ namespace KaraokeData
 {
 
 static const QString PLACEHOLDER_TIMECODE = QStringLiteral("[99:59:99]");
+static constexpr Centiseconds PLACEHOLDER_TIME = Centiseconds(99 * 60 * 100 + 59 * 100 + 99);
 
 SoramimiMoonCatSyllable::SoramimiMoonCatSyllable(const QString& text,
                                                  Centiseconds start, Centiseconds end)
@@ -56,9 +57,8 @@ SoramimiMoonCatLine::SoramimiMoonCatLine(const QString& content)
     BuildText();
 }
 
-SoramimiMoonCatLine::SoramimiMoonCatLine(const QVector<Syllable*>& syllables,
-                                         QString prefix, QString suffix)
-    : m_prefix(prefix), m_suffix(suffix)
+SoramimiMoonCatLine::SoramimiMoonCatLine(const QVector<Syllable*>& syllables, QString prefix)
+    : m_prefix(prefix)
 {
     Serialize(syllables);
     Deserialize();
@@ -77,13 +77,6 @@ QVector<Syllable*> SoramimiMoonCatLine::GetSyllables()
 void SoramimiMoonCatLine::SetPrefix(const QString& text)
 {
     m_prefix = text;
-    Serialize();
-    BuildText();
-}
-
-void SoramimiMoonCatLine::SetSuffix(const QString& text)
-{
-    m_suffix = text;
     Serialize();
     BuildText();
 }
@@ -141,7 +134,8 @@ void SoramimiMoonCatLine::Serialize(const QVector<Syllable*>& syllables)
         previous_time = end;
     }
 
-    m_raw_content += m_suffix;
+    if (m_raw_content.endsWith(PLACEHOLDER_TIMECODE))
+        m_raw_content.chop(PLACEHOLDER_TIMECODE.size());
 }
 
 void SoramimiMoonCatLine::Deserialize()
@@ -158,7 +152,7 @@ void SoramimiMoonCatLine::Deserialize()
     // Without this check, the m_raw_content.size() - 10 calculation below can underflow
     if (m_raw_content.size() < 10)
     {
-        m_suffix = m_raw_content;
+        m_prefix = m_raw_content;
         return;
     }
 
@@ -192,22 +186,7 @@ void SoramimiMoonCatLine::Deserialize()
                 }
                 else
                 {
-                    const QStringRef text(&m_raw_content, previous_index, i - previous_index);
-                    const bool empty = text.count(' ') == text.size();
-                    if (empty)
-                    {
-                        if (!m_syllables.empty())
-                            m_syllables.back()->m_text += text;
-                    }
-                    else
-                    {
-                        m_syllables.emplace_back(std::make_unique<SoramimiMoonCatSyllable>(
-                                                 text.toString(), previous_time, time));
-                        connect(m_syllables.back().get(), &SoramimiMoonCatSyllable::Changed,
-                                this, [this] { Serialize(); });
-                        connect(m_syllables.back().get(), &SoramimiMoonCatSyllable::Changed,
-                                this, &SoramimiMoonCatLine::BuildText);
-                    }
+                    AddSyllable(previous_index, i, previous_time, time);
                 }
 
                 previous_index = i + 10;
@@ -221,7 +200,33 @@ void SoramimiMoonCatLine::Deserialize()
             }
         }
     }
-    m_suffix = m_raw_content.mid(previous_index);
+
+    // Handle the case where there's text that isn't succeeded by a timecode
+    if (first_timecode)
+        m_prefix = m_raw_content;
+    else
+        AddSyllable(previous_index, m_raw_content.size(), previous_time, PLACEHOLDER_TIME);
+}
+
+void SoramimiMoonCatLine::AddSyllable(size_t start, size_t end,
+                                      Centiseconds start_time, Centiseconds end_time)
+{
+    const QStringRef text(&m_raw_content, start, end - start);
+    const bool empty = text.count(' ') == text.size();
+    if (empty)
+    {
+        if (!m_syllables.empty())
+            m_syllables.back()->m_text += text;
+    }
+    else
+    {
+        m_syllables.emplace_back(std::make_unique<SoramimiMoonCatSyllable>(
+                                 text.toString(), start_time, end_time));
+        connect(m_syllables.back().get(), &SoramimiMoonCatSyllable::Changed,
+                this, [this] { Serialize(); });
+        connect(m_syllables.back().get(), &SoramimiMoonCatSyllable::Changed,
+                this, &SoramimiMoonCatLine::BuildText);
+    }
 }
 
 QString SoramimiMoonCatLine::SerializeTime(Centiseconds time)
@@ -254,7 +259,7 @@ SoramimiMoonCatSong::SoramimiMoonCatSong(const QVector<Line*>& lines)
 {
     for (Line* line : lines)
         m_lines.push_back(std::make_unique<SoramimiMoonCatLine>(
-                              line->GetSyllables(), line->GetPrefix(), line->GetSuffix()));
+                          line->GetSyllables(), line->GetPrefix()));
 }
 
 QString SoramimiMoonCatSong::GetRaw() const
@@ -289,10 +294,9 @@ QVector<Line*> SoramimiMoonCatSong::GetLines()
     return result;
 }
 
-void SoramimiMoonCatSong::AddLine(const QVector<Syllable*>& syllables,
-                                  QString prefix, QString suffix)
+void SoramimiMoonCatSong::AddLine(const QVector<Syllable*>& syllables, QString prefix)
 {
-    m_lines.push_back(std::make_unique<SoramimiMoonCatLine>(syllables, prefix, suffix));
+    m_lines.push_back(std::make_unique<SoramimiMoonCatLine>(syllables, prefix));
 }
 
 void SoramimiMoonCatSong::RemoveAllLines()

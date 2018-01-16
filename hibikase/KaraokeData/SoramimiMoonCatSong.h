@@ -68,16 +68,13 @@ class SoramimiMoonCatLine final : public Line
 
 public:
     SoramimiMoonCatLine(const QString& content);
-    SoramimiMoonCatLine(const QVector<Syllable*>& syllables,
-                        QString prefix = QString(), QString suffix = QString());
+    SoramimiMoonCatLine(const QVector<Syllable*>& syllables, QString prefix = QString());
 
     QVector<Syllable*> GetSyllables() override;
     Centiseconds GetStart() const override { return m_start; }
     Centiseconds GetEnd() const override { return m_end; }
     QString GetPrefix() const override { return m_prefix; }
     void SetPrefix(const QString& text) override;
-    QString GetSuffix() const override { return m_suffix; }
-    void SetSuffix(const QString& text) override;
     QString GetRaw() const { return m_raw_content; }
     // All split points must be unique and in ascending order
     void SetSyllableSplitPoints(QVector<int> split_points) override;
@@ -86,6 +83,7 @@ private:
     void Serialize();
     void Serialize(const QVector<Syllable*>& syllables);
     void Deserialize();
+    void AddSyllable(size_t start, size_t end, Centiseconds start_time, Centiseconds end_time);
 
     static QString SerializeTime(Centiseconds time);
     static QString SerializeNumber(int number, int digits);
@@ -96,7 +94,6 @@ private:
     Centiseconds m_start;
     Centiseconds m_end;
     QString m_prefix;
-    QString m_suffix;
 };
 
 class SoramimiMoonCatSong final : public Song
@@ -113,7 +110,7 @@ public:
     QString GetRaw() const override;
     QByteArray GetRawBytes() const override;
     QVector<Line*> GetLines() override;
-    void AddLine(const QVector<Syllable*>& syllables, QString prefix, QString suffix) override;
+    void AddLine(const QVector<Syllable*>& syllables, QString prefix) override;
     void RemoveAllLines() override;
 
 private:
