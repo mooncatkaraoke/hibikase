@@ -149,13 +149,6 @@ void SoramimiMoonCatLine::Deserialize()
     Centiseconds previous_time;
     size_t previous_index = 0;
 
-    // Without this check, the m_raw_content.size() - 10 calculation below can underflow
-    if (m_raw_content.size() < 10)
-    {
-        m_prefix = m_raw_content;
-        return;
-    }
-
     // Loops from first character to the last character that possibly can be
     // the start of a timecode (the tenth character from the end)
     for (int i = 0; i <= m_raw_content.size() - 10; ++i)
