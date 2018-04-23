@@ -21,7 +21,7 @@
 #include <QString>
 
 #include "KaraokeData/Song.h"
-#include "KaraokeData/SoramimiMoonCatSong.h"
+#include "KaraokeData/SoramimiSong.h"
 #include "KaraokeData/VsqxParser.h"
 
 namespace KaraokeData
@@ -68,7 +68,7 @@ std::unique_ptr<Song> Load(const QByteArray& data)
     if (vsqx->IsValid())
         return vsqx;
 
-    return std::make_unique<SoramimiMoonCatSong>(data);
+    return std::make_unique<SoramimiSong>(data);
 }
 
 }

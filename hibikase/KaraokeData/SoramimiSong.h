@@ -38,14 +38,14 @@ namespace KaraokeData
 typedef std::chrono::duration<int32_t> Seconds;
 typedef std::chrono::duration<int32_t, std::ratio<60, 1>> Minutes;
 
-class SoramimiMoonCatSyllable final : public Syllable
+class SoramimiSyllable final : public Syllable
 {
     Q_OBJECT
 
-    friend class SoramimiMoonCatLine;
+    friend class SoramimiLine;
 
 public:
-    SoramimiMoonCatSyllable(const QString& text, Centiseconds start,
+    SoramimiSyllable(const QString& text, Centiseconds start,
                             Centiseconds end);
 
     QString GetText() const override { return m_text; }
@@ -62,13 +62,13 @@ private:
     Centiseconds m_end;
 };
 
-class SoramimiMoonCatLine final : public Line
+class SoramimiLine final : public Line
 {
     Q_OBJECT
 
 public:
-    SoramimiMoonCatLine(const QString& content);
-    SoramimiMoonCatLine(const QVector<Syllable*>& syllables, QString prefix = QString());
+    SoramimiLine(const QString& content);
+    SoramimiLine(const QVector<Syllable*>& syllables, QString prefix = QString());
 
     QVector<Syllable*> GetSyllables() override;
     Centiseconds GetStart() const override { return m_start; }
@@ -90,20 +90,20 @@ private:
 
     QString m_raw_content;
 
-    std::vector<std::unique_ptr<SoramimiMoonCatSyllable>> m_syllables;
+    std::vector<std::unique_ptr<SoramimiSyllable>> m_syllables;
     Centiseconds m_start;
     Centiseconds m_end;
     QString m_prefix;
 };
 
-class SoramimiMoonCatSong final : public Song
+class SoramimiSong final : public Song
 {
     Q_OBJECT
 
 public:
-    SoramimiMoonCatSong(const QByteArray& data);
+    SoramimiSong(const QByteArray& data);
     // TODO: Use this constructor when converting, and remove the AddLine function
-    SoramimiMoonCatSong(const QVector<Line*>& lines);
+    SoramimiSong(const QVector<Line*>& lines);
 
     bool IsValid() const override { return true; }
     bool IsEditable() const override { return true; }
@@ -114,7 +114,7 @@ public:
     void RemoveAllLines() override;
 
 private:
-    std::vector<std::unique_ptr<SoramimiMoonCatLine>> m_lines;
+    std::vector<std::unique_ptr<SoramimiLine>> m_lines;
 };
 
 }

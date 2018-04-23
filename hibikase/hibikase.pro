@@ -13,7 +13,7 @@ win32 {
 SOURCES += main.cpp\
         MainWindow.cpp \
     KaraokeData/Song.cpp \
-    KaraokeData/SoramimiMoonCatSong.cpp \
+    KaraokeData/SoramimiSong.cpp \
     KaraokeContainer/Container.cpp \
     KaraokeContainer/PlainContainer.cpp \
     KaraokeData/VsqxParser.cpp \
@@ -26,7 +26,7 @@ SOURCES += main.cpp\
 
 HEADERS  += MainWindow.h \
     KaraokeData/Song.h \
-    KaraokeData/SoramimiMoonCatSong.h \
+    KaraokeData/SoramimiSong.h \
     KaraokeContainer/Container.h \
     KaraokeContainer/PlainContainer.h \
     KaraokeData/ReadOnlySong.h \
