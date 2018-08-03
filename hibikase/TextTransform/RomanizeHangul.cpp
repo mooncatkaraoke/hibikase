@@ -292,12 +292,13 @@ static void ElideCluster(const Syllable& syllable, QString* finals, const Syllab
         return;
 
     const QChar next = !next_syllable.initials.isEmpty() ? next_syllable.initials[0] : QChar('\0');
+
     const bool next_is_k = next == QChar(u'ᄀ') || next == QChar(u'ᄁ') || next == QChar(u'ᄏ');
     const bool special_lk_case = !next_is_k && (*finals)[1] == QChar(u'ᆨ');
 
     const bool special_lp_case = syllable == QStringLiteral(u"밟") ||
-            (syllable == QStringLiteral(u"넓") &&
-            (next_syllable == QStringLiteral(u"둥") || next_syllable == QStringLiteral(u"죽")));
+            (syllable == QStringLiteral(u"넓") && (next_syllable == QStringLiteral(u"둥") ||
+            next_syllable == QStringLiteral(u"죽") || next_syllable == QStringLiteral(u"적")));
 
     const bool remove_first = (*finals)[1] == QChar(u'ᇁ') || (*finals)[1] == QChar(u'ᆷ') ||
                               special_lk_case || special_lp_case;
