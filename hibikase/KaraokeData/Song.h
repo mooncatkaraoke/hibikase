@@ -19,6 +19,7 @@
 
 #include <cinttypes>
 #include <chrono>
+#include <exception>
 #include <memory>
 #include <ratio>
 
@@ -26,6 +27,17 @@
 #include <QObject>
 #include <QString>
 #include <QVector>
+
+namespace
+{
+    class NotSupported final : public std::exception
+    {
+        virtual const char* what() const throw()
+        {
+            return "Not supported";
+        }
+    } not_supported;
+}
 
 namespace KaraokeData
 {
@@ -61,11 +73,20 @@ public:
     // All split points must be unique and in ascending order
     virtual void SetSyllableSplitPoints(QVector<int> split_points) = 0;
 
+    virtual int PositionFromRaw(int) const { throw not_supported; }
+    virtual int PositionToRaw(int) const { throw not_supported; }
+
 protected slots:
     virtual void BuildText();
 
 protected:
     QString m_text;
+};
+
+struct SongPosition final
+{
+    int line;
+    int position_in_line;
 };
 
 class Song : public QObject
@@ -85,6 +106,10 @@ public:
     virtual void RemoveAllLines() = 0;
     // TODO: GetText() is supposed to be const
     virtual QString GetText();
+
+    virtual bool SupportsPositionConversion() const { return false; }
+    virtual SongPosition PositionFromRaw(int) const { throw not_supported; }
+    virtual int PositionToRaw(SongPosition) const { throw not_supported; }
 };
 
 std::unique_ptr<Song> Load(const QByteArray& data);

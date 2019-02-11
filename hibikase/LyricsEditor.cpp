@@ -11,6 +11,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <utility>
@@ -49,6 +50,8 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     small_font.setPointSize(9);
     m_raw_text_edit->setFont(small_font);
 
+    SetMode(Mode::Text);
+
     QVBoxLayout* main_layout = new QVBoxLayout();
     main_layout->setMargin(0);
     main_layout->addWidget(m_raw_text_edit);
@@ -80,7 +83,7 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
     const QVector<KaraokeData::Line*> lines = song->GetLines();
     m_line_timing_decorations.clear();
     m_line_timing_decorations.reserve(lines.size());
-    size_t i = 0;
+    int i = 0;
     for (KaraokeData::Line* line : lines)
     {
         auto decorations = std::make_unique<LineTimingDecorations>(line, i, m_rich_text_edit);
@@ -102,6 +105,51 @@ void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
 
 void LyricsEditor::SetMode(Mode mode)
 {
+    if (mode == Mode::Raw && m_mode != Mode::Raw)
+    {
+        const QTextCursor cursor = m_rich_text_edit->textCursor();
+        QTextCursor end_cursor = m_rich_text_edit->textCursor();
+        end_cursor.movePosition(QTextCursor::End);
+
+        QTextCursor raw_cursor = m_raw_text_edit->textCursor();
+        if (cursor == end_cursor)
+        {
+            raw_cursor.movePosition(QTextCursor::End);
+        }
+        else
+        {
+            int position = m_rich_text_edit->textCursor().position();
+            auto it = std::upper_bound(m_line_timing_decorations.cbegin(), m_line_timing_decorations.cend(),
+                                       position, [](int pos, auto& line) { return pos < line->GetPosition(); });
+            it--;
+            const int line = it - m_line_timing_decorations.cbegin();
+            const int line_pos = (*it)->GetPosition();
+            const int raw_position = m_song_ref->PositionToRaw(
+                                     KaraokeData::SongPosition{line, position - line_pos});
+
+            raw_cursor.setPosition(raw_position);
+        }
+        m_raw_text_edit->setTextCursor(raw_cursor);
+    }
+    if (mode != Mode::Raw && m_mode == Mode::Raw)
+    {
+        const int position = m_raw_text_edit->textCursor().position();
+        const KaraokeData::SongPosition song_position = m_song_ref->PositionFromRaw(position);
+        QTextCursor cursor = m_rich_text_edit->textCursor();
+        if (static_cast<size_t>(song_position.line) < m_line_timing_decorations.size())
+        {
+            const int line_position = m_line_timing_decorations[song_position.line]->GetPosition();
+            cursor.setPosition(line_position + song_position.position_in_line);
+        }
+        else
+        {
+            cursor.movePosition(QTextCursor::End);
+        }
+        m_rich_text_edit->setTextCursor(cursor);
+    }
+
+    m_mode = mode;
+
     switch (mode)
     {
     case Mode::Timing:

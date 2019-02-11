@@ -58,6 +58,7 @@ private:
     QPlainTextEdit* m_rich_text_edit;
     std::vector<std::unique_ptr<LineTimingDecorations>> m_line_timing_decorations;
     std::chrono::milliseconds m_time = std::chrono::milliseconds(-1);
+    Mode m_mode;
 
     KaraokeData::Song* m_song_ref;
 };

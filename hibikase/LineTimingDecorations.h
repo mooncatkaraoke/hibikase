@@ -41,7 +41,7 @@ class SyllableDecorations final : public QWidget
     using Milliseconds = std::chrono::milliseconds;
 
 public:
-    explicit SyllableDecorations(const QPlainTextEdit* text_edit, size_t start_index, size_t end_index,
+    explicit SyllableDecorations(const QPlainTextEdit* text_edit, int start_index, int end_index,
                                  Milliseconds start_time, Milliseconds end_time);
 
     void Update(Milliseconds time, bool line_is_inactivating);
@@ -53,8 +53,8 @@ private:
     void CalculateGeometry();
 
     const QPlainTextEdit* const m_text_edit;
-    const size_t m_start_index;
-    const size_t m_end_index;
+    const int m_start_index;
+    const int m_end_index;
     const Milliseconds m_start_time;
     const Milliseconds m_end_time;
     qreal m_progress = 0;
@@ -66,15 +66,16 @@ class LineTimingDecorations final : public QObject
     Q_OBJECT
 
 public:
-    LineTimingDecorations(KaraokeData::Line* line, size_t position,
+    LineTimingDecorations(KaraokeData::Line* line, int position,
                           QPlainTextEdit* text_edit, QObject* parent = nullptr);
 
     void Update(std::chrono::milliseconds time);
+    int GetPosition() const;
 
 private:
     std::vector<std::unique_ptr<SyllableDecorations>> m_syllables;
     // TODO: Use a const reference instead
     KaraokeData::Line* m_line;
-    size_t m_position;
+    int m_position;
     TimingState m_state = TimingState::Uninitialized;
 };

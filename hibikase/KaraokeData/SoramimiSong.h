@@ -79,6 +79,9 @@ public:
     // All split points must be unique and in ascending order
     void SetSyllableSplitPoints(QVector<int> split_points) override;
 
+    int PositionFromRaw(int raw_position) const override;
+    int PositionToRaw(int position) const override;
+
 private:
     void Serialize();
     void Serialize(const QVector<Syllable*>& syllables);
@@ -89,6 +92,7 @@ private:
     static QString SerializeNumber(int number, int digits);
 
     QString m_raw_content;
+    std::vector<int> m_raw_syllable_positions;
 
     std::vector<std::unique_ptr<SoramimiSyllable>> m_syllables;
     Centiseconds m_start;
@@ -112,6 +116,10 @@ public:
     QVector<Line*> GetLines() override;
     void AddLine(const QVector<Syllable*>& syllables, QString prefix) override;
     void RemoveAllLines() override;
+
+    bool SupportsPositionConversion() const override;
+    SongPosition PositionFromRaw(int raw_position) const override;
+    int PositionToRaw(SongPosition position) const override;
 
 private:
     std::vector<std::unique_ptr<SoramimiLine>> m_lines;

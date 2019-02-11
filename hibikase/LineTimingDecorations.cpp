@@ -53,8 +53,8 @@ static TimingState GetTimingState(Milliseconds current, Milliseconds start, Mill
         return TimingState::Played;
 }
 
-SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, size_t start_index,
-        size_t end_index, Milliseconds start_time, Milliseconds end_time)
+SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int start_index,
+        int end_index, Milliseconds start_time, Milliseconds end_time)
     : QWidget(text_edit->viewport()), m_text_edit(text_edit), m_start_index(start_index),
       m_end_index(end_index), m_start_time(start_time), m_end_time(end_time)
 {
@@ -140,16 +140,16 @@ void SyllableDecorations::CalculateGeometry()
     setGeometry(QRect(left, top, width, height));
 }
 
-LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, size_t position,
+LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, int position,
                                              QPlainTextEdit* text_edit, QObject* parent)
     : QObject(parent), m_line(line), m_position(position)
 {
     auto syllables = m_line->GetSyllables();
     m_syllables.reserve(syllables.size());
-    size_t i = m_position + m_line->GetPrefix().size();
+    int i = m_position + m_line->GetPrefix().size();
     for (KaraokeData::Syllable* syllable : syllables)
     {
-        const size_t start_index = i;
+        const int start_index = i;
         i += syllable->GetText().size();
         m_syllables.emplace_back(std::make_unique<SyllableDecorations>(
                         text_edit, start_index, i, syllable->GetStart(), syllable->GetEnd()));
@@ -165,4 +165,9 @@ void LineTimingDecorations::Update(std::chrono::milliseconds time)
 
     for (std::unique_ptr<SyllableDecorations>& syllable : m_syllables)
         syllable->Update(time, state != TimingState::Playing);
+}
+
+int LineTimingDecorations::GetPosition() const
+{
+    return m_position;
 }

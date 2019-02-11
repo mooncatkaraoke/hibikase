@@ -38,6 +38,9 @@ namespace KaraokeData
 static const QString PLACEHOLDER_TIMECODE = QStringLiteral("[99:59:99]");
 static constexpr Centiseconds PLACEHOLDER_TIME = Centiseconds(99 * 60 * 100 + 59 * 100 + 99);
 
+// TODO: The user might want LF instead of CRLF
+static const QString LINE_ENDING = "\r\n";
+
 SoramimiSyllable::SoramimiSyllable(const QString& text, Centiseconds start, Centiseconds end)
     : m_text(text), m_start(start), m_end(end)
 {
@@ -94,6 +97,42 @@ void SoramimiLine::SetSyllableSplitPoints(QVector<int> split_points)
     Deserialize();
 }
 
+int SoramimiLine::PositionFromRaw(int raw_position) const
+{
+    size_t syllable_number = 0;
+    int current_position = 0;
+    for (; syllable_number < m_raw_syllable_positions.size(); ++syllable_number)
+    {
+        const int syllable_size = m_syllables[syllable_number]->GetText().size();
+        const int raw_syllable_position = m_raw_syllable_positions[syllable_number];
+
+        if (raw_position <= raw_syllable_position + syllable_size)
+        {
+            const int position_in_syllable = std::max(0, raw_position - raw_syllable_position);
+            return current_position + position_in_syllable;
+        }
+        current_position += syllable_size;
+    }
+    return current_position;
+}
+
+int SoramimiLine::PositionToRaw(int position) const
+{
+    size_t syllable_number = 0;
+    int current_position = 0;
+    for (const std::unique_ptr<SoramimiSyllable>& syllable : m_syllables)
+    {
+        if (position <= current_position)
+        {
+            const int position_in_syllable = std::max(0, position - current_position);
+            return m_raw_syllable_positions[syllable_number] + position_in_syllable;
+        }
+        syllable_number++;
+        current_position += syllable->GetText().size();
+    }
+    return current_position;
+}
+
 void SoramimiLine::Serialize()
 {
     // TODO: Performance cost of GetSyllables() copying pointers into a QVector?
@@ -103,6 +142,7 @@ void SoramimiLine::Serialize()
 void SoramimiLine::Serialize(const QVector<Syllable*>& syllables)
 {
     m_raw_content.clear();
+    m_raw_syllable_positions.clear();
 
     m_raw_content += m_prefix;
 
@@ -125,6 +165,7 @@ void SoramimiLine::Serialize(const QVector<Syllable*>& syllables)
             m_raw_content += SerializeTime(start);
         }
 
+        m_raw_syllable_positions.push_back(m_raw_content.size());
         m_raw_content += syllable->GetText();
         last_character_of_previous_text = m_raw_content.size() - 1;
 
@@ -140,6 +181,7 @@ void SoramimiLine::Serialize(const QVector<Syllable*>& syllables)
 void SoramimiLine::Deserialize()
 {
     m_syllables.clear();
+    m_raw_syllable_positions.clear();
     m_start = Centiseconds::max();
     m_end = Centiseconds::min();
     m_prefix.clear();
@@ -212,6 +254,7 @@ void SoramimiLine::AddSyllable(size_t start, size_t end,
     }
     else
     {
+        m_raw_syllable_positions.push_back(start);
         m_syllables.emplace_back(std::make_unique<SoramimiSyllable>(
                                  text.toString(), start_time, end_time));
         connect(m_syllables.back().get(), &SoramimiSyllable::Changed,
@@ -258,8 +301,6 @@ QString SoramimiSong::GetRaw() const
 {
     QString result;
     size_t size = 0;
-    // TODO: The user might want LF instead of CRLF
-    static const QString LINE_ENDING = "\r\n";
 
     for (const std::unique_ptr<SoramimiLine>& line : m_lines)
         size += line->GetRaw().size() + LINE_ENDING.size();
@@ -294,6 +335,39 @@ void SoramimiSong::AddLine(const QVector<Syllable*>& syllables, QString prefix)
 void SoramimiSong::RemoveAllLines()
 {
     m_lines.clear();
+}
+
+bool SoramimiSong::SupportsPositionConversion() const
+{
+    return true;
+}
+
+SongPosition SoramimiSong::PositionFromRaw(int raw_position) const
+{
+    int line_number = 0;
+    int current_raw_pos = 0;
+    for (const std::unique_ptr<SoramimiLine>& line : m_lines)
+    {
+        const int new_raw_pos = current_raw_pos + line->GetRaw().size() + 1;
+        if (new_raw_pos > raw_position)
+            break;
+
+        line_number++;
+        current_raw_pos = new_raw_pos;
+    }
+
+    const int position_in_line = line_number >= m_lines.size() ? 0 :
+                                 m_lines[line_number]->PositionFromRaw(raw_position - current_raw_pos);
+    return {line_number, position_in_line};
+}
+
+int SoramimiSong::PositionToRaw(SongPosition position) const
+{
+    int raw_position = 0;
+    for (size_t i = 0; i < position.line && i < m_lines.size(); ++i)
+        raw_position += m_lines[i]->GetRaw().size() + 1;
+    return position.line == m_lines.size() ? raw_position :
+            raw_position + m_lines[position.line]->PositionToRaw(position.position_in_line);
 }
 
 }
