@@ -16,6 +16,7 @@
 #include <utility>
 
 #include <QFileDialog>
+#include <QMediaContent>
 #include <QMessageBox>
 #include <QRadioButton>
 #include <QString>
@@ -36,8 +37,10 @@ MainWindow::MainWindow(QWidget* parent) :
 
     ui->timeLabel->setTextFormat(Qt::PlainText);
 
+    m_player->setNotifyInterval(10);
+
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
-    connect(m_timer, &QTimer::timeout, this, &MainWindow::UpdateTime);
+    connect(m_player, &QMediaPlayer::positionChanged, this, &MainWindow::UpdateTime);
 
     connect(ui->timingRadioButton, &QRadioButton::toggled, [this](bool checked) {
         if (checked)
@@ -88,6 +91,7 @@ void MainWindow::on_actionOpen_triggered()
     }
 
     emit SongReplaced(m_song.get());
+    LoadAudio();
 }
 
 void MainWindow::on_actionSave_As_triggered()
@@ -100,6 +104,7 @@ void MainWindow::on_actionSave_As_triggered()
     m_container = KaraokeContainer::Load(save_path);
     m_container->SaveLyricsFile(m_song->GetRawBytes());
     m_has_valid_save_path = true;
+    LoadAudio();
 }
 
 void MainWindow::on_actionAbout_Qt_triggered()
@@ -128,18 +133,15 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
 
 void MainWindow::on_playButton_clicked()
 {
-    m_is_playing = !m_is_playing;
-
-    if (m_is_playing)
+    if (m_player->state() != QMediaPlayer::PlayingState)
     {
-        m_playback_timer.start();
-        m_timer->start(10);  // TODO: Can this be done every frame instead?
+        m_player->play();
 
         ui->playButton->setText(QStringLiteral("Stop"));
     }
     else
     {
-        m_timer->stop();
+        m_player->stop();
 
         // TODO: This string is also in the UI file. Can it be deduplicated?
         ui->playButton->setText(QStringLiteral("Play"));
@@ -148,13 +150,26 @@ void MainWindow::on_playButton_clicked()
     UpdateTime();
 }
 
+void MainWindow::LoadAudio()
+{
+    if (m_container)
+        m_io_device = m_container->ReadAudioFile();
+    else
+        m_io_device = nullptr;
+
+    if (!m_io_device)
+        m_player->setMedia(QMediaContent());
+    else
+        m_player->setMedia(QMediaContent(), m_io_device.get());
+}
+
 void MainWindow::UpdateTime()
 {
     QString text;
     qint64 ms = -1;
-    if (m_is_playing)
+    if (m_player->state() != QMediaPlayer::StoppedState)
     {
-        ms = m_playback_timer.elapsed();
+        ms = m_player->position();
         text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
                                          .arg(ms / 1000 % 60, 2, 10, QChar('0'))
                                          .arg(ms / 10 % 100,  2, 10, QChar('0'));

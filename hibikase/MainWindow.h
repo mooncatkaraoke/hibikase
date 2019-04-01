@@ -15,9 +15,9 @@
 
 #include <memory>
 
-#include <QElapsedTimer>
+#include <QIODevice>
 #include <QMainWindow>
-#include <QTimer>
+#include <QMediaPlayer>
 
 #include "KaraokeContainer/Container.h"
 #include "KaraokeData/Song.h"
@@ -45,16 +45,16 @@ private slots:
 
     void on_playButton_clicked();
 
+private:
+    void LoadAudio();
     void UpdateTime();
 
-private:
     Ui::MainWindow* ui;
 
     std::unique_ptr<KaraokeContainer::Container> m_container;
     std::unique_ptr<KaraokeData::Song> m_song;
     bool m_has_valid_save_path = false;
 
-    QTimer* m_timer = new QTimer(this);
-    QElapsedTimer m_playback_timer;
-    bool m_is_playing = false;
+    std::unique_ptr<QIODevice> m_io_device = nullptr;
+    QMediaPlayer* m_player = new QMediaPlayer(this);
 };
