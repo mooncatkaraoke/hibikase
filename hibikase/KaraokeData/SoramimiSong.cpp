@@ -147,7 +147,7 @@ void SoramimiLine::Serialize(const QVector<Syllable*>& syllables)
     m_raw_content += m_prefix;
 
     Centiseconds previous_time = Centiseconds::min();
-    size_t last_character_of_previous_text = 0;
+    int last_character_of_previous_text = 0;
     for (const Syllable* syllable : syllables)
     {
         Centiseconds start = syllable->GetStart();
