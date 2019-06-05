@@ -4,6 +4,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = hibikase
 TEMPLATE = app
+CONFIG += c++14
 
 win32 {
     msvc:QMAKE_CXXFLAGS += /utf-8
