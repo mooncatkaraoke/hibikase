@@ -18,10 +18,10 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 
-#include <QString>
 #include <QByteArray>
+#include <QIODevice>
+#include <QString>
 
 namespace KaraokeContainer
 {
@@ -30,6 +30,9 @@ class Container
 {
 public:
     virtual ~Container() = default;
+
+    // Returns a read-only QIODevice that already is open, or nullptr
+    virtual std::unique_ptr<QIODevice> ReadAudioFile() const = 0;
 
     virtual QByteArray ReadLyricsFile() const = 0;
     virtual void SaveLyricsFile(const QByteArray& content) const = 0;
