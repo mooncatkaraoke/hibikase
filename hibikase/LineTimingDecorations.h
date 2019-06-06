@@ -51,6 +51,9 @@ protected:
 
 private:
     void CalculateGeometry();
+    QColor GetNotPlayedColor() const;
+    QColor GetPlayingColor() const;
+    QColor GetPlayedColor() const;
 
     const QPlainTextEdit* const m_text_edit;
     const int m_start_index;

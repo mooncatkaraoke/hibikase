@@ -37,10 +37,6 @@ static constexpr int SYLLABLE_MARKER_WIDTH = 4;
 static constexpr int SYLLABLE_MARKER_HEIGHT = 4;
 static constexpr int PROGRESS_LINE_HEIGHT = 1;
 
-static const QColor COLOR_NOT_PLAYING(0x77, 0x55, 0x77);
-static const QColor COLOR_PLAYING(0x00, 0x00, 0x00);
-static const QColor COLOR_PLAYED(0x55, 0x77, 0x55);
-
 using Milliseconds = std::chrono::milliseconds;
 
 static TimingState GetTimingState(Milliseconds current, Milliseconds start, Milliseconds end)
@@ -63,6 +59,31 @@ SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int st
     setPalette(Qt::transparent);
     setAttribute(Qt::WA_TransparentForMouseEvents);
     setVisible(true);
+}
+
+QColor SyllableDecorations::GetPlayingColor() const
+{
+    return QPalette().color(QPalette::Text);
+}
+
+QColor SyllableDecorations::GetNotPlayedColor() const
+{
+    QColor col(0x77, 0x55, 0x77);
+    // Adjust our colours if the system has a light text colour
+    // (The assumption is the system is using a light-on-dark grayscale scheme)
+    int diff = QPalette().color(QPalette::Text).lightness() - col.lightness();
+    if (diff > 0)
+        col = col.lighter(diff);
+    return col;
+}
+
+QColor SyllableDecorations::GetPlayedColor() const
+{
+    QColor col(0x55, 0x77, 0x55);
+    int diff = QPalette().color(QPalette::Text).lightness() - col.lightness();
+    if (diff > 0)
+        col = col.lighter(diff);
+    return col;
 }
 
 void SyllableDecorations::Update(Milliseconds time, bool line_is_inactivating)
@@ -93,11 +114,11 @@ void SyllableDecorations::Update(Milliseconds time, bool line_is_inactivating)
 
     QTextCharFormat color;
     if (state == TimingState::NotPlayed)
-        color.setForeground(COLOR_NOT_PLAYING);
+        color.setForeground(GetNotPlayedColor());
     else if (state == TimingState::Playing)
-        color.setForeground(COLOR_PLAYING);
+        color.setForeground(GetPlayingColor());
     else
-        color.setForeground(COLOR_PLAYED);
+        color.setForeground(GetPlayedColor());
     cursor.setCharFormat(color);
 }
 
