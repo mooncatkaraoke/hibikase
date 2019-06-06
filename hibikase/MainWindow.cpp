@@ -19,6 +19,7 @@
 #include <QMessageBox>
 #include <QRadioButton>
 #include <QString>
+#include <QBuffer>
 
 #include "KaraokeContainer/Container.h"
 #include "KaraokeContainer/PlainContainer.h"
@@ -36,8 +37,11 @@ MainWindow::MainWindow(QWidget* parent) :
 
     ui->timeLabel->setTextFormat(Qt::PlainText);
 
+    QString url("/Users/ajf/Projects/2019/Karaoke/Songs/Kohmi Hirose/Promise/Promise.mp3");
+    m_audio = new AudioCodecs::AudioFile(url);
+
     m_player->setNotifyInterval(10);
-    m_player->setMedia(QUrl::fromLocalFile("C:/Users/Jos/Desktop/Karaoke/MIC Drop (Steve Aoki Remix) (first verse from MV audio, rest of song from digital single release).mp3"));
+    m_player->setMedia(m_audio->GetResource());
 
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
     connect(m_player, &QMediaPlayer::positionChanged, this, &MainWindow::UpdateTime);
@@ -64,6 +68,7 @@ MainWindow::MainWindow(QWidget* parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete m_audio;
 }
 
 void MainWindow::on_actionOpen_triggered()
@@ -119,7 +124,10 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
                        "GNU General Public License for more details.\n"
                        "\n"
                        "You should have received a copy of the GNU General Public License "
-                       "along with this program. If not, see <http://www.gnu.org/licenses/>.");
+                       "along with this program. If not, see <http://www.gnu.org/licenses/>."
+                       "\n"
+                       "\n"
+                       "Hibikase makes use of the dr_mp3 and dr_wav libraries from <https://github.com/mackron/dr_libs>.");
 }
 
 void MainWindow::on_playButton_clicked()
@@ -151,6 +159,9 @@ void MainWindow::UpdateTime()
         text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
                                          .arg(ms / 1000 % 60, 2, 10, QChar('0'))
                                          .arg(ms / 10 % 100,  2, 10, QChar('0'));
+    }
+    if (m_player->error()) {
+        qDebug() << m_player->error();
     }
     ui->mainLyrics->UpdateTime(std::chrono::milliseconds(ms));
     ui->timeLabel->setText(text);
