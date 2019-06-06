@@ -31,7 +31,7 @@ PlainContainer::PlainContainer(const QString& path)
 {
 }
 
-QByteArray PlainContainer::ReadLyricsFile()
+QByteArray PlainContainer::ReadLyricsFile() const
 {
     QFile file(m_path);
     // TODO: Should this be an exception?
@@ -40,9 +40,9 @@ QByteArray PlainContainer::ReadLyricsFile()
     return file.readAll();
 }
 
-void PlainContainer::SaveLyricsFile(const QString& path, const QByteArray& content)
+void PlainContainer::SaveLyricsFile(const QByteArray& content) const
 {
-    QFile file(path);
+    QFile file(m_path);
     // TODO: Should this be an exception?
     if (!file.open(QIODevice::WriteOnly))
         return;

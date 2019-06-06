@@ -30,9 +30,8 @@ class PlainContainer final : public Container
 public:
     PlainContainer(const QString& path);
 
-    QByteArray ReadLyricsFile() override;
-
-    static void SaveLyricsFile(const QString& path, const QByteArray& content);
+    QByteArray ReadLyricsFile() const override;
+    void SaveLyricsFile(const QByteArray& content) const override;
 
 private:
     QString m_path;

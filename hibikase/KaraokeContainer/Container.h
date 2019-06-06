@@ -29,7 +29,10 @@ namespace KaraokeContainer
 class Container
 {
 public:
-    virtual QByteArray ReadLyricsFile() = 0;
+    virtual ~Container() = default;
+
+    virtual QByteArray ReadLyricsFile() const = 0;
+    virtual void SaveLyricsFile(const QByteArray& content) const = 0;
 };
 
 std::unique_ptr<Container> Load(const QString& path);

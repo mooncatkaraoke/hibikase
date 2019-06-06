@@ -19,6 +19,7 @@
 #include <QMainWindow>
 #include <QTimer>
 
+#include "KaraokeContainer/Container.h"
 #include "KaraokeData/Song.h"
 
 namespace Ui {
@@ -49,7 +50,9 @@ private slots:
 private:
     Ui::MainWindow* ui;
 
+    std::unique_ptr<KaraokeContainer::Container> m_container;
     std::unique_ptr<KaraokeData::Song> m_song;
+    bool m_has_valid_save_path = false;
 
     QTimer* m_timer = new QTimer(this);
     QElapsedTimer m_playback_timer;

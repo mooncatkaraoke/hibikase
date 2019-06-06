@@ -69,8 +69,8 @@ void MainWindow::on_actionOpen_triggered()
     if (load_path.isEmpty())
         return;
 
-    std::unique_ptr<KaraokeContainer::Container> container = KaraokeContainer::Load(load_path);
-    std::unique_ptr<KaraokeData::Song> song = KaraokeData::Load(container->ReadLyricsFile());
+    m_container = KaraokeContainer::Load(load_path);
+    std::unique_ptr<KaraokeData::Song> song = KaraokeData::Load(m_container->ReadLyricsFile());
 
     if (!song->IsEditable())
     {
@@ -79,10 +79,12 @@ void MainWindow::on_actionOpen_triggered()
         for (KaraokeData::Line* line : song->GetLines())
             converted_song->AddLine(line->GetSyllables());
         m_song = std::move(converted_song);
+        m_has_valid_save_path = false;
     }
     else
     {
         m_song = std::move(song);
+        m_has_valid_save_path = true;
     }
 
     emit SongReplaced(m_song.get());
@@ -91,8 +93,13 @@ void MainWindow::on_actionOpen_triggered()
 void MainWindow::on_actionSave_As_triggered()
 {
     QString save_path = QFileDialog::getSaveFileName(this);
+    if (save_path.isEmpty())
+        return;
+
     ui->mainLyrics->RebuildSong();
-    KaraokeContainer::PlainContainer::SaveLyricsFile(save_path, m_song->GetRawBytes());
+    m_container = KaraokeContainer::Load(save_path);
+    m_container->SaveLyricsFile(m_song->GetRawBytes());
+    m_has_valid_save_path = true;
 }
 
 void MainWindow::on_actionAbout_Qt_triggered()
