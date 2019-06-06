@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
     ui->timeLabel->setTextFormat(Qt::PlainText);
 
-    QString url("/Users/ajf/Projects/2019/Karaoke/Songs/Kohmi Hirose/Promise/Promise.mp3");
+    QString url("/Users/ajf/Projects/2019/Karaoke/Songs/Kohmi Hirose/Promise/Promise.flac");
     m_audio = new AudioFile(url);
 
     m_player->setNotifyInterval(10);
@@ -130,7 +130,7 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
                        "along with this program. If not, see <http://www.gnu.org/licenses/>."
                        "\n"
                        "\n"
-                       "Hibikase makes use of the dr_mp3 and dr_wav libraries from <https://github.com/mackron/dr_libs>.");
+                       "Hibikase makes use of the dr_mp3, dr_flac and dr_wav libraries from <https://github.com/mackron/dr_libs>.");
 }
 
 void MainWindow::on_playButton_clicked()

@@ -23,6 +23,8 @@
 
 #define DR_MP3_IMPLEMENTATION
 #include "../external/dr_libs/dr_mp3.h"
+#define DR_FLAC_IMPLEMENTATION
+#include "../external/dr_libs/dr_flac.h"
 #define DR_WAV_IMPLEMENTATION
 #include "../external/dr_libs/dr_wav.h"
 
@@ -43,12 +45,22 @@ AudioFile::AudioFile(QString &filename)
     QByteArray bytes = file.readAll();
     file.close();
 
+    enum {
+        TYPE_UNKNOWN = 0,
+        TYPE_MP3,
+        TYPE_FLAC,
+    } type = TYPE_UNKNOWN;
+
     drmp3 mp3;
-    if (drmp3_init_memory(&mp3, bytes.data(), bytes.length(), nullptr)) {
+    if (drmp3_init_memory(&mp3, bytes.data(), bytes.length(), nullptr))
+    {
         drmp3_uninit(&mp3);
+
         qInfo() << "File is MP3";
 
-        qInfo() << "Decoding MP3 to PCM samples...";
+        type = TYPE_MP3;
+
+        qInfo() << "Decoding MP3 to PCM...";
 
         drmp3_config mp3_config;
         drmp3_int16 *mp3_frames = nullptr;
@@ -67,11 +79,35 @@ AudioFile::AudioFile(QString &filename)
         frames = mp3_frames;
         frames_count = mp3_frames_count;
     }
+    else if (drflac *flac = drflac_open_memory(bytes.data(), bytes.length()))
+    {
+        drflac_close(flac);
+
+        qInfo() << "File is FLAC";
+
+        type = TYPE_FLAC;
+
+        qInfo() << "Decoding FLAC to PCM...";
+
+        unsigned int flac_channels, flac_sample_rate;
+        drflac_uint64 flac_frames_count;
+        drflac_int16 *flac_frames = drflac_open_memory_and_read_pcm_frames_s16(bytes.data(), bytes.length(), &flac_channels, &flac_sample_rate, &flac_frames_count);
+        if (!flac_frames)
+        {
+            qWarning() << "Couldn't decode FLAC file";
+            throw;
+        }
+
+        qInfo() << "Decoded FLAC";
+
+        format.channels = flac_channels;
+        format.sampleRate = flac_sample_rate;
+        frames = flac_frames;
+        frames_count = flac_frames_count;
+    }
     else
     {
-        qDebug() << "Couldn't load file as MP3";
-
-        qWarning() << "File is not a supported format (MP3)";
+        qWarning() << "File is not in a supported format (MP3 or FLAC)";
         throw;
     }
 
@@ -99,9 +135,17 @@ AudioFile::AudioFile(QString &filename)
         qWarning() << "Couldn't write WAVE data";
         throw;
     }
+
     drwav_uninit(&wav);
 
     qInfo() << "Generated WAVE data";
+
+    if (type == TYPE_MP3)
+        drmp3_free(frames);
+    else if (type == TYPE_FLAC)
+        drflac_free(frames);
+    else
+        assert(0 && "Unhandled case?!");
 
     m_wave_bytes = QByteArray((const char*)wav_data, wav_data_size);
     drwav_free(wav_data);
