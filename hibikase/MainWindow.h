@@ -19,7 +19,7 @@
 #include <QMediaPlayer>
 
 #include "KaraokeData/Song.h"
-#include "AudioCodecs.h"
+#include "AudioFile.h"
 
 namespace Ui {
 class MainWindow;
@@ -50,7 +50,7 @@ private:
     Ui::MainWindow* ui;
 
     std::unique_ptr<KaraokeData::Song> m_song;
-    AudioCodecs::AudioFile* m_audio;
+    AudioFile* m_audio;
 
     QMediaPlayer* m_player = new QMediaPlayer(this);
 };

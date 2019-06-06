@@ -38,7 +38,7 @@ MainWindow::MainWindow(QWidget* parent) :
     ui->timeLabel->setTextFormat(Qt::PlainText);
 
     QString url("/Users/ajf/Projects/2019/Karaoke/Songs/Kohmi Hirose/Promise/Promise.mp3");
-    m_audio = new AudioCodecs::AudioFile(url);
+    m_audio = new AudioFile(url);
 
     m_player->setNotifyInterval(10);
 

@@ -13,7 +13,7 @@ win32 {
 
 
 SOURCES += main.cpp\
-    AudioCodecs.cpp \
+    AudioFile.cpp \
         MainWindow.cpp \
     KaraokeData/Song.cpp \
     KaraokeData/SoramimiSong.cpp \
@@ -28,7 +28,7 @@ SOURCES += main.cpp\
     LineTimingDecorations.cpp
 
 HEADERS  += MainWindow.h \
-    AudioCodecs.h \
+    AudioFile.h \
     KaraokeData/Song.h \
     KaraokeData/SoramimiSong.h \
     KaraokeContainer/Container.h \

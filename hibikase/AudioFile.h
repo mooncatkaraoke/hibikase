@@ -22,20 +22,19 @@
 
 #include "../external/dr_libs/dr_mp3.h"
 
-namespace AudioCodecs
+class AudioFile
 {
-    class AudioFile
+public:
+    AudioFile(QString &filename);
+    QMediaResource GetWaveResource() const
     {
-    public:
-        AudioFile(QString &filename);
-        QMediaResource GetWaveResource() const {
-            return m_resource;
-        }
-        QByteArray GetWaveBytes() const {
-            return m_wave_bytes;
-        }
-    private:
-        QMediaResource m_resource;
-        QByteArray m_wave_bytes;
-    };
-}
+        return m_resource;
+    }
+    QByteArray GetWaveBytes() const
+    {
+        return m_wave_bytes;
+    }
+private:
+    QMediaResource m_resource;
+    QByteArray m_wave_bytes;
+};
