@@ -18,7 +18,7 @@
 #pragma once
 
 #include <QMediaResource>
-#include <QTemporaryFile>
+#include <QByteArray>
 
 #include "../external/dr_libs/dr_mp3.h"
 
@@ -28,10 +28,14 @@ namespace AudioCodecs
     {
     public:
         AudioFile(QString &filename);
-        QMediaResource GetResource() {
-            return QUrl::fromLocalFile(m_tempfile.fileName());
+        QMediaResource GetWaveResource() const {
+            return m_resource;
+        }
+        QByteArray GetWaveBytes() const {
+            return m_wave_bytes;
         }
     private:
-        QTemporaryFile m_tempfile;
+        QMediaResource m_resource;
+        QByteArray m_wave_bytes;
     };
 }

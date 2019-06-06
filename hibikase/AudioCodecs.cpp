@@ -105,12 +105,11 @@ namespace AudioCodecs
 
         qInfo() << "Generated WAVE data";
 
-        m_tempfile.setFileTemplate(QDir::tempPath() + "/XXXXXX.wav");
-        m_tempfile.open();
-        m_tempfile.write((const char *)wav_data, wav_data_size);
-        m_tempfile.close();
+        m_wave_bytes = QByteArray((const char*)wav_data, wav_data_size);
         drwav_free(wav_data);
 
-        qInfo() << "Saved WAVE data to temporary file " << m_tempfile.fileName();
+        // QMediaPlayer only accepts WAVE data if the filename ends in .wav
+        // It doesn't need to actually exist though (we use a QIODevice)
+        m_resource = QMediaResource(QUrl::fromLocalFile("/tmp/tmp.wav"));
     }
 }

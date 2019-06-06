@@ -41,7 +41,10 @@ MainWindow::MainWindow(QWidget* parent) :
     m_audio = new AudioCodecs::AudioFile(url);
 
     m_player->setNotifyInterval(10);
-    m_player->setMedia(m_audio->GetResource());
+
+    QBuffer *buffer = new QBuffer(this);
+    buffer->setData(m_audio->GetWaveBytes());
+    m_player->setMedia(m_audio->GetWaveResource(), buffer);
 
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
     connect(m_player, &QMediaPlayer::positionChanged, this, &MainWindow::UpdateTime);
