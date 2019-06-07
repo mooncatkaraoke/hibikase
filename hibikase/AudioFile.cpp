@@ -25,14 +25,11 @@
 #include "../external/dr_libs/dr_mp3.h"
 #define DR_FLAC_IMPLEMENTATION
 #include "../external/dr_libs/dr_flac.h"
-#define DR_WAV_IMPLEMENTATION
-#include "../external/dr_libs/dr_wav.h"
 
 AudioFile::AudioFile(QString &filename)
 {
     QFile file(filename);
 
-    drwav_data_format format;
     int16_t *frames = nullptr;
     size_t frames_count;
 
@@ -73,8 +70,8 @@ AudioFile::AudioFile(QString &filename)
 
         qInfo() << "Decoded MP3";
 
-        format.channels = mp3_config.outputChannels;
-        format.sampleRate = mp3_config.outputSampleRate;
+        m_pcm_format.setChannelCount(mp3_config.outputChannels);
+        m_pcm_format.setSampleRate(mp3_config.outputSampleRate);
         frames = mp3_frames;
         frames_count = mp3_frames_count;
     }
@@ -99,8 +96,8 @@ AudioFile::AudioFile(QString &filename)
 
         qInfo() << "Decoded FLAC";
 
-        format.channels = flac_channels;
-        format.sampleRate = flac_sample_rate;
+        m_pcm_format.setChannelCount(flac_channels);
+        m_pcm_format.setSampleRate(flac_sample_rate);
         frames = flac_frames;
         frames_count = flac_frames_count;
     }
@@ -110,34 +107,13 @@ AudioFile::AudioFile(QString &filename)
         throw;
     }
 
-    format.container = drwav_container_riff;
-    format.format = DR_WAVE_FORMAT_PCM;
-    format.bitsPerSample = 16;
+    m_pcm_format.setCodec("audio/pcm");
+    m_pcm_format.setSampleSize(16);
+    m_pcm_format.setSampleType(QAudioFormat::SignedInt);
+    // QAudioFormat endianness is default-initialised to the platform one, so
+    // we don't need to set it or convert the endianness ourselves!
 
-    void *wav_data;
-    size_t wav_data_size;
-    drwav wav;
-    if (!drwav_init_memory_write(&wav, &wav_data, &wav_data_size, &format))
-    {
-        qWarning() << "Couldn't initialise WAVE writer";
-        throw;
-    }
-
-    qInfo() << "Generating RIFF WAVE PCM data,"
-        << format.bitsPerSample << "bit"
-        << format.channels << "channel"
-        << format.sampleRate << "Hz,"
-        << frames_count << "PCM frames...";
-
-    if (!drwav_write_pcm_frames(&wav, frames_count, frames))
-    {
-        qWarning() << "Couldn't write WAVE data";
-        throw;
-    }
-
-    drwav_uninit(&wav);
-
-    qInfo() << "Generated WAVE data";
+    m_pcm_bytes = QByteArray((const char*)frames, frames_count * m_pcm_format.bytesPerFrame());
 
     if (type == TYPE_MP3)
         drmp3_free(frames);
@@ -146,10 +122,9 @@ AudioFile::AudioFile(QString &filename)
     else
         assert(0 && "Unhandled case?!");
 
-    m_wave_bytes = QByteArray((const char*)wav_data, wav_data_size);
-    drwav_free(wav_data);
-
-    // QMediaPlayer only accepts WAVE data if the filename ends in .wav
-    // It doesn't need to actually exist though (we use a QIODevice)
-    m_resource = QMediaResource(QUrl::fromLocalFile("/tmp/tmp.wav"));
+    qInfo() << "PCM data is "
+        << m_pcm_format.sampleSize() << "bit"
+        << m_pcm_format.channelCount() << "channel"
+        << m_pcm_format.sampleRate() << "Hz,"
+        << frames_count << " frames...";
 }

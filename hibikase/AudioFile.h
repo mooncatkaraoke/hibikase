@@ -17,24 +17,22 @@
 
 #pragma once
 
-#include <QMediaResource>
+#include <QAudioFormat>
 #include <QByteArray>
-
-#include "../external/dr_libs/dr_mp3.h"
 
 class AudioFile
 {
 public:
     AudioFile(QString &filename);
-    QMediaResource GetWaveResource() const
+    QAudioFormat GetPCMFormat() const
     {
-        return m_resource;
+        return m_pcm_format;
     }
-    QByteArray GetWaveBytes() const
+    QByteArray GetPCMBytes() const
     {
-        return m_wave_bytes;
+        return m_pcm_bytes;
     }
 private:
-    QMediaResource m_resource;
-    QByteArray m_wave_bytes;
+    QAudioFormat m_pcm_format;
+    QByteArray m_pcm_bytes;
 };

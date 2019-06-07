@@ -16,7 +16,8 @@
 #include <memory>
 
 #include <QMainWindow>
-#include <QMediaPlayer>
+#include <QAudioOutput>
+#include <QBuffer>
 
 #include "KaraokeData/Song.h"
 #include "AudioFile.h"
@@ -50,7 +51,7 @@ private:
     Ui::MainWindow* ui;
 
     std::unique_ptr<KaraokeData::Song> m_song;
-    AudioFile* m_audio;
 
-    QMediaPlayer* m_player = new QMediaPlayer(this);
+    QAudioOutput* m_player;
+    QBuffer* m_audio_buffer;
 };
