@@ -63,9 +63,8 @@ AudioFile::AudioFile(QString &filename)
         qInfo() << "Decoding MP3 to PCM...";
 
         drmp3_config mp3_config;
-        drmp3_int16 *mp3_frames = nullptr;
         drmp3_uint64 mp3_frames_count;
-        mp3_frames = drmp3_open_memory_and_read_s16(bytes.data(), bytes.length(), &mp3_config, &mp3_frames_count);
+        drmp3_int16 *mp3_frames = drmp3_open_memory_and_read_s16(bytes.data(), bytes.length(), &mp3_config, &mp3_frames_count);
         if (!mp3_frames)
         {
             qWarning() << "Couldn't decode MP3 file";

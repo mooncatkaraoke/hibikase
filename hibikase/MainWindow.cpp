@@ -44,6 +44,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
     QBuffer *buffer = new QBuffer(this);
     buffer->setData(m_audio->GetWaveBytes());
+    buffer->open(QIODevice::ReadOnly);
     m_player->setMedia(m_audio->GetWaveResource(), buffer);
 
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
