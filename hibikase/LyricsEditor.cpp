@@ -26,6 +26,18 @@
 #include "TextTransform/RomanizeHangul.h"
 #include "TextTransform/Syllabify.h"
 
+static QFont WithPointSize(QFont font, qreal size)
+{
+    // For historical reasons,[0] points are one-third bigger on Windows than
+    // on macOS. Qt doesn't account for this, so we must.
+    // [0] https://blogs.msdn.microsoft.com/fontblog/2005/11/08/where-does-96-dpi-come-from-in-windows/
+#ifdef TARGET_OS_MAC
+    size *= 96.0 / 72.0;
+#endif
+    font.setPointSizeF(size);
+    return font;
+}
+
 LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
 {
     m_raw_text_edit = new QPlainTextEdit();
@@ -43,12 +55,8 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     m_raw_text_edit->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_rich_text_edit->setLineWrapMode(QPlainTextEdit::NoWrap);
 
-    QFont large_font;
-    large_font.setPointSize(14);
-    m_rich_text_edit->setFont(large_font);
-    QFont small_font;
-    small_font.setPointSize(9);
-    m_raw_text_edit->setFont(small_font);
+    m_rich_text_edit->setFont(WithPointSize(QFont(), 14));
+    m_raw_text_edit->setFont(WithPointSize(QFont(), 9));
 
     SetMode(Mode::Text);
 
