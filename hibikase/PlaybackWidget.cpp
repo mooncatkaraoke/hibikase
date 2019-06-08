@@ -15,6 +15,8 @@
 
 #include <utility>
 
+#include <QDebug>
+#include <QTimer>
 #include <QVBoxLayout>
 
 PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
@@ -33,6 +35,9 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
 
     connect(m_play_button, &QPushButton::clicked, this, &PlaybackWidget::OnPlayButtonClicked);
 
+    m_time_fix_timer = new QTimer(this);
+    connect(m_time_fix_timer, &QTimer::timeout, this, &PlaybackWidget::FixTime);
+
     UpdatePlayButtonText();
 }
 
@@ -45,7 +50,9 @@ void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
     m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat());
 
     connect(m_audio_output.get(), &QAudioOutput::notify, this, &PlaybackWidget::UpdateTime);
-    m_audio_output->setNotifyInterval(10);
+    m_audio_output->setNotifyInterval(1000 / 60);
+
+    m_time_fix_timer->stop();
 
     UpdatePlayButtonText();
     UpdateTime();
@@ -57,10 +64,13 @@ void PlaybackWidget::OnPlayButtonClicked()
     {
         m_audio_file->GetPCMBuffer()->reset();
         m_audio_output->start(m_audio_file->GetPCMBuffer());
+
+        m_time_fix_timer->start(1000);
     }
     else
     {
         m_audio_output->stop();
+        m_time_fix_timer->stop();
     }
 
     UpdatePlayButtonText();
@@ -73,7 +83,8 @@ void PlaybackWidget::UpdateTime()
     qint64 ms = -1;
     if (m_audio_output->state() != QAudio::State::StoppedState)
     {
-        ms = m_audio_output->processedUSecs() / 1000;
+        m_last_time = m_audio_output->processedUSecs();
+        ms = m_last_time / 1000;
         text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
                                          .arg(ms / 1000 % 60, 2, 10, QChar('0'))
                                          .arg(ms / 10 % 100,  2, 10, QChar('0'));
@@ -81,6 +92,24 @@ void PlaybackWidget::UpdateTime()
     m_time_label->setText(text);
 
     emit TimeUpdated(std::chrono::milliseconds(ms));
+}
+
+void PlaybackWidget::FixTime()
+{
+    // This signal callback works around an issue observed on macOS where, in
+    // some cases where the UI thread was blocked for some short period of
+    // time, the playback time will stop updating.
+    // So we check if it seems to be lagging and try to jolt it into working
+    // again.
+    if (m_last_time != -1 && m_audio_output
+        && m_audio_output->state() == QAudio::State::ActiveState
+        && m_audio_output->processedUSecs() - m_last_time > 500000) // 500ms
+    {
+        qInfo() << "Audio playback position updates seem to have stopped,"
+                << "suspending and resuming audio output to try to fix.";
+        m_audio_output->suspend();
+        m_audio_output->resume();
+    }
 }
 
 void PlaybackWidget::UpdatePlayButtonText()

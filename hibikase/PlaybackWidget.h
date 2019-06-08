@@ -20,6 +20,7 @@
 #include <QIODevice>
 #include <QLabel>
 #include <QPushButton>
+#include <QTimer>
 #include <QWidget>
 
 #include "AudioFile.h"
@@ -37,6 +38,7 @@ signals:
 
 private slots:
     void UpdateTime();
+    void FixTime();
     void OnPlayButtonClicked();
 
 private:
@@ -44,6 +46,8 @@ private:
 
     QPushButton* m_play_button;
     QLabel* m_time_label;
+    QTimer* m_time_fix_timer;
+    qint64 m_last_time = -1;
 
     std::unique_ptr<AudioFile> m_audio_file = nullptr;
     std::unique_ptr<QAudioOutput> m_audio_output = nullptr;
