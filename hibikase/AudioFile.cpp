@@ -122,9 +122,9 @@ AudioFile::AudioFile(QString &filename)
     else
         assert(0 && "Unhandled case?!");
 
-    qInfo() << "PCM data is "
+    qInfo() << "PCM data is"
         << m_pcm_format.sampleSize() << "bit"
         << m_pcm_format.channelCount() << "channel"
         << m_pcm_format.sampleRate() << "Hz,"
-        << frames_count << " frames...";
+        << frames_count << "frames...";
 }
