@@ -17,7 +17,10 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QByteArray>
+#include <QIODevice>
 #include <QString>
 
 #include "KaraokeContainer/Container.h"
@@ -30,9 +33,9 @@ class PlainContainer final : public Container
 public:
     PlainContainer(const QString& path);
 
-    QByteArray ReadLyricsFile() override;
-
-    static void SaveLyricsFile(const QString& path, const QByteArray& content);
+    std::unique_ptr<QIODevice> ReadAudioFile() const override;
+    QByteArray ReadLyricsFile() const override;
+    void SaveLyricsFile(const QByteArray& content) const override;
 
 private:
     QString m_path;

@@ -17,22 +17,25 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QAudioFormat>
 #include <QByteArray>
+#include <QBuffer>
 
 class AudioFile
 {
 public:
-    AudioFile(QString &filename);
+    AudioFile(QByteArray bytes);
     QAudioFormat GetPCMFormat() const
     {
         return m_pcm_format;
     }
-    QByteArray GetPCMBytes() const
+    QBuffer *GetPCMBuffer() const
     {
-        return m_pcm_bytes;
+        return m_pcm_buffer.get();
     }
 private:
     QAudioFormat m_pcm_format;
-    QByteArray m_pcm_bytes;
+    std::unique_ptr<QBuffer> m_pcm_buffer = nullptr;
 };

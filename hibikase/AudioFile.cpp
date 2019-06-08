@@ -17,30 +17,20 @@
 
 #include "AudioFile.h"
 
-#include <QFile>
+#include <QByteArray>
 #include <QDebug>
 #include <QDir>
+#include <QIODevice>
 
 #define DR_MP3_IMPLEMENTATION
 #include "../external/dr_libs/dr_mp3.h"
 #define DR_FLAC_IMPLEMENTATION
 #include "../external/dr_libs/dr_flac.h"
 
-AudioFile::AudioFile(QString &filename)
+AudioFile::AudioFile(QByteArray bytes)
 {
-    QFile file(filename);
-
     int16_t *frames = nullptr;
     size_t frames_count;
-
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        qWarning() << "Couldn't open file: '" << filename << "'";
-        throw;
-    }
-
-    QByteArray bytes = file.readAll();
-    file.close();
 
     enum {
         TYPE_UNKNOWN = 0,
@@ -59,7 +49,7 @@ AudioFile::AudioFile(QString &filename)
 
         qInfo() << "Decoding MP3 to PCM...";
 
-        drmp3_config mp3_config;
+        drmp3_config mp3_config = {0, 0};
         drmp3_uint64 mp3_frames_count;
         drmp3_int16 *mp3_frames = drmp3_open_memory_and_read_s16(bytes.data(), bytes.length(), &mp3_config, &mp3_frames_count);
         if (!mp3_frames)
@@ -109,11 +99,11 @@ AudioFile::AudioFile(QString &filename)
 
     m_pcm_format.setCodec("audio/pcm");
     m_pcm_format.setSampleSize(16);
-    m_pcm_format.setSampleType(QAudioFormat::SignedInt);
+    m_pcm_format.setSampleType(QAudioFormat::SampleType::SignedInt);
     // QAudioFormat endianness is default-initialised to the platform one, so
     // we don't need to set it or convert the endianness ourselves!
 
-    m_pcm_bytes = QByteArray((const char*)frames, frames_count * m_pcm_format.bytesPerFrame());
+    bytes = QByteArray((const char*)frames, frames_count * m_pcm_format.bytesPerFrame());
 
     if (type == TYPE_MP3)
         drmp3_free(frames);
@@ -121,6 +111,10 @@ AudioFile::AudioFile(QString &filename)
         drflac_free(frames);
     else
         assert(0 && "Unhandled case?!");
+
+    m_pcm_buffer = std::make_unique<QBuffer>();
+    m_pcm_buffer->setData(bytes);
+    m_pcm_buffer->open(QIODevice::OpenModeFlag::ReadOnly);
 
     qInfo() << "PCM data is"
         << m_pcm_format.sampleSize() << "bit"
