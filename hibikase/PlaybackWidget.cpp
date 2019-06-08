@@ -31,36 +31,37 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
 
     setLayout(main_layout);
 
-    connect(m_player, &QMediaPlayer::positionChanged, this, &PlaybackWidget::UpdateTime);
     connect(m_play_button, &QPushButton::clicked, this, &PlaybackWidget::OnPlayButtonClicked);
-
-    m_player->setNotifyInterval(10);
 
     UpdatePlayButtonText();
 }
 
 void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
 {
-    m_player->stop();
-    if (m_io_device)
-        m_io_device->close();
+    QByteArray audio_bytes = io_device->readAll();
+    io_device->close();
 
-    m_io_device = std::move(io_device);
+    m_audio_file = std::make_unique<AudioFile>(audio_bytes);
+    m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat());
 
-    if (!m_io_device)
-        m_player->setMedia(QMediaContent());
-    else
-        m_player->setMedia(QMediaContent(), m_io_device.get());
+    connect(m_audio_output.get(), &QAudioOutput::notify, this, &PlaybackWidget::UpdateTime);
+    m_audio_output->setNotifyInterval(10);
 
     UpdatePlayButtonText();
+    UpdateTime();
 }
 
 void PlaybackWidget::OnPlayButtonClicked()
 {
-    if (m_player->state() != QMediaPlayer::PlayingState)
-        m_player->play();
+    if (m_audio_output->state() != QAudio::State::ActiveState)
+    {
+        m_audio_file->GetPCMBuffer()->reset();
+        m_audio_output->start(m_audio_file->GetPCMBuffer());
+    }
     else
-        m_player->stop();
+    {
+        m_audio_output->stop();
+    }
 
     UpdatePlayButtonText();
     UpdateTime();
@@ -70,9 +71,9 @@ void PlaybackWidget::UpdateTime()
 {
     QString text;
     qint64 ms = -1;
-    if (m_player->state() != QMediaPlayer::StoppedState)
+    if (m_audio_output->state() != QAudio::State::StoppedState)
     {
-        ms = m_player->position();
+        ms = m_audio_output->processedUSecs() / 1000;
         text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
                                          .arg(ms / 1000 % 60, 2, 10, QChar('0'))
                                          .arg(ms / 10 % 100,  2, 10, QChar('0'));
@@ -84,8 +85,8 @@ void PlaybackWidget::UpdateTime()
 
 void PlaybackWidget::UpdatePlayButtonText()
 {
-    if (m_player->state() == QMediaPlayer::PlayingState)
-        m_play_button->setText(QStringLiteral("Stop"));
-    else
+    if (!m_audio_output || m_audio_output->state() != QAudio::State::ActiveState)
         m_play_button->setText(QStringLiteral("Play"));
+    else
+        m_play_button->setText(QStringLiteral("Stop"));
 }

@@ -19,6 +19,7 @@
 
 #include "KaraokeContainer/Container.h"
 #include "KaraokeData/Song.h"
+#include "AudioFile.h"
 
 namespace Ui {
 class MainWindow;

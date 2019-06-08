@@ -20,6 +20,7 @@
 #include <QMessageBox>
 #include <QRadioButton>
 #include <QString>
+#include <QBuffer>
 
 #include "KaraokeContainer/Container.h"
 #include "KaraokeContainer/PlainContainer.h"
@@ -123,7 +124,10 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
                        "GNU General Public License for more details.\n"
                        "\n"
                        "You should have received a copy of the GNU General Public License "
-                       "along with this program. If not, see <http://www.gnu.org/licenses/>.");
+                       "along with this program. If not, see <http://www.gnu.org/licenses/>."
+                       "\n"
+                       "\n"
+                       "Hibikase makes use of the dr_mp3 and dr_flac libraries from <https://github.com/mackron/dr_libs>.");
 }
 
 void MainWindow::LoadAudio()

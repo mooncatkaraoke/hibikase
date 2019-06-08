@@ -13,38 +13,25 @@
 
 #pragma once
 
-#include <chrono>
 #include <memory>
 
-#include <QAudioOutput>
-#include <QIODevice>
-#include <QLabel>
-#include <QPushButton>
-#include <QWidget>
+#include <QAudioFormat>
+#include <QByteArray>
+#include <QBuffer>
 
-#include "AudioFile.h"
-
-class PlaybackWidget : public QWidget
+class AudioFile
 {
-    Q_OBJECT
 public:
-    explicit PlaybackWidget(QWidget* parent = nullptr);
-
-    void LoadAudio(std::unique_ptr<QIODevice> io_device);  // Can be nullptr
-
-signals:
-    void TimeUpdated(std::chrono::milliseconds ms);
-
-private slots:
-    void UpdateTime();
-    void OnPlayButtonClicked();
-
+    AudioFile(QByteArray bytes);
+    QAudioFormat GetPCMFormat() const
+    {
+        return m_pcm_format;
+    }
+    QBuffer *GetPCMBuffer() const
+    {
+        return m_pcm_buffer.get();
+    }
 private:
-    void UpdatePlayButtonText();
-
-    QPushButton* m_play_button;
-    QLabel* m_time_label;
-
-    std::unique_ptr<AudioFile> m_audio_file = nullptr;
-    std::unique_ptr<QAudioOutput> m_audio_output = nullptr;
+    QAudioFormat m_pcm_format;
+    std::unique_ptr<QBuffer> m_pcm_buffer = nullptr;
 };
