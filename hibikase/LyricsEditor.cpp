@@ -52,7 +52,7 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
 
     SetMode(Mode::Text);
 
-    QVBoxLayout* main_layout = new QVBoxLayout();
+    QVBoxLayout* main_layout = new QVBoxLayout(this);
     main_layout->setMargin(0);
     main_layout->addWidget(m_raw_text_edit);
     main_layout->addWidget(m_rich_text_edit);

@@ -30,17 +30,12 @@
 #include "ui_MainWindow.h"
 
 MainWindow::MainWindow(QWidget* parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
-    ui->timeLabel->setTextFormat(Qt::PlainText);
-
-    m_player->setNotifyInterval(10);
-
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
-    connect(m_player, &QMediaPlayer::positionChanged, this, &MainWindow::UpdateTime);
+    connect(ui->playbackWidget, &PlaybackWidget::TimeUpdated, ui->mainLyrics, &LyricsEditor::UpdateTime);
 
     connect(ui->timingRadioButton, &QRadioButton::toggled, [this](bool checked) {
         if (checked)
@@ -131,49 +126,7 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
                        "along with this program. If not, see <http://www.gnu.org/licenses/>.");
 }
 
-void MainWindow::on_playButton_clicked()
-{
-    if (m_player->state() != QMediaPlayer::PlayingState)
-    {
-        m_player->play();
-
-        ui->playButton->setText(QStringLiteral("Stop"));
-    }
-    else
-    {
-        m_player->stop();
-
-        // TODO: This string is also in the UI file. Can it be deduplicated?
-        ui->playButton->setText(QStringLiteral("Play"));
-    }
-
-    UpdateTime();
-}
-
 void MainWindow::LoadAudio()
 {
-    if (m_container)
-        m_io_device = m_container->ReadAudioFile();
-    else
-        m_io_device = nullptr;
-
-    if (!m_io_device)
-        m_player->setMedia(QMediaContent());
-    else
-        m_player->setMedia(QMediaContent(), m_io_device.get());
-}
-
-void MainWindow::UpdateTime()
-{
-    QString text;
-    qint64 ms = -1;
-    if (m_player->state() != QMediaPlayer::StoppedState)
-    {
-        ms = m_player->position();
-        text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
-                                         .arg(ms / 1000 % 60, 2, 10, QChar('0'))
-                                         .arg(ms / 10 % 100,  2, 10, QChar('0'));
-    }
-    ui->mainLyrics->UpdateTime(std::chrono::milliseconds(ms));
-    ui->timeLabel->setText(text);
+    ui->playbackWidget->LoadAudio(m_container ? m_container->ReadAudioFile() : nullptr);
 }

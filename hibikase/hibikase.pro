@@ -20,6 +20,7 @@ SOURCES += main.cpp\
     KaraokeContainer/PlainContainer.cpp \
     KaraokeData/VsqxParser.cpp \
     LyricsEditor.cpp \
+    PlaybackWidget.cpp \
     Settings.cpp \
     TextTransform/Syllabify.cpp \
     TextTransform/RomanizeHangul.cpp \
@@ -34,6 +35,7 @@ HEADERS  += MainWindow.h \
     KaraokeData/ReadOnlySong.h \
     KaraokeData/VsqxParser.h \
     LyricsEditor.h \
+    PlaybackWidget.h \
     Settings.h \
     TextTransform/Syllabify.h \
     TextTransform/RomanizeHangul.h \

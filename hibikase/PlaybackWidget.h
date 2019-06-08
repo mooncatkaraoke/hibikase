@@ -13,40 +13,36 @@
 
 #pragma once
 
+#include <chrono>
 #include <memory>
 
-#include <QMainWindow>
+#include <QIODevice>
+#include <QLabel>
+#include <QMediaPlayer>
+#include <QPushButton>
+#include <QWidget>
 
-#include "KaraokeContainer/Container.h"
-#include "KaraokeData/Song.h"
-
-namespace Ui {
-class MainWindow;
-}
-
-class MainWindow : public QMainWindow
+class PlaybackWidget : public QWidget
 {
     Q_OBJECT
-
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
-    ~MainWindow();
+    explicit PlaybackWidget(QWidget* parent = nullptr);
+
+    void LoadAudio(std::unique_ptr<QIODevice> io_device);  // Can be nullptr
 
 signals:
-    void SongReplaced(KaraokeData::Song* song);
+    void TimeUpdated(std::chrono::milliseconds ms);
 
 private slots:
-    void on_actionOpen_triggered();
-    void on_actionAbout_Qt_triggered();
-    void on_actionAbout_Hibikase_triggered();
-    void on_actionSave_As_triggered();
+    void UpdateTime();
+    void OnPlayButtonClicked();
 
 private:
-    void LoadAudio();
+    void UpdatePlayButtonText();
 
-    Ui::MainWindow* ui;
+    QPushButton* m_play_button;
+    QLabel* m_time_label;
 
-    std::unique_ptr<KaraokeContainer::Container> m_container;
-    std::unique_ptr<KaraokeData::Song> m_song;
-    bool m_has_valid_save_path = false;
+    std::unique_ptr<QIODevice> m_io_device = nullptr;
+    QMediaPlayer* m_player = new QMediaPlayer(this);
 };

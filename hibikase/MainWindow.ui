@@ -46,21 +46,10 @@
      </widget>
     </item>
     <item>
-     <widget class="LyricsEditor" name="mainLyrics" native="true"/>
+     <widget class="LyricsEditor" name="mainLyrics"/>
     </item>
     <item>
-     <widget class="QPushButton" name="playButton">
-      <property name="text">
-       <string>Play</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QLabel" name="timeLabel">
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
+     <widget class="PlaybackWidget" name="playbackWidget"/>
     </item>
    </layout>
   </widget>
@@ -119,7 +108,12 @@
   <customwidget>
    <class>LyricsEditor</class>
    <extends>QWidget</extends>
-   <header>lyricseditor.h</header>
+   <header>LyricsEditor.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PlaybackWidget</class>
+   <extends>QWidget</extends>
+   <header>PlaybackWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
