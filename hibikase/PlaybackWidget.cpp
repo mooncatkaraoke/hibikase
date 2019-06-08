@@ -38,14 +38,22 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
 
 void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
 {
-    QByteArray audio_bytes = io_device->readAll();
-    io_device->close();
+    if (!io_device)
+    {
+        m_audio_file = nullptr;
+        m_audio_output = nullptr;
+    }
+    else
+    {
+        QByteArray audio_bytes = io_device->readAll();
+        io_device->close();
 
-    m_audio_file = std::make_unique<AudioFile>(audio_bytes);
-    m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat());
+        m_audio_file = std::make_unique<AudioFile>(audio_bytes);
+        m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat());
 
-    connect(m_audio_output.get(), &QAudioOutput::notify, this, &PlaybackWidget::UpdateTime);
-    m_audio_output->setNotifyInterval(10);
+        connect(m_audio_output.get(), &QAudioOutput::notify, this, &PlaybackWidget::UpdateTime);
+        m_audio_output->setNotifyInterval(10);
+    }
 
     UpdatePlayButtonText();
     UpdateTime();
@@ -53,6 +61,9 @@ void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
 
 void PlaybackWidget::OnPlayButtonClicked()
 {
+    if (!m_audio_output)
+        return;
+
     if (m_audio_output->state() != QAudio::State::ActiveState)
     {
         m_audio_file->GetPCMBuffer()->reset();
@@ -71,7 +82,7 @@ void PlaybackWidget::UpdateTime()
 {
     QString text;
     qint64 ms = -1;
-    if (m_audio_output->state() != QAudio::State::StoppedState)
+    if (m_audio_output && m_audio_output->state() != QAudio::State::StoppedState)
     {
         ms = m_audio_output->processedUSecs() / 1000;
         text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
