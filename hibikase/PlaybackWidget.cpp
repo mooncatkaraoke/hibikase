@@ -33,71 +33,111 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
 
     connect(m_play_button, &QPushButton::clicked, this, &PlaybackWidget::OnPlayButtonClicked);
 
-    UpdatePlayButtonText();
+    OnStateChanged(QAudio::State::StoppedState);
+
+    m_thread.start();
+}
+
+PlaybackWidget::~PlaybackWidget()
+{
+    if (m_worker)
+        connect(&m_thread, &QThread::finished, m_worker, &QObject::deleteLater);
+
+    m_thread.quit();
+    m_thread.wait();
 }
 
 void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
 {
+    if (m_worker)
+    {
+        QMetaObject::invokeMethod(m_worker, "Stop");  // Ensure state gets set to stopped
+        QMetaObject::invokeMethod(m_worker, "deleteLater");
+        m_worker = nullptr;
+    }
+
     if (!io_device)
-    {
-        m_audio_file = nullptr;
-        m_audio_output = nullptr;
-    }
-    else
-    {
-        QByteArray audio_bytes = io_device->readAll();
-        io_device->close();
+        return;
 
-        m_audio_file = std::make_unique<AudioFile>(audio_bytes);
-        m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat());
+    m_worker = new AudioOutputWorker(std::move(io_device));
+    m_worker->moveToThread(&m_thread);
+    QMetaObject::invokeMethod(m_worker, "Initialize");
 
-        connect(m_audio_output.get(), &QAudioOutput::notify, this, &PlaybackWidget::UpdateTime);
-        m_audio_output->setNotifyInterval(10);
-    }
-
-    UpdatePlayButtonText();
-    UpdateTime();
+    connect(m_worker, &AudioOutputWorker::StateChanged, this, &PlaybackWidget::OnStateChanged);
+    connect(m_worker, &AudioOutputWorker::TimeUpdated, this, &PlaybackWidget::UpdateTime);
 }
 
 void PlaybackWidget::OnPlayButtonClicked()
 {
-    if (!m_audio_output)
+    if (!m_worker)
         return;
 
-    if (m_audio_output->state() != QAudio::State::ActiveState)
-    {
-        m_audio_file->GetPCMBuffer()->reset();
-        m_audio_output->start(m_audio_file->GetPCMBuffer());
-    }
+    if (m_state != QAudio::State::ActiveState)
+        QMetaObject::invokeMethod(m_worker, "Play");
     else
-    {
-        m_audio_output->stop();
-    }
-
-    UpdatePlayButtonText();
-    UpdateTime();
+        QMetaObject::invokeMethod(m_worker, "Stop");
 }
 
-void PlaybackWidget::UpdateTime()
+void PlaybackWidget::OnStateChanged(QAudio::State state)
 {
-    QString text;
-    qint64 ms = -1;
-    if (m_audio_output && m_audio_output->state() != QAudio::State::StoppedState)
-    {
-        ms = m_audio_output->processedUSecs() / 1000;
-        text = QStringLiteral("%1:%2:%3").arg(ms / 60000,     2, 10, QChar('0'))
-                                         .arg(ms / 1000 % 60, 2, 10, QChar('0'))
-                                         .arg(ms / 10 % 100,  2, 10, QChar('0'));
-    }
-    m_time_label->setText(text);
+    m_state = state;
 
-    emit TimeUpdated(std::chrono::milliseconds(ms));
-}
-
-void PlaybackWidget::UpdatePlayButtonText()
-{
-    if (!m_audio_output || m_audio_output->state() != QAudio::State::ActiveState)
+    if (state != QAudio::State::ActiveState)
         m_play_button->setText(QStringLiteral("Play"));
     else
         m_play_button->setText(QStringLiteral("Stop"));
+
+    if (state == QAudio::State::StoppedState)
+        UpdateTime(std::chrono::milliseconds(-1));
+}
+
+void PlaybackWidget::UpdateTime(std::chrono::milliseconds ms)
+{
+    QString text;
+    if (ms.count() >= 0)
+    {
+        long long time = ms.count();
+        text = QStringLiteral("%1:%2:%3").arg(time / 60000,     2, 10, QChar('0'))
+                                         .arg(time / 1000 % 60, 2, 10, QChar('0'))
+                                         .arg(time / 10 % 100,  2, 10, QChar('0'));
+    }
+    m_time_label->setText(text);
+
+    emit TimeUpdated(ms);
+}
+
+AudioOutputWorker::AudioOutputWorker(std::unique_ptr<QIODevice> io_device, QWidget* parent)
+    : QObject(parent), m_io_device(std::move(io_device))
+{
+    qRegisterMetaType<std::chrono::milliseconds>();
+}
+
+void AudioOutputWorker::Initialize()
+{
+    QByteArray audio_bytes = m_io_device->readAll();
+    m_io_device->close();
+    m_io_device.reset();
+
+    m_audio_file = std::make_unique<AudioFile>(audio_bytes);
+    m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat(), this);
+    m_audio_output->setNotifyInterval(10);
+
+    connect(m_audio_output.get(), &QAudioOutput::stateChanged, this, &AudioOutputWorker::StateChanged);
+    connect(m_audio_output.get(), &QAudioOutput::notify, this, &AudioOutputWorker::OnNotify);
+}
+
+void AudioOutputWorker::Play()
+{
+    m_audio_file->GetPCMBuffer()->reset();
+    m_audio_output->start(m_audio_file->GetPCMBuffer());
+}
+
+void AudioOutputWorker::Stop()
+{
+    m_audio_output->stop();
+}
+
+void AudioOutputWorker::OnNotify()
+{
+    emit TimeUpdated(std::chrono::milliseconds(m_audio_output->processedUSecs() / 1000));
 }

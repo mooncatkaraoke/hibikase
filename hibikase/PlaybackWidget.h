@@ -17,18 +17,47 @@
 #include <memory>
 
 #include <QAudioOutput>
+#include <QByteArray>
 #include <QIODevice>
 #include <QLabel>
 #include <QPushButton>
+#include <QThread>
 #include <QWidget>
 
 #include "AudioFile.h"
 
+class AudioOutputWorker final : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit AudioOutputWorker(std::unique_ptr<QIODevice> io_device, QWidget* parent = nullptr);
+
+public slots:
+    void Initialize();
+    void Play();
+    void Stop();
+
+signals:
+    void StateChanged(QAudio::State state);
+    void TimeUpdated(std::chrono::milliseconds ms);
+
+private slots:
+    void OnNotify();
+
+private:
+    std::unique_ptr<QIODevice> m_io_device;
+    std::unique_ptr<AudioFile> m_audio_file;
+    std::unique_ptr<QAudioOutput> m_audio_output;
+};
+
 class PlaybackWidget : public QWidget
 {
     Q_OBJECT
+
 public:
     explicit PlaybackWidget(QWidget* parent = nullptr);
+    ~PlaybackWidget();
 
     void LoadAudio(std::unique_ptr<QIODevice> io_device);  // Can be nullptr
 
@@ -36,15 +65,18 @@ signals:
     void TimeUpdated(std::chrono::milliseconds ms);
 
 private slots:
-    void UpdateTime();
     void OnPlayButtonClicked();
+    void OnStateChanged(QAudio::State state);
+    void UpdateTime(std::chrono::milliseconds ms);
 
 private:
-    void UpdatePlayButtonText();
-
     QPushButton* m_play_button;
     QLabel* m_time_label;
 
-    std::unique_ptr<AudioFile> m_audio_file = nullptr;
-    std::unique_ptr<QAudioOutput> m_audio_output = nullptr;
+    AudioOutputWorker* m_worker = nullptr;
+    QThread m_thread;
+
+    QAudio::State m_state;
 };
+
+Q_DECLARE_METATYPE(std::chrono::milliseconds);
