@@ -23,17 +23,13 @@
 #define DR_FLAC_IMPLEMENTATION
 #include "../external/dr_libs/dr_flac.h"
 
-AudioFile::AudioFile(QByteArray bytes)
+QString AudioFile::Load(QByteArray bytes)
 {
     int16_t *frames = nullptr;
     size_t frames_count;
 
-    enum {
-        TYPE_UNKNOWN = 0,
-        TYPE_MP3,
-        TYPE_FLAC,
-    } type = TYPE_UNKNOWN;
-
+    AudioType type = AudioType::Unknown;
+    QAudioFormat format;
     drmp3 mp3;
     if (drmp3_init_memory(&mp3, bytes.data(), bytes.length(), nullptr))
     {
@@ -41,7 +37,7 @@ AudioFile::AudioFile(QByteArray bytes)
 
         qInfo() << "File is MP3";
 
-        type = TYPE_MP3;
+        type = AudioType::MP3;
 
         qInfo() << "Decoding MP3 to PCM...";
 
@@ -51,13 +47,13 @@ AudioFile::AudioFile(QByteArray bytes)
         if (!mp3_frames)
         {
             qWarning() << "Couldn't decode MP3 file";
-            throw;
+            return "Couldn't decode MP3";
         }
 
         qInfo() << "Decoded MP3";
 
-        m_pcm_format.setChannelCount(mp3_config.outputChannels);
-        m_pcm_format.setSampleRate(mp3_config.outputSampleRate);
+        format.setChannelCount(mp3_config.outputChannels);
+        format.setSampleRate(mp3_config.outputSampleRate);
         frames = mp3_frames;
         frames_count = mp3_frames_count;
     }
@@ -67,7 +63,7 @@ AudioFile::AudioFile(QByteArray bytes)
 
         qInfo() << "File is FLAC";
 
-        type = TYPE_FLAC;
+        type = AudioType::FLAC;
 
         qInfo() << "Decoding FLAC to PCM...";
 
@@ -77,33 +73,33 @@ AudioFile::AudioFile(QByteArray bytes)
         if (!flac_frames)
         {
             qWarning() << "Couldn't decode FLAC file";
-            throw;
+            return "Couldn't decode FLAC";
         }
 
         qInfo() << "Decoded FLAC";
 
-        m_pcm_format.setChannelCount(flac_channels);
-        m_pcm_format.setSampleRate(flac_sample_rate);
+        format.setChannelCount(flac_channels);
+        format.setSampleRate(flac_sample_rate);
         frames = flac_frames;
         frames_count = flac_frames_count;
     }
     else
     {
         qWarning() << "File is not in a supported format (MP3 or FLAC)";
-        throw;
+        return "Unsupported format (not MP3 or FLAC)";
     }
 
-    m_pcm_format.setCodec("audio/pcm");
-    m_pcm_format.setSampleSize(16);
-    m_pcm_format.setSampleType(QAudioFormat::SampleType::SignedInt);
+    format.setCodec("audio/pcm");
+    format.setSampleSize(16);
+    format.setSampleType(QAudioFormat::SampleType::SignedInt);
     // QAudioFormat endianness is default-initialised to the platform one, so
     // we don't need to set it or convert the endianness ourselves!
 
-    bytes = QByteArray((const char*)frames, frames_count * m_pcm_format.bytesPerFrame());
+    bytes = QByteArray((const char*)frames, frames_count * format.bytesPerFrame());
 
-    if (type == TYPE_MP3)
+    if (type == MP3)
         drmp3_free(frames);
-    else if (type == TYPE_FLAC)
+    else if (type == FLAC)
         drflac_free(frames);
     else
         assert(0 && "Unhandled case?!");
@@ -112,9 +108,14 @@ AudioFile::AudioFile(QByteArray bytes)
     m_pcm_buffer->setData(bytes);
     m_pcm_buffer->open(QIODevice::OpenModeFlag::ReadOnly);
 
+    m_pcm_format = format;
+    m_type = type;
+
     qInfo() << "PCM data is"
         << m_pcm_format.sampleSize() << "bit"
         << m_pcm_format.channelCount() << "channel"
         << m_pcm_format.sampleRate() << "Hz,"
-        << frames_count << "frames...";
+        << frames_count << "frames";
+
+    return QString();
 }

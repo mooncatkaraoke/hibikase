@@ -39,6 +39,7 @@ public slots:
     void Stop();
 
 signals:
+    void LoadFinished(QString error);
     void StateChanged(QAudio::State state);
     void TimeUpdated(std::chrono::milliseconds ms);
 
@@ -65,6 +66,7 @@ signals:
     void TimeUpdated(std::chrono::milliseconds ms);
 
 private slots:
+    void OnLoadResult(QString result);
     void OnPlayButtonClicked();
     void OnStateChanged(QAudio::State state);
     void UpdateTime(std::chrono::milliseconds ms);
