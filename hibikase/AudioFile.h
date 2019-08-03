@@ -22,7 +22,7 @@
 class AudioFile
 {
 public:
-    AudioFile(QByteArray bytes);
+    QString Load(QByteArray bytes);
     QAudioFormat GetPCMFormat() const
     {
         return m_pcm_format;
@@ -32,6 +32,11 @@ public:
         return m_pcm_buffer.get();
     }
 private:
+    enum AudioType {
+        Unknown = 0,
+        MP3,
+        FLAC,
+    } m_type = AudioType::Unknown;
     QAudioFormat m_pcm_format;
     std::unique_ptr<QBuffer> m_pcm_buffer = nullptr;
 };

@@ -32,8 +32,7 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
     setLayout(main_layout);
 
     connect(m_play_button, &QPushButton::clicked, this, &PlaybackWidget::OnPlayButtonClicked);
-
-    OnStateChanged(QAudio::State::StoppedState);
+    LoadAudio(nullptr);
 
     m_thread.start();
 }
@@ -51,20 +50,43 @@ void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
 {
     if (m_worker)
     {
-        QMetaObject::invokeMethod(m_worker, "Stop");  // Ensure state gets set to stopped
+        disconnect(m_worker, &AudioOutputWorker::StateChanged, this, &PlaybackWidget::OnStateChanged);
+        disconnect(m_worker, &AudioOutputWorker::TimeUpdated, this, &PlaybackWidget::UpdateTime);
         QMetaObject::invokeMethod(m_worker, "deleteLater");
         m_worker = nullptr;
     }
 
+    m_play_button->setEnabled(false);
+    OnStateChanged(QAudio::State::StoppedState);
+
     if (!io_device)
+    {
+        m_play_button->setText("(No audio loaded)");
         return;
+    }
+
+    m_play_button->setText("(Loading audio...)");
 
     m_worker = new AudioOutputWorker(std::move(io_device));
     m_worker->moveToThread(&m_thread);
+
+    connect(m_worker, &AudioOutputWorker::LoadFinished, this, &PlaybackWidget::OnLoadResult);
     QMetaObject::invokeMethod(m_worker, "Initialize");
 
     connect(m_worker, &AudioOutputWorker::StateChanged, this, &PlaybackWidget::OnStateChanged);
     connect(m_worker, &AudioOutputWorker::TimeUpdated, this, &PlaybackWidget::UpdateTime);
+}
+
+void PlaybackWidget::OnLoadResult(QString result)
+{
+    if (!result.isEmpty())
+    {
+        m_play_button->setText("(Could not load audio: " + result + ")");
+        return;
+    }
+
+    m_play_button->setEnabled(true);
+    OnStateChanged(QAudio::State::StoppedState);
 }
 
 void PlaybackWidget::OnPlayButtonClicked()
@@ -94,7 +116,9 @@ void PlaybackWidget::OnStateChanged(QAudio::State state)
 void PlaybackWidget::UpdateTime(std::chrono::milliseconds ms)
 {
     QString text;
-    if (ms.count() >= 0)
+    // When we request to delete the worker, it doesn't happen immediately;
+    // if it triggers time updates in that period we want to ignore them.
+    if (m_worker && ms.count() >= 0)
     {
         long long time = ms.count();
         text = QStringLiteral("%1:%2:%3").arg(time / 60000,     2, 10, QChar('0'))
@@ -118,12 +142,21 @@ void AudioOutputWorker::Initialize()
     m_io_device->close();
     m_io_device.reset();
 
-    m_audio_file = std::make_unique<AudioFile>(audio_bytes);
+    m_audio_file = std::make_unique<AudioFile>();
+    QString result = m_audio_file->Load(audio_bytes);
+    if (!result.isEmpty())
+    {
+        emit AudioOutputWorker::LoadFinished(result);
+        return;
+    }
+
     m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat(), this);
     m_audio_output->setNotifyInterval(10);
 
     connect(m_audio_output.get(), &QAudioOutput::stateChanged, this, &AudioOutputWorker::StateChanged);
     connect(m_audio_output.get(), &QAudioOutput::notify, this, &AudioOutputWorker::OnNotify);
+
+    emit LoadFinished(QString());
 }
 
 void AudioOutputWorker::Play()
