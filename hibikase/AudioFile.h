@@ -14,6 +14,7 @@
 #pragma once
 
 #include <memory>
+#include <chrono>
 
 #include <QAudioFormat>
 #include <QByteArray>
@@ -30,6 +31,12 @@ public:
     QBuffer *GetPCMBuffer() const
     {
         return m_pcm_buffer.get();
+    }
+    std::chrono::microseconds GetDuration() const
+    {
+        if (!m_pcm_buffer)
+            return std::chrono::milliseconds::zero();
+        return std::chrono::microseconds(m_pcm_format.durationForBytes(m_pcm_buffer->size()));
     }
 private:
     enum AudioType {
