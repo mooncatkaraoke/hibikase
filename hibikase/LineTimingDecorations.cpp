@@ -86,13 +86,14 @@ QColor SyllableDecorations::GetPlayedColor() const
     return col;
 }
 
-void SyllableDecorations::Update(Milliseconds time, bool line_is_inactivating)
+void SyllableDecorations::Update(Milliseconds time, bool line_is_active)
 {
     const TimingState state = GetTimingState(time, m_start_time, m_end_time);
-    if (!line_is_inactivating && state == m_state && state != TimingState::Playing)
+    if (!line_is_active && !m_line_is_active && state == m_state)
         return;
+    m_line_is_active = line_is_active;
 
-    if (!line_is_inactivating && m_start_time <= time)
+    if (line_is_active && m_start_time <= time)
     {
         m_progress = std::min<qreal>(1.0, static_cast<qreal>((time - m_start_time).count()) /
                                           (m_end_time - m_start_time).count());
@@ -185,7 +186,7 @@ void LineTimingDecorations::Update(std::chrono::milliseconds time)
     m_state = state;
 
     for (std::unique_ptr<SyllableDecorations>& syllable : m_syllables)
-        syllable->Update(time, state != TimingState::Playing);
+        syllable->Update(time, state == TimingState::Playing);
 }
 
 int LineTimingDecorations::GetPosition() const

@@ -44,7 +44,7 @@ public:
     explicit SyllableDecorations(const QPlainTextEdit* text_edit, int start_index, int end_index,
                                  Milliseconds start_time, Milliseconds end_time);
 
-    void Update(Milliseconds time, bool line_is_inactivating);
+    void Update(Milliseconds time, bool line_is_active);
 
 protected:
     void paintEvent(QPaintEvent*) override;
@@ -61,6 +61,7 @@ private:
     const Milliseconds m_start_time;
     const Milliseconds m_end_time;
     qreal m_progress = 0;
+    bool m_line_is_active = false;
     TimingState m_state = TimingState::Uninitialized;
 };
 
