@@ -21,6 +21,7 @@
 #include <QIODevice>
 #include <QLabel>
 #include <QPushButton>
+#include <QSlider>
 #include <QThread>
 #include <QWidget>
 
@@ -35,21 +36,23 @@ public:
 
 public slots:
     void Initialize();
-    void Play();
+    void Play(std::chrono::microseconds from = std::chrono::microseconds::zero());
     void Stop();
 
 signals:
     void LoadFinished(QString error);
     void StateChanged(QAudio::State state);
-    void TimeUpdated(std::chrono::milliseconds ms);
+    void TimeUpdated(std::chrono::microseconds current, std::chrono::microseconds length);
 
 private slots:
     void OnNotify();
+    void OnStateChanged(QAudio::State state);
 
 private:
     std::unique_ptr<QIODevice> m_io_device;
     std::unique_ptr<AudioFile> m_audio_file;
     std::unique_ptr<QAudioOutput> m_audio_output;
+    std::chrono::microseconds m_start_offset;
 };
 
 class PlaybackWidget : public QWidget
@@ -63,17 +66,20 @@ public:
     void LoadAudio(std::unique_ptr<QIODevice> io_device);  // Can be nullptr
 
 signals:
-    void TimeUpdated(std::chrono::milliseconds ms);
+    void TimeUpdated(std::chrono::milliseconds current);
 
 private slots:
     void OnLoadResult(QString result);
     void OnPlayButtonClicked();
+    void OnTimeSliderMoved(int value);
+    void OnTimeSliderReleased();
     void OnStateChanged(QAudio::State state);
-    void UpdateTime(std::chrono::milliseconds ms);
+    void UpdateTime(std::chrono::microseconds current, std::chrono::microseconds length);
 
 private:
     QPushButton* m_play_button;
     QLabel* m_time_label;
+    QSlider* m_time_slider;
 
     AudioOutputWorker* m_worker = nullptr;
     QThread m_thread;
@@ -81,4 +87,4 @@ private:
     QAudio::State m_state;
 };
 
-Q_DECLARE_METATYPE(std::chrono::milliseconds);
+Q_DECLARE_METATYPE(std::chrono::microseconds);

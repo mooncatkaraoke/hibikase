@@ -178,7 +178,7 @@ LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, int positi
     }
 }
 
-void LineTimingDecorations::Update(std::chrono::milliseconds time)
+void LineTimingDecorations::Update(Milliseconds time)
 {
     const TimingState state = GetTimingState(time, m_line->GetStart(), m_line->GetEnd());
     if (state == m_state && state != TimingState::Playing)
