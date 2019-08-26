@@ -144,12 +144,17 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
             {
                 if (reader.name() == musicalPartName)
                 {
+                    int part_start_ticks = 0;
                     song->m_lines.emplace_back(std::make_unique<ReadOnlyLine>());
 
                     while (reader.readNextStartElement())
                     {
                         QStringRef name2 = reader.name();
-                        if (name2 == QStringLiteral("note"))
+                        if (name2 == posTickName)
+                        {
+                            part_start_ticks = reader.readElementText().toInt();
+                        }
+                        else if (name2 == QStringLiteral("note"))
                         {
                             int position_ticks = -1;
                             int duration_ticks = -1;
@@ -159,7 +164,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                             {
                                 QStringRef name3 = reader.name();
                                 if (name3 == posTickName)
-                                    position_ticks = reader.readElementText().toInt();
+                                    position_ticks = part_start_ticks + reader.readElementText().toInt();
                                 else if (name3 == durTickName)
                                     duration_ticks = reader.readElementText().toInt();
                                 else if (name3 == lyricName)
