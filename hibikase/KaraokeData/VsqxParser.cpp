@@ -16,6 +16,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <chrono>
+#include <map>
 #include <memory>
 
 #include <QByteArray>
@@ -58,15 +59,43 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
     static const QString durTickName{version == VSQ3 ? QStringLiteral("durTick") : QStringLiteral("dur")};
     static const QString lyricName{version == VSQ3 ? QStringLiteral("lyric") : QStringLiteral("y")};
 
-    std::chrono::nanoseconds tick_duration(0);
-    int resolution = 0;
-    int bpm_times_100 = 0;
+    struct TempoEntry
+    {
+        std::chrono::nanoseconds tick_duration = std::chrono::nanoseconds::zero();
+        std::chrono::nanoseconds start_time = std::chrono::nanoseconds::zero();
+        int start_ticks = 0;
+    };
+
+    std::map<int, TempoEntry> tempo_map;
+
+    auto tick_position_to_time = [&tempo_map](int ticks)
+    {
+        auto it = tempo_map.upper_bound(ticks);
+        if (it == tempo_map.end())
+        {
+            if (tempo_map.empty())
+                return std::chrono::nanoseconds::zero();
+            else
+                it--;
+        }
+
+        const TempoEntry& entry = it->second;
+        return entry.start_time + (ticks - entry.start_ticks) * entry.tick_duration;
+    };
+    auto tick_position_to_time_fast = [&tempo_map](int ticks)
+    {
+        const TempoEntry& entry = tempo_map.upper_bound(ticks)->second;
+        return entry.start_time + (ticks - entry.start_ticks) * entry.tick_duration;
+    };
 
     while (reader.readNextStartElement())
     {
         QStringRef name1 = reader.name();
         if (name1 == QStringLiteral("masterTrack"))
         {
+            int resolution = 0;
+            TempoEntry last_tempo_entry;
+
             while (reader.readNextStartElement())
             {
                 QStringRef name2 = reader.name();
@@ -76,12 +105,29 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                 }
                 else if (name2 == QStringLiteral("tempo"))
                 {
+                    int position_ticks = -1;
+                    int bpm_times_100 = -1;
+
                     while (reader.readNextStartElement())
                     {
-                        if (reader.name() == bpmName)
+                        if (reader.name() == posTickName)
+                            position_ticks = reader.readElementText().toInt();
+                        else if (reader.name() == bpmName)
                             bpm_times_100 = reader.readElementText().toInt();
                         else
                             reader.skipCurrentElement();
+                    }
+
+                    if (resolution != 0 && position_ticks != -1 && bpm_times_100 != -1)
+                    {
+                        if (last_tempo_entry.tick_duration != std::chrono::nanoseconds::zero())
+                            tempo_map.emplace(position_ticks, last_tempo_entry);
+
+                        const std::chrono::nanoseconds tick_duration =
+                                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    std::chrono::minutes(100)) / bpm_times_100 / resolution;
+                        last_tempo_entry = TempoEntry{tick_duration,
+                                           tick_position_to_time(position_ticks), position_ticks};
                     }
                 }
                 else
@@ -89,15 +135,10 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                     reader.skipCurrentElement();
                 }
             }
-            if (resolution != 0 && bpm_times_100 != 0)
-            {
-                tick_duration = std::chrono::minutes(100);
-                tick_duration /= bpm_times_100;
-                tick_duration /= resolution;
-            }
+
+            tempo_map.emplace(std::numeric_limits<int>().max(), last_tempo_entry);
         }
-        else if (tick_duration != tick_duration.zero() &&
-                 name1 == QStringLiteral("vsTrack"))
+        else if (!tempo_map.empty() && name1 == QStringLiteral("vsTrack"))
         {
             while (reader.readNextStartElement())
             {
@@ -139,10 +180,10 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                                 {
                                     lyric.append(' ');
                                 }
-                                auto start = std::chrono::duration_cast<Centiseconds>(
-                                            tick_duration * position_ticks);
-                                auto end = std::chrono::duration_cast<Centiseconds>(
-                                            tick_duration * (position_ticks + duration_ticks));
+                                Centiseconds start = std::chrono::duration_cast<Centiseconds>(
+                                            tick_position_to_time_fast(position_ticks));
+                                Centiseconds end = std::chrono::duration_cast<Centiseconds>(
+                                            tick_position_to_time_fast(position_ticks + duration_ticks));
                                 song->m_lines.back()->m_syllables.emplace_back(
                                             std::make_unique<ReadOnlySyllable>(lyric, start, end));
                             }
