@@ -53,6 +53,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
     else
         return song;
 
+    static const QString numeratorName{version == VSQ3 ? QStringLiteral("nume") : QStringLiteral("nu")};
     static const QString bpmName{version == VSQ3 ? QStringLiteral("bpm") : QStringLiteral("v")};
     static const QString musicalPartName{version == VSQ3 ? QStringLiteral("musicalPart") : QStringLiteral("vsPart")};
     static const QString posTickName{version == VSQ3 ? QStringLiteral("posTick") : QStringLiteral("t")};
@@ -67,6 +68,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
     };
 
     std::map<int, TempoEntry> tempo_map;
+    std::chrono::nanoseconds offset = std::chrono::nanoseconds::zero();
 
     auto tick_position_to_time = [&tempo_map](int ticks)
     {
@@ -94,6 +96,8 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
         if (name1 == QStringLiteral("masterTrack"))
         {
             int resolution = 0;
+            int pre_measure = 0;
+            int time_signature_numerator = 0;
             TempoEntry last_tempo_entry;
 
             while (reader.readNextStartElement())
@@ -102,6 +106,20 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                 if (name2 == QStringLiteral("resolution"))
                 {
                     resolution = reader.readElementText().toInt();
+                }
+                else if (name2 == QStringLiteral("preMeasure"))
+                {
+                    pre_measure = reader.readElementText().toInt();
+                }
+                else if (name2 == QStringLiteral("timeSig"))
+                {
+                    while (reader.readNextStartElement())
+                    {
+                        if (reader.name() == numeratorName)
+                            time_signature_numerator = reader.readElementText().toInt();
+                        else
+                            reader.skipCurrentElement();
+                    }
                 }
                 else if (name2 == QStringLiteral("tempo"))
                 {
@@ -137,6 +155,9 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
             }
 
             tempo_map.emplace(std::numeric_limits<int>().max(), last_tempo_entry);
+
+            if (time_signature_numerator != 0 && resolution != 0)
+                offset = tick_position_to_time_fast(time_signature_numerator * pre_measure * resolution);
         }
         else if (!tempo_map.empty() && name1 == QStringLiteral("vsTrack"))
         {
@@ -186,9 +207,9 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                                     lyric.append(' ');
                                 }
                                 Centiseconds start = std::chrono::duration_cast<Centiseconds>(
-                                            tick_position_to_time_fast(position_ticks));
+                                            tick_position_to_time_fast(position_ticks) - offset);
                                 Centiseconds end = std::chrono::duration_cast<Centiseconds>(
-                                            tick_position_to_time_fast(position_ticks + duration_ticks));
+                                            tick_position_to_time_fast(position_ticks + duration_ticks) - offset);
                                 song->m_lines.back()->m_syllables.emplace_back(
                                             std::make_unique<ReadOnlySyllable>(lyric, start, end));
                             }
