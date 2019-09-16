@@ -99,8 +99,11 @@ void SoramimiLine::SetSyllableSplitPoints(QVector<int> split_points)
 
 int SoramimiLine::PositionFromRaw(int raw_position) const
 {
+    if (raw_position <= m_prefix.size())
+        return raw_position;
+
     size_t syllable_number = 0;
-    int current_position = 0;
+    int current_position = m_prefix.size();
     for (; syllable_number < m_raw_syllable_positions.size(); ++syllable_number)
     {
         const int syllable_size = m_syllables[syllable_number]->GetText().size();
@@ -118,8 +121,11 @@ int SoramimiLine::PositionFromRaw(int raw_position) const
 
 int SoramimiLine::PositionToRaw(int position) const
 {
+    if (position <= m_prefix.size())
+        return position;
+
     size_t syllable_number = 0;
-    int current_position = 0;
+    int current_position = m_prefix.size();
     for (const std::unique_ptr<SoramimiSyllable>& syllable : m_syllables)
     {
         if (position <= current_position)
