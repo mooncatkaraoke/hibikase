@@ -43,6 +43,9 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     m_raw_text_edit = new QPlainTextEdit();
     m_rich_text_edit = new QPlainTextEdit();
 
+    connect(m_raw_text_edit->document(), &QTextDocument::contentsChange,
+            this, &LyricsEditor::OnRawContentsChange);
+
     m_raw_text_edit->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_raw_text_edit, &QPlainTextEdit::customContextMenuRequested,
             this, &LyricsEditor::ShowContextMenu);
@@ -70,14 +73,6 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
 
 void LyricsEditor::RebuildSong()
 {
-    // TODO: We shouldn't be re-encoding here
-    QByteArray data = m_raw_text_edit->toPlainText().toUtf8();
-    std::unique_ptr<KaraokeData::Song> new_song = KaraokeData::Load(data);
-
-    m_song_ref->RemoveAllLines();
-    for (KaraokeData::Line* line : new_song->GetLines())
-        m_song_ref->AddLine(line->GetSyllables(), line->GetPrefix());
-
     ReloadSong(m_song_ref);
 }
 
@@ -85,8 +80,10 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
 {
     m_song_ref = song;
 
+    m_updates_disabled = true;
     m_raw_text_edit->setPlainText(song->GetRaw());
     m_rich_text_edit->setPlainText(song->GetText());
+    m_updates_disabled = false;
 
     const QVector<KaraokeData::Line*> lines = song->GetLines();
     m_line_timing_decorations.clear();
@@ -174,6 +171,15 @@ void LyricsEditor::SetMode(Mode mode)
         m_raw_text_edit->setVisible(true);
         m_rich_text_edit->setVisible(false);
         break;
+    }
+}
+
+void LyricsEditor::OnRawContentsChange(int position, int chars_removed, int chars_added)
+{
+    if (!m_updates_disabled)
+    {
+        m_song_ref->UpdateRawText(position, chars_removed,
+                                  m_raw_text_edit->toPlainText().midRef(position, chars_added));
     }
 }
 

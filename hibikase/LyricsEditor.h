@@ -49,6 +49,7 @@ public slots:
     void UpdateTime(std::chrono::milliseconds time);
 
 private slots:
+    void OnRawContentsChange(int position, int chars_removed, int chars_added);
     void ShowContextMenu(const QPoint& point);
     void SyllabifyBasic();
     void RomanizeHangul();
@@ -59,6 +60,7 @@ private:
     std::vector<std::unique_ptr<LineTimingDecorations>> m_line_timing_decorations;
     std::chrono::milliseconds m_time = std::chrono::milliseconds(-1);
     Mode m_mode;
+    bool m_updates_disabled = false;
 
     KaraokeData::Song* m_song_ref;
 };

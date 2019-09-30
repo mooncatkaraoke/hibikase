@@ -110,6 +110,7 @@ public:
     virtual bool SupportsPositionConversion() const { return false; }
     virtual SongPosition PositionFromRaw(int) const { throw not_supported; }
     virtual int PositionToRaw(SongPosition) const { throw not_supported; }
+    virtual void UpdateRawText(int position, int chars_to_remove, QStringRef replace_with) { throw not_supported; }
 };
 
 std::unique_ptr<Song> Load(const QByteArray& data);

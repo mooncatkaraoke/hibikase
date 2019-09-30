@@ -76,6 +76,7 @@ public:
     QString GetPrefix() const override { return m_prefix; }
     void SetPrefix(const QString& text) override;
     QString GetRaw() const { return m_raw_content; }
+    void SetRaw(QString raw);
     // All split points must be unique and in ascending order
     void SetSyllableSplitPoints(QVector<int> split_points) override;
 
@@ -120,8 +121,11 @@ public:
     bool SupportsPositionConversion() const override;
     SongPosition PositionFromRaw(int raw_position) const override;
     int PositionToRaw(SongPosition position) const override;
+    void UpdateRawText(int position, int chars_to_remove, QStringRef replace_with) override;
 
 private:
+    SongPosition RawPositionFromRaw(int raw_position) const;
+
     std::vector<std::unique_ptr<SoramimiLine>> m_lines;
 };
 
