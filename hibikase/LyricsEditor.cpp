@@ -71,11 +71,6 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     setLayout(main_layout);
 }
 
-void LyricsEditor::RebuildSong()
-{
-    ReloadSong(m_song_ref);
-}
-
 void LyricsEditor::ReloadSong(KaraokeData::Song* song)
 {
     m_song_ref = song;
@@ -95,9 +90,10 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
         decorations->Update(m_time);
         m_line_timing_decorations.emplace_back(std::move(decorations));
 
-        i += line->GetText().size();
-        i++;  // For the newline character
+        i += line->GetText().size() + sizeof('\n');
     }
+
+    connect(m_song_ref, &KaraokeData::Song::LinesChanged, this, &LyricsEditor::OnLinesChanged);
 }
 
 void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
@@ -174,13 +170,76 @@ void LyricsEditor::SetMode(Mode mode)
     }
 }
 
+void LyricsEditor::OnLinesChanged(int position, int lines_removed, int lines_added)
+{
+    if (m_updates_disabled)
+        return;
+
+    const size_t size = m_line_timing_decorations.size();
+    const int start_position = size == 0 ? 0 :
+                m_line_timing_decorations[position]->GetPosition();
+    const int end_position = position + lines_removed >= size ?
+                m_rich_text_edit->document()->characterCount() :
+                m_line_timing_decorations[position + lines_removed]->GetPosition();
+
+    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
+
+    {
+        QString text_to_insert;
+        size_t text_to_insert_size = 0;
+
+        for (int i = position; i < position + lines_added; ++i)
+            text_to_insert_size += lines[i]->GetText().size() + sizeof('\n');
+
+        text_to_insert.reserve(size);
+
+        for (int i = position; i < position + lines_added; ++i)
+            text_to_insert += lines[i]->GetText() + '\n';
+        text_to_insert.chop(sizeof('\n'));
+
+        QTextCursor cursor(m_rich_text_edit->document());
+        cursor.setPosition(start_position);
+        cursor.setPosition(end_position - sizeof('\n'), QTextCursor::MoveMode::KeepAnchor);
+        cursor.insertText(std::move(text_to_insert));
+    }
+
+    auto replace_it = m_line_timing_decorations.begin() + position;
+    if (lines_removed > lines_added)
+    {
+        m_line_timing_decorations.erase(replace_it, replace_it + (lines_removed - lines_added));
+    }
+    else if (lines_removed < lines_added)
+    {
+        std::vector<std::unique_ptr<LineTimingDecorations>> lines_to_insert(lines_added - lines_removed);
+        m_line_timing_decorations.insert(replace_it, std::make_move_iterator(lines_to_insert.begin()),
+                                                     std::make_move_iterator(lines_to_insert.end()));
+    }
+
+    int current_position = start_position;
+    for (int i = position; i < position + lines_added; ++i)
+    {
+        auto decorations = std::make_unique<LineTimingDecorations>(lines[i], current_position, m_rich_text_edit);
+        decorations->Update(m_time);
+        m_line_timing_decorations[i] = std::move(decorations);
+
+        current_position += lines[i]->GetText().size() + sizeof('\n');
+    }
+
+    if (current_position != end_position)
+    {
+        const int position_diff = current_position - end_position;
+        for (size_t i = position + lines_added; i < m_line_timing_decorations.size(); ++i)
+            m_line_timing_decorations[i]->AddToPosition(position_diff);
+    }
+}
+
 void LyricsEditor::OnRawContentsChange(int position, int chars_removed, int chars_added)
 {
-    if (!m_updates_disabled)
-    {
-        m_song_ref->UpdateRawText(position, chars_removed,
-                                  m_raw_text_edit->toPlainText().midRef(position, chars_added));
-    }
+    if (m_updates_disabled)
+        return;
+
+    m_song_ref->UpdateRawText(position, chars_removed,
+                              m_raw_text_edit->toPlainText().midRef(position, chars_added));
 }
 
 void LyricsEditor::ShowContextMenu(const QPoint& point)
@@ -208,8 +267,6 @@ void LyricsEditor::SyllabifyBasic()
     int start = cursor.position();
     int end = cursor.anchor();*/
 
-    RebuildSong();
-
     for (KaraokeData::Line* line : m_song_ref->GetLines())
         line->SetSyllableSplitPoints(TextTransform::SyllabifyBasic(line->GetText()));
 
@@ -219,8 +276,6 @@ void LyricsEditor::SyllabifyBasic()
 void LyricsEditor::RomanizeHangul()
 {
     // TODO: Only use the selection, not the whole document
-
-    RebuildSong();
 
     for (KaraokeData::Line* line : m_song_ref->GetLines())
         TextTransform::RomanizeHangul(line);

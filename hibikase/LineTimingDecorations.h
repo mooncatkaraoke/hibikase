@@ -45,6 +45,7 @@ public:
                                  Milliseconds start_time, Milliseconds end_time);
 
     void Update(Milliseconds time, bool line_is_active);
+    void AddToPosition(int diff);
 
 protected:
     void paintEvent(QPaintEvent*) override;
@@ -56,8 +57,8 @@ private:
     QColor GetPlayedColor() const;
 
     const QPlainTextEdit* const m_text_edit;
-    const int m_start_index;
-    const int m_end_index;
+    int m_start_index;
+    int m_end_index;
     const Milliseconds m_start_time;
     const Milliseconds m_end_time;
     qreal m_progress = 0;
@@ -75,6 +76,7 @@ public:
 
     void Update(std::chrono::milliseconds time);
     int GetPosition() const;
+    void AddToPosition(int diff);
 
 private:
     std::vector<std::unique_ptr<SyllableDecorations>> m_syllables;

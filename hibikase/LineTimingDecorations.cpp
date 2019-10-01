@@ -123,6 +123,14 @@ void SyllableDecorations::Update(Milliseconds time, bool line_is_active)
     cursor.setCharFormat(color);
 }
 
+void SyllableDecorations::AddToPosition(int diff)
+{
+    m_start_index += diff;
+    m_end_index += diff;
+
+    CalculateGeometry();
+}
+
 void SyllableDecorations::paintEvent(QPaintEvent*)
 {
     CalculateGeometry();
@@ -192,4 +200,12 @@ void LineTimingDecorations::Update(Milliseconds time)
 int LineTimingDecorations::GetPosition() const
 {
     return m_position;
+}
+
+void LineTimingDecorations::AddToPosition(int diff)
+{
+    m_position += diff;
+
+    for (std::unique_ptr<SyllableDecorations>& syllable : m_syllables)
+        syllable->AddToPosition(diff);
 }

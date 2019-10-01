@@ -111,6 +111,9 @@ public:
     virtual SongPosition PositionFromRaw(int) const { throw not_supported; }
     virtual int PositionToRaw(SongPosition) const { throw not_supported; }
     virtual void UpdateRawText(int position, int chars_to_remove, QStringRef replace_with) { throw not_supported; }
+
+signals:
+    void LinesChanged(int position, int lines_removed, int lines_added);
 };
 
 std::unique_ptr<Song> Load(const QByteArray& data);

@@ -38,6 +38,8 @@ namespace KaraokeData
 typedef std::chrono::duration<int32_t> Seconds;
 typedef std::chrono::duration<int32_t, std::ratio<60, 1>> Minutes;
 
+class SoramimiSong;
+
 class SoramimiSyllable final : public Syllable
 {
     Q_OBJECT
@@ -83,6 +85,9 @@ public:
     int PositionFromRaw(int raw_position) const override;
     int PositionToRaw(int position) const override;
 
+signals:
+    void Changed();
+
 private:
     void Serialize();
     void Serialize(const QVector<Syllable*>& syllables);
@@ -105,6 +110,8 @@ class SoramimiSong final : public Song
 {
     Q_OBJECT
 
+    friend class SoramimiLine;
+
 public:
     SoramimiSong(const QByteArray& data);
     // TODO: Use this constructor when converting, and remove the AddLine function
@@ -125,8 +132,11 @@ public:
 
 private:
     SongPosition RawPositionFromRaw(int raw_position) const;
+    std::unique_ptr<SoramimiLine> SetUpLine(std::unique_ptr<SoramimiLine> line);
+    void EmitLineChanged(const SoramimiLine* line);
 
     std::vector<std::unique_ptr<SoramimiLine>> m_lines;
+    bool m_updates_disabled = false;
 };
 
 }

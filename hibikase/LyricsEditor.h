@@ -41,14 +41,12 @@ public:
 
     void SetMode(Mode mode);
 
-    // TODO: Get rid of the need for this function by continually updating the song
-    void RebuildSong();
-
 public slots:
     void ReloadSong(KaraokeData::Song* song);
     void UpdateTime(std::chrono::milliseconds time);
 
 private slots:
+    void OnLinesChanged(int position, int lines_removed, int lines_added);
     void OnRawContentsChange(int position, int chars_removed, int chars_added);
     void ShowContextMenu(const QPoint& point);
     void SyllabifyBasic();

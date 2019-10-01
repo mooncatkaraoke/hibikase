@@ -81,6 +81,8 @@ void SoramimiLine::SetPrefix(const QString& text)
     m_prefix = text;
     Serialize();
     BuildText();
+
+    emit Changed();
 }
 
 void SoramimiLine::SetRaw(QString raw)
@@ -88,6 +90,8 @@ void SoramimiLine::SetRaw(QString raw)
     m_raw_content = raw;
     Deserialize();
     BuildText();
+
+    emit Changed();
 }
 
 void SoramimiLine::SetSyllableSplitPoints(QVector<int> split_points)
@@ -102,6 +106,8 @@ void SoramimiLine::SetSyllableSplitPoints(QVector<int> split_points)
     }
 
     Deserialize();
+
+    emit Changed();
 }
 
 int SoramimiLine::PositionFromRaw(int raw_position) const
@@ -270,10 +276,11 @@ void SoramimiLine::AddSyllable(size_t start, size_t end,
         m_raw_syllable_positions.push_back(start);
         m_syllables.emplace_back(std::make_unique<SoramimiSyllable>(
                                  text.toString(), start_time, end_time));
-        connect(m_syllables.back().get(), &SoramimiSyllable::Changed,
-                this, [this] { Serialize(); });
-        connect(m_syllables.back().get(), &SoramimiSyllable::Changed,
-                this, &SoramimiLine::BuildText);
+        connect(m_syllables.back().get(), &SoramimiSyllable::Changed, this, [this] {
+            Serialize();
+            BuildText();
+            emit Changed();
+        });
     }
 }
 
@@ -300,14 +307,16 @@ SoramimiSong::SoramimiSong(const QByteArray& data)
     QTextStream stream(data);
     stream.setCodec(Settings::GetLoadCodec(data));
     while (!stream.atEnd())
-        m_lines.push_back(std::make_unique<SoramimiLine>(stream.readLine()));
+        m_lines.push_back(SetUpLine(std::make_unique<SoramimiLine>(stream.readLine())));
 }
 
 SoramimiSong::SoramimiSong(const QVector<Line*>& lines)
 {
     for (Line* line : lines)
-        m_lines.push_back(std::make_unique<SoramimiLine>(
-                          line->GetSyllables(), line->GetPrefix()));
+    {
+        m_lines.push_back(SetUpLine(std::make_unique<SoramimiLine>(
+                                    line->GetSyllables(), line->GetPrefix())));
+    }
 }
 
 QString SoramimiSong::GetRaw() const
@@ -344,12 +353,15 @@ QVector<Line*> SoramimiSong::GetLines()
 
 void SoramimiSong::AddLine(const QVector<Syllable*>& syllables, QString prefix)
 {
-    m_lines.push_back(std::make_unique<SoramimiLine>(syllables, prefix));
+    m_lines.push_back(SetUpLine(std::make_unique<SoramimiLine>(syllables, prefix)));
+    emit LinesChanged(m_lines.size() - 1, 1, 1);
 }
 
 void SoramimiSong::RemoveAllLines()
 {
+    const size_t size = m_lines.size();
     m_lines.clear();
+    emit LinesChanged(0, size, 0);
 }
 
 bool SoramimiSong::SupportsPositionConversion() const
@@ -410,8 +422,12 @@ void SoramimiSong::UpdateRawText(int position, int chars_to_remove, QStringRef r
 
     const QVector<QStringRef> new_lines = replace_with.split("\n");
 
+    int lines_added_at_end = 0;
     while (end.line >= m_lines.size())
-        m_lines.emplace_back(std::make_unique<SoramimiLine>(QString()));
+    {
+        m_lines.emplace_back(SetUpLine(std::make_unique<SoramimiLine>(QString())));
+        lines_added_at_end++;
+    }
 
     const QString first_line = m_lines[start.line]->GetRaw();
     const QStringRef before = first_line.leftRef(start.position_in_line);
@@ -434,7 +450,8 @@ void SoramimiSong::UpdateRawText(int position, int chars_to_remove, QStringRef r
         for (auto& line_to_insert : lines_to_insert)
         {
             ++it;
-            line_to_insert = std::make_unique<SoramimiLine>(it != new_lines.end() ? it->toString() : QString());
+            line_to_insert = SetUpLine(std::make_unique<SoramimiLine>(
+                                       it != new_lines.end() ? it->toString() : QString()));
         }
 
         m_lines.insert(replace_it, std::make_move_iterator(lines_to_insert.begin()),
@@ -442,6 +459,7 @@ void SoramimiSong::UpdateRawText(int position, int chars_to_remove, QStringRef r
         lines_to_skip = lines_to_insert.size();
     }
 
+    m_updates_disabled = true;
     if (new_lines_count == 1)
     {
         m_lines[start.line]->SetRaw(before + replace_with + after);
@@ -452,6 +470,33 @@ void SoramimiSong::UpdateRawText(int position, int chars_to_remove, QStringRef r
         for (int i = 1 + lines_to_skip; i < new_lines.size() - 1; ++i)
             m_lines[start.line + i]->SetRaw(new_lines[i].toString());
         m_lines[start.line + new_lines.size() - 1]->SetRaw(new_lines.back() + after);
+    }
+    m_updates_disabled = false;
+
+    emit LinesChanged(start.line, old_lines_count - lines_added_at_end, new_lines_count);
+}
+
+std::unique_ptr<SoramimiLine> SoramimiSong::SetUpLine(std::unique_ptr<SoramimiLine> line)
+{
+    const SoramimiLine* line_ptr = line.get();
+    connect(line_ptr, &SoramimiLine::Changed, this, [this, line_ptr] {
+        EmitLineChanged(line_ptr);
+    });
+    return line;
+}
+
+void SoramimiSong::EmitLineChanged(const SoramimiLine* line)
+{
+    if (m_updates_disabled)
+        return;
+
+    for (size_t i = 0; i < m_lines.size(); ++i)
+    {
+        if (m_lines[i].get() == line)
+        {
+            emit LinesChanged(i, 1, 1);
+            break;
+        }
     }
 }
 

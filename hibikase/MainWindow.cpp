@@ -96,7 +96,6 @@ void MainWindow::on_actionSave_As_triggered()
     if (save_path.isEmpty())
         return;
 
-    ui->mainLyrics->RebuildSong();
     m_container = KaraokeContainer::Load(save_path);
     m_container->SaveLyricsFile(m_song->GetRawBytes());
     m_has_valid_save_path = true;
