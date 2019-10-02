@@ -119,6 +119,7 @@ public:
 
     bool IsValid() const override { return true; }
     bool IsEditable() const override { return true; }
+    QString GetRaw(int start_line, int end_line) const override;
     QString GetRaw() const override;
     QByteArray GetRawBytes() const override;
     QVector<Line*> GetLines() override;

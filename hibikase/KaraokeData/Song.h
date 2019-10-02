@@ -98,6 +98,7 @@ public:
 
     virtual bool IsValid() const = 0;
     virtual bool IsEditable() const = 0;
+    virtual QString GetRaw(int start_line, int end_line) const = 0;
     virtual QString GetRaw() const = 0;
     virtual QByteArray GetRawBytes() const = 0;
     virtual QVector<Line*> GetLines() = 0;
@@ -105,6 +106,7 @@ public:
     virtual void AddLine(const QVector<Syllable*>& syllables, QString prefix = QString()) = 0;
     virtual void RemoveAllLines() = 0;
     // TODO: GetText() is supposed to be const
+    virtual QString GetText(int start_line, int end_line);
     virtual QString GetText();
 
     virtual bool SupportsPositionConversion() const { return false; }

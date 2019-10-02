@@ -319,22 +319,27 @@ SoramimiSong::SoramimiSong(const QVector<Line*>& lines)
     }
 }
 
-QString SoramimiSong::GetRaw() const
+QString SoramimiSong::GetRaw(int start_line, int end_line) const
 {
+    int size = 0;
+
+    for (int i = start_line; i < end_line; ++i)
+        size += m_lines[i]->GetRaw().size() + LINE_ENDING.size();
+
     QString result;
-    size_t size = 0;
-
-    for (const std::unique_ptr<SoramimiLine>& line : m_lines)
-        size += line->GetRaw().size() + LINE_ENDING.size();
-
     result.reserve(size);
 
-    for (const std::unique_ptr<SoramimiLine>& line : m_lines)
-        result += line->GetRaw() + LINE_ENDING;
+    for (int i = start_line; i < end_line; ++i)
+        result += m_lines[i]->GetRaw() + LINE_ENDING;
     if (!result.isEmpty())
         result.chop(LINE_ENDING.size());
 
     return result;
+}
+
+QString SoramimiSong::GetRaw() const
+{
+    return GetRaw(0, m_lines.size());
 }
 
 QByteArray SoramimiSong::GetRawBytes() const

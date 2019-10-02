@@ -96,6 +96,7 @@ class ReadOnlySong final : public Song
 public:
     bool IsValid() const override { return m_valid; }
     bool IsEditable() const override { return false; }
+    QString GetRaw(int, int) const override { throw not_editable; }
     QString GetRaw() const override { throw not_editable; }
     QByteArray GetRawBytes() const override { throw not_editable; }
     QVector<Line*> GetLines() override

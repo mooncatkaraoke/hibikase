@@ -48,18 +48,39 @@ void Line::BuildText()
         m_text += syllable->GetText();
 }
 
-QString Song::GetText()
+QString Song::GetText(int start_line, int end_line)
 {
+    if (start_line >= end_line && end_line >= 0)
+        return QString();
+
     // TODO: Performance cost of GetLines() copying pointers into a QVector?
     const QVector<Line*> lines = GetLines();
 
+    // Small hack for performance: Let the parameter-less version of GetText specify "all lines"
+    // without having to call GetLines() to find out how many lines there are
+    if (end_line < 0)
+        end_line = lines.size();
+
+    int size = 0;
+    for (int i = start_line; i < end_line; ++i)
+        size += lines[i]->GetText().size() + sizeof('\n');
+
     QString text;
-    for (Line* line : lines)
+    text.reserve(size);
+
+    for (int i = start_line; i < end_line; ++i)
     {
-        text += line->GetText();
+        text += lines[i]->GetText();
         text += '\n';
     }
+    text.chop(sizeof('\n'));
+
     return text;
+}
+
+QString Song::GetText()
+{
+    return GetText(0, -1);
 }
 
 std::unique_ptr<Song> Load(const QByteArray& data)

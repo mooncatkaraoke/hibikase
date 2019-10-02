@@ -184,24 +184,10 @@ void LyricsEditor::OnLinesChanged(int position, int lines_removed, int lines_add
 
     const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
 
-    {
-        QString text_to_insert;
-        size_t text_to_insert_size = 0;
-
-        for (int i = position; i < position + lines_added; ++i)
-            text_to_insert_size += lines[i]->GetText().size() + sizeof('\n');
-
-        text_to_insert.reserve(size);
-
-        for (int i = position; i < position + lines_added; ++i)
-            text_to_insert += lines[i]->GetText() + '\n';
-        text_to_insert.chop(sizeof('\n'));
-
-        QTextCursor cursor(m_rich_text_edit->document());
-        cursor.setPosition(start_position);
-        cursor.setPosition(end_position - sizeof('\n'), QTextCursor::MoveMode::KeepAnchor);
-        cursor.insertText(std::move(text_to_insert));
-    }
+    QTextCursor cursor(m_rich_text_edit->document());
+    cursor.setPosition(start_position);
+    cursor.setPosition(end_position - sizeof('\n'), QTextCursor::MoveMode::KeepAnchor);
+    cursor.insertText(m_song_ref->GetText(position, position + lines_added));
 
     auto replace_it = m_line_timing_decorations.begin() + position;
     if (lines_removed > lines_added)
