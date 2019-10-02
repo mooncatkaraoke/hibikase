@@ -27,13 +27,13 @@
 
 namespace
 {
-    class NotEditable final : public std::exception
+class NotEditable final : public std::exception
+{
+    virtual const char* what() const noexcept
     {
-        virtual const char* what() const throw()
-        {
-            return "Not editable";
-        }
-    } not_editable;
+        return "Not editable";
+    }
+} not_editable;
 }
 
 namespace KaraokeData
