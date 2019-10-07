@@ -83,7 +83,6 @@ public:
         const_cast<ReadOnlyLine*>(this)->BuildText();
         return Line::GetText();
     }
-    void SetSyllableSplitPoints(QVector<int>) override { throw not_editable; }
 
     std::vector<std::unique_ptr<ReadOnlySyllable>> m_syllables;
     QString m_prefix;
@@ -108,6 +107,7 @@ public:
         return result;
     }
     void AddLine(const QVector<Syllable*>&, QString) override { throw not_editable; }
+    void ReplaceLines(int, int, const QVector<Line*>&) override { throw not_editable; }
     void RemoveAllLines() override { throw not_editable; }
 
     bool m_valid = false;

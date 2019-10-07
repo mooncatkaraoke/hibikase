@@ -44,6 +44,8 @@ namespace KaraokeData
 
 typedef std::chrono::duration<int32_t, std::centi> Centiseconds;
 
+static constexpr Centiseconds PLACEHOLDER_TIME = Centiseconds(99 * 60 * 100 + 59 * 100 + 99);
+
 class Syllable : public QObject
 {
     Q_OBJECT
@@ -70,8 +72,6 @@ public:
     virtual QString GetPrefix() const = 0;
     virtual void SetPrefix(const QString& text) = 0;
     virtual QString GetText() const;
-    // All split points must be unique and in ascending order
-    virtual void SetSyllableSplitPoints(QVector<int> split_points) = 0;
 
     virtual int PositionFromRaw(int) const { throw not_supported; }
     virtual int PositionToRaw(int) const { throw not_supported; }
@@ -104,6 +104,7 @@ public:
     virtual QVector<Line*> GetLines() = 0;
     // TODO: Should be const QVector<const Syllable*>&
     virtual void AddLine(const QVector<Syllable*>& syllables, QString prefix = QString()) = 0;
+    virtual void ReplaceLines(int start_line, int lines_to_remove, const QVector<Line*>& replace_with) = 0;
     virtual void RemoveAllLines() = 0;
     // TODO: GetText() is supposed to be const
     virtual QString GetText(int start_line, int end_line);

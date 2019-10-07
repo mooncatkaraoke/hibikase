@@ -15,10 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include <memory>
+#include <vector>
+
 #include <QChar>
 #include <QString>
 #include <QVector>
 
+#include "KaraokeData/Song.h"
+#include "KaraokeData/ReadOnlySong.h"
 #include "TextTransform/HangulUtils.h"
 #include "TextTransform/Syllabify.h"
 
@@ -94,6 +99,26 @@ QVector<int> SyllabifyBasic(const QString& text)
         split_points.append(text.size());
 
     return split_points;
+}
+
+
+std::unique_ptr<KaraokeData::Line> SyllabifyBasic(const KaraokeData::Line& line)
+{
+    const QString line_text = line.GetText();
+    std::unique_ptr<KaraokeData::ReadOnlyLine> new_line = std::make_unique<KaraokeData::ReadOnlyLine>();
+    if (line_text.isEmpty())
+        return std::move(new_line);
+
+    const QVector<int> split_points = SyllabifyBasic(line_text);
+    new_line->m_syllables.reserve(split_points.size() - 1);
+    for (int i = 1; i < split_points.size(); ++i)
+    {
+        new_line->m_syllables.emplace_back(std::make_unique<KaraokeData::ReadOnlySyllable>(
+                line_text.mid(split_points[i - 1], split_points[i] - split_points[i - 1]),
+                KaraokeData::PLACEHOLDER_TIME, KaraokeData::PLACEHOLDER_TIME));
+    }
+
+    return std::move(new_line);
 }
 
 }

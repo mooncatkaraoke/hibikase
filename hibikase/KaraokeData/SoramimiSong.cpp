@@ -36,7 +36,6 @@ namespace KaraokeData
 {
 
 static const QString PLACEHOLDER_TIMECODE = QStringLiteral("[99:59:99]");
-static constexpr Centiseconds PLACEHOLDER_TIME = Centiseconds(99 * 60 * 100 + 59 * 100 + 99);
 
 // TODO: The user might want LF instead of CRLF
 static const QString LINE_ENDING = "\r\n";
@@ -94,24 +93,6 @@ void SoramimiLine::SetRaw(QString raw)
     m_raw_content = raw;
     Deserialize();
     BuildText();
-
-    emit Changed(old_raw_length, m_raw_content.size());
-}
-
-void SoramimiLine::SetSyllableSplitPoints(QVector<int> split_points)
-{
-    const int old_raw_length = m_raw_content.size();
-
-    m_raw_content = GetText();
-    int characters_added = 0;
-
-    for (int split_point : split_points)
-    {
-        m_raw_content.insert(split_point + characters_added, PLACEHOLDER_TIMECODE);
-        characters_added += PLACEHOLDER_TIMECODE.size();
-    }
-
-    Deserialize();
 
     emit Changed(old_raw_length, m_raw_content.size());
 }
@@ -370,6 +351,57 @@ void SoramimiSong::AddLine(const QVector<Syllable*>& syllables, QString prefix)
     const int raw_position = LineNumberToRaw(m_lines.size());
     m_lines.push_back(SetUpLine(std::make_unique<SoramimiLine>(syllables, prefix)));
     emit LinesChanged(m_lines.size() - 1, 1, 1, raw_position, 0, m_lines.back()->GetRaw().size());
+}
+
+void SoramimiSong::ReplaceLines(int start_line, int lines_to_remove, const QVector<Line*>& replace_with)
+{
+    int old_raw_length = 0;
+    if (lines_to_remove > 0)
+    {
+        old_raw_length = lines_to_remove - 1;
+        for (int i = start_line; i < start_line + lines_to_remove; ++i)
+            old_raw_length += m_lines[i]->GetRaw().size();
+    }
+
+    const int replace_end = std::min(lines_to_remove, replace_with.size());
+    auto replace_it = m_lines.begin() + start_line;
+    int i = 0;
+    for (; i < replace_end; ++i)
+    {
+        *replace_it = SetUpLine(std::make_unique<SoramimiLine>(
+                                replace_with[i]->GetSyllables(), replace_with[i]->GetPrefix()));
+        ++replace_it;
+    }
+
+    if (lines_to_remove > replace_with.size())
+    {
+        m_lines.erase(replace_it, replace_it + lines_to_remove - replace_end);
+    }
+    else if (lines_to_remove < replace_with.size())
+    {
+        std::vector<std::unique_ptr<SoramimiLine>> lines_to_insert(replace_with.size() - replace_end);
+        auto it = replace_with.begin() + replace_end;
+        for (auto& line_to_insert : lines_to_insert)
+        {
+            line_to_insert = SetUpLine(std::make_unique<SoramimiLine>(
+                                       replace_with[i]->GetSyllables(), replace_with[i]->GetPrefix()));
+            ++it;
+        }
+
+        m_lines.insert(replace_it, std::make_move_iterator(lines_to_insert.begin()),
+                                   std::make_move_iterator(lines_to_insert.end()));
+    }
+
+    int new_raw_length = 0;
+    if (!replace_with.empty())
+    {
+        new_raw_length = replace_with.size() - 1;
+        for (int i = start_line; i < start_line + replace_with.size(); ++i)
+            new_raw_length += m_lines[i]->GetRaw().size();
+    }
+
+    emit LinesChanged(start_line, lines_to_remove, replace_with.size(),
+                      LineNumberToRaw(start_line), old_raw_length, new_raw_length);
 }
 
 void SoramimiSong::RemoveAllLines()

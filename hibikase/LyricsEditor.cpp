@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -275,21 +276,45 @@ void LyricsEditor::ShowContextMenu(const QPoint& point)
     delete menu;
 }
 
-void LyricsEditor::SyllabifyBasic()
+void LyricsEditor::ApplyLineTransformation(int start_line, int end_line,
+        std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f)
+{
+    QVector<KaraokeData::Line*> old_lines = m_song_ref->GetLines();
+    std::vector<std::unique_ptr<KaraokeData::Line>> new_lines;
+    QVector<KaraokeData::Line*> new_line_pointers;
+    new_lines.reserve(end_line - start_line);
+    new_line_pointers.reserve(end_line - start_line);
+
+    for (int i = 0; i < end_line - start_line; ++i)
+    {
+        new_lines.push_back(f(old_lines[start_line + i]));
+        new_line_pointers.push_back(new_lines.back().get());
+    }
+
+    m_song_ref->ReplaceLines(start_line, new_lines.size(), new_line_pointers);
+}
+
+void LyricsEditor::ApplyLineTransformation(
+        std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f)
 {
     // TODO: Only use the selection, not the whole document
     /*QTextCursor cursor = m_raw_text_edit->textCursor();
     int start = cursor.position();
     int end = cursor.anchor();*/
 
-    for (KaraokeData::Line* line : m_song_ref->GetLines())
-        line->SetSyllableSplitPoints(TextTransform::SyllabifyBasic(line->GetText()));
+    ApplyLineTransformation(0, m_song_ref->GetLines().size(), std::move(f));
+}
+
+void LyricsEditor::SyllabifyBasic()
+{
+    ApplyLineTransformation([](const KaraokeData::Line* line) {
+        return TextTransform::SyllabifyBasic(*line);
+    });
 }
 
 void LyricsEditor::RomanizeHangul()
 {
-    // TODO: Only use the selection, not the whole document
-
-    for (KaraokeData::Line* line : m_song_ref->GetLines())
-        TextTransform::RomanizeHangul(line);
+    ApplyLineTransformation([](KaraokeData::Line* line) {
+        return TextTransform::RomanizeHangul(line->GetSyllables(), line->GetPrefix());
+    });
 }

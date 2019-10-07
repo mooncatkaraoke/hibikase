@@ -21,7 +21,7 @@
 
 namespace TextTransform
 {
-
-void RomanizeHangul(KaraokeData::Line* line);
+std::unique_ptr<KaraokeData::Line> RomanizeHangul(
+        const QVector<KaraokeData::Syllable*>& syllables, QString prefix);
 
 }

@@ -21,6 +21,7 @@
 #include <QVector>
 
 #include "KaraokeData/Song.h"
+#include "KaraokeData/ReadOnlySong.h"
 #include "TextTransform/HangulUtils.h"
 #include "TextTransform/RomanizeHangul.h"
 
@@ -435,28 +436,36 @@ static QString RomanizeHangul(const QString& text, QString* next_text)
     return result;
 }
 
-void RomanizeHangul(KaraokeData::Line* line)
+std::unique_ptr<KaraokeData::Line> RomanizeHangul(
+        const QVector<KaraokeData::Syllable*>& syllables, QString prefix)
 {
-    QVector<KaraokeData::Syllable*> syllables = line->GetSyllables();
+    std::unique_ptr<KaraokeData::ReadOnlyLine> line = std::make_unique<KaraokeData::ReadOnlyLine>();
+    line->m_syllables.reserve(syllables.size());
 
     QString empty;
 
     if (syllables.isEmpty())
     {
-        line->SetPrefix(RomanizeHangul(DecomposeHangul(line->GetPrefix()), &empty));
+        line->m_prefix = RomanizeHangul(DecomposeHangul(prefix), &empty);
     }
     else
     {
         QString text = syllables[0]->GetText();
-        line->SetPrefix(RomanizeHangul(DecomposeHangul(line->GetPrefix()), &text));
+        line->m_prefix = RomanizeHangul(DecomposeHangul(prefix), &text);
         for (int i = 1; i < syllables.size(); ++i)
         {
+            const KaraokeData::Syllable* syllable = syllables[i - 1];
             QString next_text = syllables[i]->GetText();
-            syllables[i - 1]->SetText(RomanizeHangul(text, &next_text));
+            line->m_syllables.emplace_back(std::make_unique<KaraokeData::ReadOnlySyllable>(
+                    RomanizeHangul(text, &next_text), syllable->GetStart(), syllable->GetEnd()));
             text = next_text;
         }
-        syllables.last()->SetText(RomanizeHangul(text, &empty));
+        const KaraokeData::Syllable* syllable = syllables[syllables.size() - 1];
+        line->m_syllables.emplace_back(std::make_unique<KaraokeData::ReadOnlySyllable>(
+                    RomanizeHangul(text, &empty), syllable->GetStart(), syllable->GetEnd()));
     }
+
+    return std::move(line);
 }
 
 }

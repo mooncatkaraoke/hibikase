@@ -17,13 +17,19 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QString>
 #include <QVector>
+
+#include "KaraokeData/Song.h"
 
 namespace TextTransform
 {
 
 // Returns the syllable split points for a line of text
 QVector<int> SyllabifyBasic(const QString& text);
+
+std::unique_ptr<KaraokeData::Line> SyllabifyBasic(const KaraokeData::Line& line);
 
 }

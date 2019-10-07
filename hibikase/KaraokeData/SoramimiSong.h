@@ -79,8 +79,6 @@ public:
     void SetPrefix(const QString& text) override;
     QString GetRaw() const { return m_raw_content; }
     void SetRaw(QString raw);
-    // All split points must be unique and in ascending order
-    void SetSyllableSplitPoints(QVector<int> split_points) override;
 
     int PositionFromRaw(int raw_position) const override;
     int PositionToRaw(int position) const override;
@@ -124,6 +122,7 @@ public:
     QByteArray GetRawBytes() const override;
     QVector<Line*> GetLines() override;
     void AddLine(const QVector<Syllable*>& syllables, QString prefix) override;
+    void ReplaceLines(int start_line, int lines_to_remove, const QVector<Line*>& replace_with) override;
     void RemoveAllLines() override;
 
     bool SupportsPositionConversion() const override;

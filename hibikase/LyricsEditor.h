@@ -14,6 +14,7 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -37,7 +38,7 @@ public:
         Raw
     };
 
-    explicit LyricsEditor(QWidget* parent = 0);
+    explicit LyricsEditor(QWidget* parent = nullptr);
 
     void SetMode(Mode mode);
 
@@ -50,6 +51,9 @@ private slots:
                         int raw_position, int raw_chars_removed, int raw_chars_added);
     void OnRawContentsChange(int position, int chars_removed, int chars_added);
     void ShowContextMenu(const QPoint& point);
+    void ApplyLineTransformation(int start_line, int end_line,
+                                 std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
+    void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
     void SyllabifyBasic();
     void RomanizeHangul();
 
