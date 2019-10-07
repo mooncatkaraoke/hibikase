@@ -89,7 +89,7 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
     int i = 0;
     for (KaraokeData::Line* line : lines)
     {
-        auto decorations = std::make_unique<LineTimingDecorations>(line, i, m_rich_text_edit);
+        auto decorations = std::make_unique<LineTimingDecorations>(line, i, m_rich_text_edit, m_time);
         decorations->Update(m_time);
         m_line_timing_decorations.emplace_back(std::move(decorations));
 
@@ -231,7 +231,8 @@ void LyricsEditor::OnLinesChanged(int line_position, int lines_removed, int line
         int current_position = start_position;
         for (int i = line_position; i < line_position + lines_added; ++i)
         {
-            auto decorations = std::make_unique<LineTimingDecorations>(lines[i], current_position, m_rich_text_edit);
+            auto decorations = std::make_unique<LineTimingDecorations>(
+                        lines[i], current_position, m_rich_text_edit, m_time);
             decorations->Update(m_time);
             m_line_timing_decorations[i] = std::move(decorations);
 

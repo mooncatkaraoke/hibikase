@@ -28,7 +28,6 @@ class QPaintEvent;
 
 enum class TimingState
 {
-    Uninitialized,
     NotPlayed,
     Playing,
     Played
@@ -42,7 +41,7 @@ class SyllableDecorations final : public QWidget
 
 public:
     explicit SyllableDecorations(const QPlainTextEdit* text_edit, int start_index, int end_index,
-                                 Milliseconds start_time, Milliseconds end_time);
+                                 Milliseconds start_time, Milliseconds end_time, TimingState state);
 
     void Update(Milliseconds time, bool line_is_active);
     void AddToPosition(int diff);
@@ -52,9 +51,6 @@ protected:
 
 private:
     void CalculateGeometry();
-    QColor GetNotPlayedColor() const;
-    QColor GetPlayingColor() const;
-    QColor GetPlayedColor() const;
 
     const QPlainTextEdit* const m_text_edit;
     int m_start_index;
@@ -63,18 +59,20 @@ private:
     const Milliseconds m_end_time;
     qreal m_progress = 0;
     bool m_line_is_active = false;
-    TimingState m_state = TimingState::Uninitialized;
+    TimingState m_state;
 };
 
 class LineTimingDecorations final : public QObject
 {
     Q_OBJECT
 
-public:
-    LineTimingDecorations(KaraokeData::Line* line, int position,
-                          QPlainTextEdit* text_edit, QObject* parent = nullptr);
+    using Milliseconds = std::chrono::milliseconds;
 
-    void Update(std::chrono::milliseconds time);
+public:
+    LineTimingDecorations(KaraokeData::Line* line, int position, QPlainTextEdit* text_edit,
+                          Milliseconds time, QObject* parent = nullptr);
+
+    void Update(Milliseconds time);
     int GetPosition() const;
     void AddToPosition(int diff);
 
@@ -83,5 +81,5 @@ private:
     // TODO: Use a const reference instead
     KaraokeData::Line* m_line;
     int m_position;
-    TimingState m_state = TimingState::Uninitialized;
+    TimingState m_state;
 };

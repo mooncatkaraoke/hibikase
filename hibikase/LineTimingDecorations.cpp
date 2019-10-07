@@ -49,24 +49,12 @@ static TimingState GetTimingState(Milliseconds current, Milliseconds start, Mill
         return TimingState::Played;
 }
 
-SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int start_index,
-        int end_index, Milliseconds start_time, Milliseconds end_time)
-    : QWidget(text_edit->viewport()), m_text_edit(text_edit), m_start_index(start_index),
-      m_end_index(end_index), m_start_time(start_time), m_end_time(end_time)
-{
-    CalculateGeometry();
-
-    setPalette(Qt::transparent);
-    setAttribute(Qt::WA_TransparentForMouseEvents);
-    setVisible(true);
-}
-
-QColor SyllableDecorations::GetPlayingColor() const
+static QColor GetPlayingColor()
 {
     return QPalette().color(QPalette::Text);
 }
 
-QColor SyllableDecorations::GetNotPlayedColor() const
+static QColor GetNotPlayedColor()
 {
     QColor col(0x77, 0x55, 0x77);
     // Adjust our colours if the system has a light text colour
@@ -77,13 +65,41 @@ QColor SyllableDecorations::GetNotPlayedColor() const
     return col;
 }
 
-QColor SyllableDecorations::GetPlayedColor() const
+static QColor GetPlayedColor()
 {
     QColor col(0x55, 0x77, 0x55);
     int diff = QPalette().color(QPalette::Text).lightness() - col.lightness();
     if (diff > 0)
         col = col.lighter(diff);
     return col;
+}
+
+static void SetColor(QTextDocument* document, int start_index, int end_index, TimingState state)
+{
+    QTextCursor cursor(document);
+    cursor.setPosition(start_index, QTextCursor::MoveAnchor);
+    cursor.setPosition(end_index, QTextCursor::KeepAnchor);
+
+    QTextCharFormat color;
+    if (state == TimingState::NotPlayed)
+        color.setForeground(GetNotPlayedColor());
+    else if (state == TimingState::Playing)
+        color.setForeground(GetPlayingColor());
+    else
+        color.setForeground(GetPlayedColor());
+    cursor.setCharFormat(color);
+}
+
+SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int start_index,
+        int end_index, Milliseconds start_time, Milliseconds end_time, TimingState state)
+    : QWidget(text_edit->viewport()), m_text_edit(text_edit), m_start_index(start_index),
+      m_end_index(end_index), m_start_time(start_time), m_end_time(end_time), m_state(state)
+{
+    CalculateGeometry();
+
+    setPalette(Qt::transparent);
+    setAttribute(Qt::WA_TransparentForMouseEvents);
+    setVisible(true);
 }
 
 void SyllableDecorations::Update(Milliseconds time, bool line_is_active)
@@ -108,19 +124,7 @@ void SyllableDecorations::Update(Milliseconds time, bool line_is_active)
     if (state == m_state)
         return;
     m_state = state;
-
-    QTextCursor cursor(m_text_edit->document());
-    cursor.setPosition(m_start_index, QTextCursor::MoveAnchor);
-    cursor.setPosition(m_end_index, QTextCursor::KeepAnchor);
-
-    QTextCharFormat color;
-    if (state == TimingState::NotPlayed)
-        color.setForeground(GetNotPlayedColor());
-    else if (state == TimingState::Playing)
-        color.setForeground(GetPlayingColor());
-    else
-        color.setForeground(GetPlayedColor());
-    cursor.setCharFormat(color);
+    SetColor(m_text_edit->document(), m_start_index, m_end_index, state);
 }
 
 void SyllableDecorations::AddToPosition(int diff)
@@ -171,9 +175,11 @@ void SyllableDecorations::CalculateGeometry()
 }
 
 LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, int position,
-                                             QPlainTextEdit* text_edit, QObject* parent)
+                                             QPlainTextEdit* text_edit, Milliseconds time, QObject* parent)
     : QObject(parent), m_line(line), m_position(position)
 {
+    m_state = GetTimingState(time, m_line->GetStart(), m_line->GetEnd());
+
     auto syllables = m_line->GetSyllables();
     m_syllables.reserve(syllables.size());
     int i = m_position + m_line->GetPrefix().size();
@@ -182,8 +188,10 @@ LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, int positi
         const int start_index = i;
         i += syllable->GetText().size();
         m_syllables.emplace_back(std::make_unique<SyllableDecorations>(
-                        text_edit, start_index, i, syllable->GetStart(), syllable->GetEnd()));
+                        text_edit, start_index, i, syllable->GetStart(), syllable->GetEnd(), m_state));
     }
+
+    SetColor(text_edit->document(), m_position, i, m_state);
 }
 
 void LineTimingDecorations::Update(Milliseconds time)
