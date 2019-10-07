@@ -58,7 +58,8 @@ private:
     std::vector<std::unique_ptr<LineTimingDecorations>> m_line_timing_decorations;
     std::chrono::milliseconds m_time = std::chrono::milliseconds(-1);
     Mode m_mode;
-    bool m_updates_disabled = false;
+    bool m_raw_updates_disabled = false;
+    bool m_rich_updates_disabled = false;
 
     KaraokeData::Song* m_song_ref;
 };

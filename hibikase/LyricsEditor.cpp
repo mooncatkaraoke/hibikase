@@ -75,10 +75,12 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
 {
     m_song_ref = song;
 
-    m_updates_disabled = true;
+    m_raw_updates_disabled = true;
     m_raw_text_edit->setPlainText(song->GetRaw());
+    m_raw_updates_disabled = false;
+    m_rich_updates_disabled = true;
     m_rich_text_edit->setPlainText(song->GetText());
-    m_updates_disabled = false;
+    m_rich_updates_disabled = false;
 
     const QVector<KaraokeData::Line*> lines = song->GetLines();
     m_line_timing_decorations.clear();
@@ -172,7 +174,7 @@ void LyricsEditor::SetMode(Mode mode)
 
 void LyricsEditor::OnLinesChanged(int position, int lines_removed, int lines_added)
 {
-    if (m_updates_disabled)
+    if (m_rich_updates_disabled)
         return;
 
     const size_t size = m_line_timing_decorations.size();
@@ -221,7 +223,7 @@ void LyricsEditor::OnLinesChanged(int position, int lines_removed, int lines_add
 
 void LyricsEditor::OnRawContentsChange(int position, int chars_removed, int chars_added)
 {
-    if (m_updates_disabled)
+    if (m_raw_updates_disabled)
         return;
 
     m_song_ref->UpdateRawText(position, chars_removed,
