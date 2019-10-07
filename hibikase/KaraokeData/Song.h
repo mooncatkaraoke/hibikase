@@ -115,7 +115,8 @@ public:
     virtual void UpdateRawText(int position, int chars_to_remove, QStringRef replace_with) { throw not_supported; }
 
 signals:
-    void LinesChanged(int position, int lines_removed, int lines_added);
+    void LinesChanged(int line_position, int lines_removed, int lines_added,
+                      int raw_position, int raw_chars_removed, int raw_chars_added);
 };
 
 std::unique_ptr<Song> Load(const QByteArray& data);

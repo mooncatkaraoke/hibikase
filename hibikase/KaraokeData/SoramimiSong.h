@@ -86,7 +86,7 @@ public:
     int PositionToRaw(int position) const override;
 
 signals:
-    void Changed();
+    void Changed(int old_raw_length, int new_raw_length);
 
 private:
     void Serialize();
@@ -133,8 +133,9 @@ public:
 
 private:
     SongPosition RawPositionFromRaw(int raw_position) const;
+    int LineNumberToRaw(int line) const;
     std::unique_ptr<SoramimiLine> SetUpLine(std::unique_ptr<SoramimiLine> line);
-    void EmitLineChanged(const SoramimiLine* line);
+    void EmitLineChanged(const SoramimiLine* line, int old_raw_length, int new_raw_length);
 
     std::vector<std::unique_ptr<SoramimiLine>> m_lines;
     bool m_updates_disabled = false;

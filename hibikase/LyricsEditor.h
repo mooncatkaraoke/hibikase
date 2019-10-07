@@ -46,7 +46,8 @@ public slots:
     void UpdateTime(std::chrono::milliseconds time);
 
 private slots:
-    void OnLinesChanged(int position, int lines_removed, int lines_added);
+    void OnLinesChanged(int line_position, int lines_removed, int lines_added,
+                        int raw_position, int raw_chars_removed, int raw_chars_added);
     void OnRawContentsChange(int position, int chars_removed, int chars_added);
     void ShowContextMenu(const QPoint& point);
     void SyllabifyBasic();
