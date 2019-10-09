@@ -48,6 +48,7 @@ public:
 
 protected:
     void paintEvent(QPaintEvent*) override;
+    void moveEvent(QMoveEvent*) override;
 
 private:
     void CalculateGeometry();

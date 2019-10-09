@@ -137,8 +137,6 @@ void SyllableDecorations::AddToPosition(int diff)
 
 void SyllableDecorations::paintEvent(QPaintEvent*)
 {
-    CalculateGeometry();
-
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setPen(QPen(Qt::gray));
@@ -157,6 +155,11 @@ void SyllableDecorations::paintEvent(QPaintEvent*)
     path.lineTo(QPoint(SYLLABLE_MARKER_WIDTH, 0));
 
     painter.fillPath(path, QBrush(Qt::gray));
+}
+
+void SyllableDecorations::moveEvent(QMoveEvent*)
+{
+    CalculateGeometry();
 }
 
 void SyllableDecorations::CalculateGeometry()

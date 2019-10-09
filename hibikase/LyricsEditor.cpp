@@ -109,6 +109,29 @@ void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
 
 void LyricsEditor::SetMode(Mode mode)
 {
+    switch (mode)
+    {
+    case Mode::Timing:
+        m_raw_text_edit->setVisible(false);
+        m_rich_text_edit->setVisible(true);
+        m_rich_text_edit->setTextInteractionFlags(Qt::NoTextInteraction);
+        break;
+    case Mode::Text:
+        m_raw_text_edit->setVisible(false);
+        m_rich_text_edit->setVisible(true);
+        m_rich_text_edit->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+        break;
+    case Mode::Raw:
+        m_raw_text_edit->setVisible(true);
+        m_rich_text_edit->setVisible(false);
+        break;
+    }
+
+    // The visibility changes above must happen before the cursor position updates below,
+    // otherwise the SyllableDecorations (see LineTimingDecorations.h) won't update correctly.
+    // (It seems like SyllableDecorations don't receive move events if m_rich_text_edit
+    // scrolls as a result of changing the cursor position while it is invisible.)
+
     if (mode == Mode::Raw && m_mode != Mode::Raw)
     {
         const QTextCursor cursor = m_rich_text_edit->textCursor();
@@ -153,24 +176,6 @@ void LyricsEditor::SetMode(Mode mode)
     }
 
     m_mode = mode;
-
-    switch (mode)
-    {
-    case Mode::Timing:
-        m_raw_text_edit->setVisible(false);
-        m_rich_text_edit->setVisible(true);
-        m_rich_text_edit->setTextInteractionFlags(Qt::NoTextInteraction);
-        break;
-    case Mode::Text:
-        m_raw_text_edit->setVisible(false);
-        m_rich_text_edit->setVisible(true);
-        m_rich_text_edit->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
-        break;
-    case Mode::Raw:
-        m_raw_text_edit->setVisible(true);
-        m_rich_text_edit->setVisible(false);
-        break;
-    }
 }
 
 void LyricsEditor::OnLinesChanged(int line_position, int lines_removed, int lines_added,
