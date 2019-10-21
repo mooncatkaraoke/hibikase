@@ -44,6 +44,7 @@ public:
                                  Milliseconds start_time, Milliseconds end_time, TimingState state);
 
     void Update(Milliseconds time, bool line_is_active);
+    int GetPosition() const;
     void AddToPosition(int diff);
 
 protected:
@@ -76,11 +77,14 @@ public:
     void Update(Milliseconds time);
     int GetPosition() const;
     void AddToPosition(int diff);
+    int TextPositionToSyllable(int position) const;
+    int TextPositionFromSyllable(int position) const;
 
 private:
     std::vector<std::unique_ptr<SyllableDecorations>> m_syllables;
     // TODO: Use a const reference instead
     KaraokeData::Line* m_line;
-    int m_position;
+    int m_start_index;
+    int m_end_index;
     TimingState m_state;
 };

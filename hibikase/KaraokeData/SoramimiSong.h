@@ -53,7 +53,9 @@ public:
     QString GetText() const override { return m_text; }
     void SetText(const QString& text) override;
     Centiseconds GetStart() const override { return m_start; }
+    void SetStart(Centiseconds time) override;
     Centiseconds GetEnd() const override { return m_end; }
+    void SetEnd(Centiseconds time) override;
 
 signals:
     void Changed();

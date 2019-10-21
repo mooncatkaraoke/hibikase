@@ -127,6 +127,11 @@ void SyllableDecorations::Update(Milliseconds time, bool line_is_active)
     SetColor(m_text_edit->document(), m_start_index, m_end_index, state);
 }
 
+int SyllableDecorations::GetPosition() const
+{
+    return m_start_index;
+}
+
 void SyllableDecorations::AddToPosition(int diff)
 {
     m_start_index += diff;
@@ -179,13 +184,13 @@ void SyllableDecorations::CalculateGeometry()
 
 LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, int position,
                                              QPlainTextEdit* text_edit, Milliseconds time, QObject* parent)
-    : QObject(parent), m_line(line), m_position(position)
+    : QObject(parent), m_line(line), m_start_index(position)
 {
     m_state = GetTimingState(time, m_line->GetStart(), m_line->GetEnd());
 
     auto syllables = m_line->GetSyllables();
     m_syllables.reserve(syllables.size());
-    int i = m_position + m_line->GetPrefix().size();
+    int i = m_start_index + m_line->GetPrefix().size();
     for (KaraokeData::Syllable* syllable : syllables)
     {
         const int start_index = i;
@@ -194,7 +199,8 @@ LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, int positi
                         text_edit, start_index, i, syllable->GetStart(), syllable->GetEnd(), m_state));
     }
 
-    SetColor(text_edit->document(), m_position, i, m_state);
+    m_end_index = i;
+    SetColor(text_edit->document(), m_start_index, m_end_index, m_state);
 }
 
 void LineTimingDecorations::Update(Milliseconds time)
@@ -210,13 +216,32 @@ void LineTimingDecorations::Update(Milliseconds time)
 
 int LineTimingDecorations::GetPosition() const
 {
-    return m_position;
+    return m_start_index;
 }
 
 void LineTimingDecorations::AddToPosition(int diff)
 {
-    m_position += diff;
+    m_start_index += diff;
+    m_end_index += diff;
 
     for (std::unique_ptr<SyllableDecorations>& syllable : m_syllables)
         syllable->AddToPosition(diff);
+}
+
+int LineTimingDecorations::TextPositionToSyllable(int position) const
+{
+    const auto it = std::lower_bound(m_syllables.cbegin(), m_syllables.cend(), position,
+                    [](const std::unique_ptr<SyllableDecorations>& syllable, int position) {
+        return syllable->GetPosition() < position;
+    });
+
+    return it - m_syllables.cbegin();
+}
+
+int LineTimingDecorations::TextPositionFromSyllable(int position) const
+{
+    if (m_syllables.size() <= position)
+        return m_end_index;
+    else
+        return m_syllables[position]->GetPosition();
 }

@@ -18,6 +18,7 @@
 #include <memory>
 #include <vector>
 
+#include <QEvent>
 #include <QPlainTextEdit>
 #include <QPoint>
 #include <QWidget>
@@ -25,6 +26,21 @@
 #include "KaraokeData/Song.h"
 
 #include "LineTimingDecorations.h"
+
+class TimingEventFilter : public QObject
+{
+    Q_OBJECT
+
+public:
+    TimingEventFilter(QObject* parent = nullptr);
+
+signals:
+    void SetSyllableStart();
+    void SetSyllableEnd();
+
+private:
+    bool eventFilter(QObject* obj, QEvent* event) override;
+};
 
 class LyricsEditor : public QWidget
 {
@@ -36,6 +52,14 @@ public:
         Timing,
         Text,
         Raw
+    };
+
+    struct SyllablePosition
+    {
+        int line;
+        int syllable;
+
+        bool IsValid() const { return line >= 0 && syllable >= 0; }
     };
 
     explicit LyricsEditor(QWidget* parent = nullptr);
@@ -56,8 +80,19 @@ private slots:
     void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
     void SyllabifyBasic();
     void RomanizeHangul();
+    void SetSyllableStart();
+    void SetSyllableEnd();
 
 private:
+    int TextPositionToLine(int position) const;
+    SyllablePosition TextPositionToSyllable(int position) const;
+    int TextPositionFromSyllable(SyllablePosition position) const;
+    LyricsEditor::SyllablePosition GetPreviousSyllable() const;
+    LyricsEditor::SyllablePosition GetCurrentSyllable() const;
+    LyricsEditor::SyllablePosition GetNextSyllable() const;
+    KaraokeData::Syllable* GetSyllable(SyllablePosition pos) const;
+
+    TimingEventFilter m_timing_event_filter;
     QPlainTextEdit* m_raw_text_edit;
     QPlainTextEdit* m_rich_text_edit;
     std::vector<std::unique_ptr<LineTimingDecorations>> m_line_timing_decorations;

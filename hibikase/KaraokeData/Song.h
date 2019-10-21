@@ -56,7 +56,9 @@ public:
     virtual QString GetText() const = 0;
     virtual void SetText(const QString& text) = 0;
     virtual Centiseconds GetStart() const = 0;
+    virtual void SetStart(Centiseconds time) = 0;
     virtual Centiseconds GetEnd() const = 0;
+    virtual void SetEnd(Centiseconds time) = 0;
 };
 
 class Line : public QObject

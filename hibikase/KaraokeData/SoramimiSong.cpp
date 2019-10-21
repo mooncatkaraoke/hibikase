@@ -51,6 +51,18 @@ void SoramimiSyllable::SetText(const QString& text)
     emit Changed();
 }
 
+void SoramimiSyllable::SetStart(Centiseconds time)
+{
+    m_start = time;
+    emit Changed();
+}
+
+void SoramimiSyllable::SetEnd(Centiseconds time)
+{
+    m_end = time;
+    emit Changed();
+}
+
 SoramimiLine::SoramimiLine(const QString& content)
     : m_raw_content(content)
 {

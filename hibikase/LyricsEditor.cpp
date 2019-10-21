@@ -18,6 +18,7 @@
 #include <utility>
 
 #include <QAction>
+#include <QEvent>
 #include <QFont>
 #include <QMenu>
 #include <QTextCursor>
@@ -39,6 +40,33 @@ static QFont WithPointSize(QFont font, qreal size)
     return font;
 }
 
+TimingEventFilter::TimingEventFilter(QObject* parent) : QObject(parent)
+{
+}
+
+bool TimingEventFilter::eventFilter(QObject* obj, QEvent* event)
+{
+    if (event->type() != QEvent::KeyPress)
+        return QObject::eventFilter(obj, event);
+
+    QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
+
+    switch (key_event->key())
+    {
+    case Qt::Key_Space:
+        if (!key_event->isAutoRepeat())
+            emit SetSyllableStart();
+        return true;
+    case Qt::Key_Return:
+    case Qt::Key_Enter:
+        if (!key_event->isAutoRepeat())
+            emit SetSyllableEnd();
+        return true;
+    default:
+        return QObject::eventFilter(obj, event);
+    }
+}
+
 LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
 {
     m_raw_text_edit = new QPlainTextEdit();
@@ -50,6 +78,11 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     m_raw_text_edit->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_raw_text_edit, &QPlainTextEdit::customContextMenuRequested,
             this, &LyricsEditor::ShowContextMenu);
+
+    connect(&m_timing_event_filter, &TimingEventFilter::SetSyllableStart,
+            this, &LyricsEditor::SetSyllableStart);
+    connect(&m_timing_event_filter, &TimingEventFilter::SetSyllableEnd,
+            this, &LyricsEditor::SetSyllableEnd);
 
     m_rich_text_edit->setReadOnly(true);
 
@@ -109,13 +142,14 @@ void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
 
 void LyricsEditor::SetMode(Mode mode)
 {
+    if (mode == Mode::Timing)
+        m_rich_text_edit->installEventFilter(&m_timing_event_filter);
+    else
+        m_rich_text_edit->removeEventFilter(&m_timing_event_filter);
+
     switch (mode)
     {
     case Mode::Timing:
-        m_raw_text_edit->setVisible(false);
-        m_rich_text_edit->setVisible(true);
-        m_rich_text_edit->setTextInteractionFlags(Qt::NoTextInteraction);
-        break;
     case Mode::Text:
         m_raw_text_edit->setVisible(false);
         m_rich_text_edit->setVisible(true);
@@ -145,12 +179,9 @@ void LyricsEditor::SetMode(Mode mode)
         }
         else
         {
-            int position = m_rich_text_edit->textCursor().position();
-            auto it = std::upper_bound(m_line_timing_decorations.cbegin(), m_line_timing_decorations.cend(),
-                                       position, [](int pos, auto& line) { return pos < line->GetPosition(); });
-            it--;
-            const int line = it - m_line_timing_decorations.cbegin();
-            const int line_pos = (*it)->GetPosition();
+            const int position = m_rich_text_edit->textCursor().position();
+            const int line = TextPositionToLine(position);
+            const int line_pos = m_line_timing_decorations[line]->GetPosition();
             const int raw_position = m_song_ref->PositionToRaw(
                                      KaraokeData::SongPosition{line, position - line_pos});
 
@@ -323,4 +354,128 @@ void LyricsEditor::RomanizeHangul()
     ApplyLineTransformation([](KaraokeData::Line* line) {
         return TextTransform::RomanizeHangul(line->GetSyllables(), line->GetPrefix());
     });
+}
+
+void LyricsEditor::SetSyllableStart()
+{
+    KaraokeData::Syllable* current_syllable = GetSyllable(GetCurrentSyllable());
+
+    if (!current_syllable)
+        return;
+
+    KaraokeData::Syllable* previous_syllable = GetSyllable(GetPreviousSyllable());
+    const SyllablePosition next_syllable = GetNextSyllable();
+
+    const KaraokeData::Centiseconds time = std::chrono::duration_cast<KaraokeData::Centiseconds>(m_time);
+    if (previous_syllable && previous_syllable->GetEnd() == current_syllable->GetStart())
+        previous_syllable->SetEnd(time);
+    current_syllable->SetStart(time);
+
+    if (next_syllable.IsValid())
+    {
+        QTextCursor cursor = m_rich_text_edit->textCursor();
+        cursor.setPosition(TextPositionFromSyllable(next_syllable));
+        m_rich_text_edit->setTextCursor(cursor);
+    }
+}
+
+void LyricsEditor::SetSyllableEnd()
+{
+    KaraokeData::Syllable* syllable = GetSyllable(GetPreviousSyllable());
+
+    if (!syllable)
+        return;
+
+    QTextCursor cursor = m_rich_text_edit->textCursor();
+    const int cursor_position = cursor.position();
+
+    syllable->SetEnd(std::chrono::duration_cast<KaraokeData::Centiseconds>(m_time));
+
+    cursor.setPosition(cursor_position);
+    m_rich_text_edit->setTextCursor(cursor);
+}
+
+int LyricsEditor::TextPositionToLine(int position) const
+{
+    if (m_line_timing_decorations.empty())
+        return 0;
+
+    const auto it = std::upper_bound(m_line_timing_decorations.cbegin(), m_line_timing_decorations.cend(),
+                                     position, [](int pos, const auto& line) {
+        return pos < line->GetPosition();
+    });
+
+    return it - 1 - m_line_timing_decorations.cbegin();
+}
+
+LyricsEditor::SyllablePosition LyricsEditor::TextPositionToSyllable(int position) const
+{
+    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
+    if (lines.empty())
+        return SyllablePosition{-1, 0};
+
+    int line = TextPositionToLine(position);
+    int syllable = m_line_timing_decorations[line]->TextPositionToSyllable(position);
+
+    // If we're at the end of a line, skip to the next line that has a syllable
+    while (line + 1 < lines.size() && lines[line]->GetSyllables().size() <= syllable)
+    {
+        line++;
+        syllable = 0;
+    }
+
+    return SyllablePosition{line, syllable};
+}
+
+int LyricsEditor::TextPositionFromSyllable(LyricsEditor::SyllablePosition position) const
+{
+    return m_line_timing_decorations[position.line]->TextPositionFromSyllable(position.syllable);
+}
+
+LyricsEditor::SyllablePosition LyricsEditor::GetPreviousSyllable() const
+{
+    const SyllablePosition pos = TextPositionToSyllable(m_rich_text_edit->textCursor().position());
+    if (pos.syllable == 0)
+    {
+        const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
+
+        int line = pos.line - 1;
+        while (line >= 0 && lines[line]->GetSyllables().empty())
+            line--;
+
+        if (line < 0)
+            return SyllablePosition{-1, 0};
+        else
+            return SyllablePosition{line, lines[line]->GetSyllables().size() - 1};
+    }
+    else
+    {
+        return SyllablePosition{pos.line, pos.syllable - 1};
+    }
+}
+
+LyricsEditor::SyllablePosition LyricsEditor::GetCurrentSyllable() const
+{
+    return TextPositionToSyllable(m_rich_text_edit->textCursor().position());
+}
+
+LyricsEditor::SyllablePosition LyricsEditor::GetNextSyllable() const
+{
+    return TextPositionToSyllable(m_rich_text_edit->textCursor().position() + 1);
+}
+
+KaraokeData::Syllable* LyricsEditor::GetSyllable(SyllablePosition position) const
+{
+    if (!position.IsValid())
+        return nullptr;
+
+    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
+    if (lines.size() <= position.line)
+        return nullptr;
+
+    const QVector<KaraokeData::Syllable*> syllables = lines[position.line]->GetSyllables();
+    if (syllables.size() <= position.syllable)
+        return nullptr;
+
+    return syllables[position.syllable];
 }

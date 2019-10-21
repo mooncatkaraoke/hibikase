@@ -54,7 +54,9 @@ public:
     QString GetText() const override { return m_text; }
     void SetText(const QString&) override { throw not_editable; }
     Centiseconds GetStart() const override { return m_start; }
+    void SetStart(Centiseconds) override { throw not_editable; }
     Centiseconds GetEnd() const override { return m_end; }
+    void SetEnd(Centiseconds) override { throw not_editable; }
 
     QString m_text;
     Centiseconds m_start;
