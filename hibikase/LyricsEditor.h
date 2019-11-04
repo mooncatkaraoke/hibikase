@@ -37,6 +37,10 @@ public:
 signals:
     void SetSyllableStart();
     void SetSyllableEnd();
+    void GoToPreviousSyllable();
+    void GoToNextSyllable();
+    void GoToPreviousLine();
+    void GoToNextLine();
 
 private:
     bool eventFilter(QObject* obj, QEvent* event) override;
@@ -84,12 +88,15 @@ private slots:
     void SetSyllableEnd();
 
 private:
+    void GoTo(SyllablePosition position);
     int TextPositionToLine(int position) const;
     SyllablePosition TextPositionToSyllable(int position) const;
     int TextPositionFromSyllable(SyllablePosition position) const;
     LyricsEditor::SyllablePosition GetPreviousSyllable() const;
     LyricsEditor::SyllablePosition GetCurrentSyllable() const;
     LyricsEditor::SyllablePosition GetNextSyllable() const;
+    LyricsEditor::SyllablePosition GetPreviousLine() const;
+    LyricsEditor::SyllablePosition GetNextLine() const;
     KaraokeData::Syllable* GetSyllable(SyllablePosition pos) const;
 
     TimingEventFilter m_timing_event_filter;

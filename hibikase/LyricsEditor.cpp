@@ -62,6 +62,18 @@ bool TimingEventFilter::eventFilter(QObject* obj, QEvent* event)
         if (!key_event->isAutoRepeat())
             emit SetSyllableEnd();
         return true;
+    case Qt::Key_Left:
+        emit GoToPreviousSyllable();
+        return true;
+    case Qt::Key_Right:
+        emit GoToNextSyllable();
+        return true;
+    case Qt::Key_Up:
+        emit GoToPreviousLine();
+        return true;
+    case Qt::Key_Down:
+        emit GoToNextLine();
+        return true;
     default:
         return QObject::eventFilter(obj, event);
     }
@@ -83,6 +95,14 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
             this, &LyricsEditor::SetSyllableStart);
     connect(&m_timing_event_filter, &TimingEventFilter::SetSyllableEnd,
             this, &LyricsEditor::SetSyllableEnd);
+    connect(&m_timing_event_filter, &TimingEventFilter::GoToPreviousSyllable,
+            [this]() { GoTo(GetPreviousSyllable()); });
+    connect(&m_timing_event_filter, &TimingEventFilter::GoToNextSyllable,
+            [this]() { GoTo(GetNextSyllable()); });
+    connect(&m_timing_event_filter, &TimingEventFilter::GoToPreviousLine,
+            [this]() { GoTo(GetPreviousLine()); });
+    connect(&m_timing_event_filter, &TimingEventFilter::GoToNextLine,
+            [this]() { GoTo(GetNextLine()); });
 
     m_rich_text_edit->setReadOnly(true);
 
@@ -371,12 +391,7 @@ void LyricsEditor::SetSyllableStart()
         previous_syllable->SetEnd(time);
     current_syllable->SetStart(time);
 
-    if (next_syllable.IsValid())
-    {
-        QTextCursor cursor = m_rich_text_edit->textCursor();
-        cursor.setPosition(TextPositionFromSyllable(next_syllable));
-        m_rich_text_edit->setTextCursor(cursor);
-    }
+    GoTo(next_syllable);
 }
 
 void LyricsEditor::SetSyllableEnd()
@@ -392,6 +407,16 @@ void LyricsEditor::SetSyllableEnd()
     syllable->SetEnd(std::chrono::duration_cast<KaraokeData::Centiseconds>(m_time));
 
     cursor.setPosition(cursor_position);
+    m_rich_text_edit->setTextCursor(cursor);
+}
+
+void LyricsEditor::GoTo(LyricsEditor::SyllablePosition position)
+{
+    if (!position.IsValid())
+        return;
+
+    QTextCursor cursor = m_rich_text_edit->textCursor();
+    cursor.setPosition(TextPositionFromSyllable(position));
     m_rich_text_edit->setTextCursor(cursor);
 }
 
@@ -462,6 +487,45 @@ LyricsEditor::SyllablePosition LyricsEditor::GetCurrentSyllable() const
 LyricsEditor::SyllablePosition LyricsEditor::GetNextSyllable() const
 {
     return TextPositionToSyllable(m_rich_text_edit->textCursor().position() + 1);
+}
+
+LyricsEditor::SyllablePosition LyricsEditor::GetPreviousLine() const
+{
+    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
+    const SyllablePosition syllable = TextPositionToSyllable(m_rich_text_edit->textCursor().position());
+
+    // If we're at the very end of the last line (past the last syllable), go to its beginning
+    if (syllable.line == lines.size() - 1 && syllable.syllable != 0 &&
+        syllable.syllable == lines[lines.size() - 1]->GetSyllables().size())
+    {
+        return SyllablePosition{lines.size() - 1, 0};
+    }
+
+    int line = syllable.line - 1;
+
+    if (line < 0)
+        return SyllablePosition{0, 0};
+
+    // Skip lines that don't contain syllables
+    while (line > 0 && lines[line]->GetSyllables().empty())
+        line--;
+
+    return SyllablePosition{line, 0};
+}
+
+LyricsEditor::SyllablePosition LyricsEditor::GetNextLine() const
+{
+    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
+    int line = TextPositionToSyllable(m_rich_text_edit->textCursor().position()).line + 1;
+
+    if (line >= lines.size())
+        return SyllablePosition{lines.size() - 1, std::max(lines[lines.size() - 1]->GetSyllables().size(), 0)};
+
+    // Skip lines that don't contain syllables
+    while (line + 1 < lines.size() && lines[line]->GetSyllables().empty())
+        line++;
+
+    return SyllablePosition{line, 0};
 }
 
 KaraokeData::Syllable* LyricsEditor::GetSyllable(SyllablePosition position) const
