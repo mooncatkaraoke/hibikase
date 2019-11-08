@@ -188,8 +188,6 @@ void SoramimiLine::Deserialize()
 {
     m_syllables.clear();
     m_raw_syllable_positions.clear();
-    m_start = Centiseconds::max();
-    m_end = Centiseconds::min();
     m_prefix.clear();
 
     bool first_timecode = true;
@@ -232,9 +230,6 @@ void SoramimiLine::Deserialize()
                 previous_index = i + 10;
                 previous_time = time;
 
-                m_start = std::min(time, m_start);
-                m_end = std::max(time, m_end);
-
                 // Skip unnecessary loop iterations
                 i += 9;
             }
@@ -246,6 +241,22 @@ void SoramimiLine::Deserialize()
         m_prefix = m_raw_content;
     else
         AddSyllable(previous_index, m_raw_content.size(), previous_time, PLACEHOLDER_TIME);
+
+    CalculateStartAndEnd();
+}
+
+void SoramimiLine::CalculateStartAndEnd()
+{
+    m_start = Centiseconds::max();
+    m_end = Centiseconds::min();
+
+    for (const std::unique_ptr<SoramimiSyllable>& syllable : m_syllables)
+    {
+        if (syllable->GetStart() != PLACEHOLDER_TIME)
+            m_start = std::min(syllable->GetStart(), m_start);
+        if (syllable->GetEnd() != PLACEHOLDER_TIME)
+            m_end = std::max(syllable->GetEnd(), m_end);
+    }
 }
 
 void SoramimiLine::AddSyllable(size_t start, size_t end,
@@ -268,6 +279,7 @@ void SoramimiLine::AddSyllable(size_t start, size_t end,
 
             Serialize();
             BuildText();
+            CalculateStartAndEnd();
 
             emit Changed(old_raw_length, m_raw_content.size());
         });
