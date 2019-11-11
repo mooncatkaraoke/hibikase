@@ -41,6 +41,7 @@ signals:
     void GoToNextSyllable();
     void GoToPreviousLine();
     void GoToNextLine();
+    void GoToPosition(QPoint pos);
 
 private:
     bool eventFilter(QObject* obj, QEvent* event) override;
@@ -79,6 +80,7 @@ private slots:
                         int raw_position, int raw_chars_removed, int raw_chars_added);
     void OnRawContentsChange(int position, int chars_removed, int chars_added);
     void OnCursorPositionChanged();
+    void GoToPosition(QPoint pos);
     void ShowContextMenu(const QPoint& point);
     void ApplyLineTransformation(int start_line, int end_line,
                                  std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);

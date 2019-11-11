@@ -21,6 +21,8 @@
 #include <QEvent>
 #include <QFont>
 #include <QMenu>
+#include <QPoint>
+#include <QRect>
 #include <QTextCursor>
 #include <QVBoxLayout>
 
@@ -46,35 +48,54 @@ TimingEventFilter::TimingEventFilter(QObject* parent) : QObject(parent)
 
 bool TimingEventFilter::eventFilter(QObject* obj, QEvent* event)
 {
-    if (event->type() != QEvent::KeyPress)
-        return QObject::eventFilter(obj, event);
-
-    QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
-
-    switch (key_event->key())
+    if (event->type() == QEvent::MouseButtonPress)
     {
-    case Qt::Key_Space:
-        if (!key_event->isAutoRepeat())
-            emit SetSyllableStart();
-        return true;
-    case Qt::Key_Return:
-    case Qt::Key_Enter:
-        if (!key_event->isAutoRepeat())
-            emit SetSyllableEnd();
-        return true;
-    case Qt::Key_Left:
-        emit GoToPreviousSyllable();
-        return true;
-    case Qt::Key_Right:
-        emit GoToNextSyllable();
-        return true;
-    case Qt::Key_Up:
-        emit GoToPreviousLine();
-        return true;
-    case Qt::Key_Down:
-        emit GoToNextLine();
-        return true;
-    default:
+        // TODO: We never seem to get any mouse button press events for some reason?
+
+        QMouseEvent* mouse_event = static_cast<QMouseEvent*>(event);
+        if (mouse_event->button() & Qt::MouseButton::LeftButton)
+        {
+            emit GoToPosition(mouse_event->pos());
+            return true;
+        }
+        else
+        {
+            return QObject::eventFilter(obj, event);
+        }
+    }
+    else if (event->type() == QEvent::KeyPress)
+    {
+        QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
+
+        switch (key_event->key())
+        {
+        case Qt::Key_Space:
+            if (!key_event->isAutoRepeat())
+                emit SetSyllableStart();
+            return true;
+        case Qt::Key_Return:
+        case Qt::Key_Enter:
+            if (!key_event->isAutoRepeat())
+                emit SetSyllableEnd();
+            return true;
+        case Qt::Key_Left:
+            emit GoToPreviousSyllable();
+            return true;
+        case Qt::Key_Right:
+            emit GoToNextSyllable();
+            return true;
+        case Qt::Key_Up:
+            emit GoToPreviousLine();
+            return true;
+        case Qt::Key_Down:
+            emit GoToNextLine();
+            return true;
+        default:
+            return QObject::eventFilter(obj, event);
+        }
+    }
+    else
+    {
         return QObject::eventFilter(obj, event);
     }
 }
@@ -348,6 +369,38 @@ void LyricsEditor::OnCursorPositionChanged()
         const int position_2 = TextPositionFromSyllable(syllable);
 
         if (position - position_1 < position_2 - position)
+            GoTo(previous_syllable);
+        else
+            GoTo(syllable);
+    }
+}
+
+void LyricsEditor::GoToPosition(QPoint pos)
+{
+    QTextCursor cursor = m_rich_text_edit->cursorForPosition(pos);
+    const int position = cursor.position();
+    const SyllablePosition syllable = TextPositionToSyllable(position);
+    const SyllablePosition previous_syllable = GetPreviousSyllable(syllable);
+    const int line = TextPositionToLine(position);
+    if (!syllable.IsValid() && !previous_syllable.IsValid())
+    {
+    }
+    else if (!syllable.IsValid() || (syllable.line != line && previous_syllable.line == line))
+    {
+        GoTo(previous_syllable);
+    }
+    else if (!previous_syllable.IsValid() || syllable.line != previous_syllable.line)
+    {
+        GoTo(syllable);
+    }
+    else
+    {
+        cursor.setPosition(TextPositionFromSyllable(previous_syllable));
+        const QRect rect_1 = m_rich_text_edit->cursorRect(cursor);
+        cursor.setPosition(TextPositionFromSyllable(syllable));
+        const QRect rect_2 = m_rich_text_edit->cursorRect(cursor);
+
+        if (pos.x() - rect_1.right() < rect_2.left() - pos.x())
             GoTo(previous_syllable);
         else
             GoTo(syllable);
