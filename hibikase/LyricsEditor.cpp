@@ -84,6 +84,9 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     m_raw_text_edit = new QPlainTextEdit();
     m_rich_text_edit = new QPlainTextEdit();
 
+    connect(m_rich_text_edit, &QPlainTextEdit::cursorPositionChanged,
+            this, &LyricsEditor::OnCursorPositionChanged);
+
     connect(m_raw_text_edit->document(), &QTextDocument::contentsChange,
             this, &LyricsEditor::OnRawContentsChange);
 
@@ -223,10 +226,14 @@ void LyricsEditor::SetMode(Mode mode)
         {
             cursor.movePosition(QTextCursor::End);
         }
+        m_rich_cursor_updates_disabled = true;
         m_rich_text_edit->setTextCursor(cursor);
+        m_rich_cursor_updates_disabled = false;
     }
 
     m_mode = mode;
+
+    OnCursorPositionChanged();
 }
 
 void LyricsEditor::OnLinesChanged(int line_position, int lines_removed, int lines_added,
@@ -313,6 +320,38 @@ void LyricsEditor::OnRawContentsChange(int position, int chars_removed, int char
     m_song_ref->UpdateRawText(position, chars_removed,
                               m_raw_text_edit->toPlainText().midRef(position, chars_added));
     m_raw_updates_disabled = false;
+}
+
+void LyricsEditor::OnCursorPositionChanged()
+{
+    if (m_mode != Mode::Timing || m_rich_cursor_updates_disabled)
+        return;
+
+    const int position = m_rich_text_edit->textCursor().position();
+    const SyllablePosition syllable = TextPositionToSyllable(position);
+    const SyllablePosition previous_syllable = GetPreviousSyllable(syllable);
+    const int line = TextPositionToLine(position);
+    if (!syllable.IsValid() && !previous_syllable.IsValid())
+    {
+    }
+    else if (!syllable.IsValid() || (syllable.line != line && previous_syllable.line == line))
+    {
+        GoTo(previous_syllable);
+    }
+    else if (!previous_syllable.IsValid() || syllable.line != previous_syllable.line)
+    {
+        GoTo(syllable);
+    }
+    else
+    {
+        const int position_1 = TextPositionFromSyllable(previous_syllable);
+        const int position_2 = TextPositionFromSyllable(syllable);
+
+        if (position - position_1 < position_2 - position)
+            GoTo(previous_syllable);
+        else
+            GoTo(syllable);
+    }
 }
 
 void LyricsEditor::ShowContextMenu(const QPoint& point)
@@ -415,9 +454,14 @@ void LyricsEditor::GoTo(LyricsEditor::SyllablePosition position)
     if (!position.IsValid())
         return;
 
+    const bool updates_disabled = m_rich_cursor_updates_disabled;
+    m_rich_cursor_updates_disabled = true;
+
     QTextCursor cursor = m_rich_text_edit->textCursor();
     cursor.setPosition(TextPositionFromSyllable(position));
     m_rich_text_edit->setTextCursor(cursor);
+
+    m_rich_cursor_updates_disabled = updates_disabled;
 }
 
 int LyricsEditor::TextPositionToLine(int position) const
@@ -459,7 +503,11 @@ int LyricsEditor::TextPositionFromSyllable(LyricsEditor::SyllablePosition positi
 
 LyricsEditor::SyllablePosition LyricsEditor::GetPreviousSyllable() const
 {
-    const SyllablePosition pos = TextPositionToSyllable(m_rich_text_edit->textCursor().position());
+    return GetPreviousSyllable(TextPositionToSyllable(m_rich_text_edit->textCursor().position()));
+}
+
+LyricsEditor::SyllablePosition LyricsEditor::GetPreviousSyllable(SyllablePosition pos) const
+{
     if (pos.syllable == 0)
     {
         const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();

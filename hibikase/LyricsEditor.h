@@ -78,6 +78,7 @@ private slots:
     void OnLinesChanged(int line_position, int lines_removed, int lines_added,
                         int raw_position, int raw_chars_removed, int raw_chars_added);
     void OnRawContentsChange(int position, int chars_removed, int chars_added);
+    void OnCursorPositionChanged();
     void ShowContextMenu(const QPoint& point);
     void ApplyLineTransformation(int start_line, int end_line,
                                  std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
@@ -93,6 +94,7 @@ private:
     SyllablePosition TextPositionToSyllable(int position) const;
     int TextPositionFromSyllable(SyllablePosition position) const;
     LyricsEditor::SyllablePosition GetPreviousSyllable() const;
+    LyricsEditor::SyllablePosition GetPreviousSyllable(SyllablePosition pos) const;
     LyricsEditor::SyllablePosition GetCurrentSyllable() const;
     LyricsEditor::SyllablePosition GetNextSyllable() const;
     LyricsEditor::SyllablePosition GetPreviousLine() const;
@@ -107,6 +109,7 @@ private:
     Mode m_mode;
     bool m_raw_updates_disabled = false;
     bool m_rich_updates_disabled = false;
+    bool m_rich_cursor_updates_disabled = false;
 
     KaraokeData::Song* m_song_ref;
 };
