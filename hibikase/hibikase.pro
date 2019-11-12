@@ -11,10 +11,11 @@ win32 {
     msvc:QMAKE_CXXFLAGS += /utf-8
 }
 
+include(../external/dr_libs.pri)
 
-SOURCES += main.cpp\
+SOURCES += main.cpp \
     AudioFile.cpp \
-        MainWindow.cpp \
+    MainWindow.cpp \
     KaraokeData/Song.cpp \
     KaraokeData/SoramimiSong.cpp \
     KaraokeContainer/Container.cpp \

@@ -19,9 +19,9 @@
 #include <QIODevice>
 
 #define DR_MP3_IMPLEMENTATION
-#include "../external/dr_libs/dr_mp3.h"
+#include <dr_mp3.h>
 #define DR_FLAC_IMPLEMENTATION
-#include "../external/dr_libs/dr_flac.h"
+#include <dr_flac.h>
 
 QString AudioFile::Load(QByteArray bytes)
 {
