@@ -1,3 +1,6 @@
 [submodule "external/dr_libs"]
 	path = external/dr_libs
-	url = https://github.com/mackron/dr_libs
+	url = https://github.com/mackron/dr_libs.git
+[submodule "external/rubberband"]
+	path = external/rubberband
+	url = https://github.com/breakfastquay/rubberband.git

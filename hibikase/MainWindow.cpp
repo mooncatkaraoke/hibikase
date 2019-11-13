@@ -126,7 +126,9 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
                        "along with this program. If not, see <http://www.gnu.org/licenses/>."
                        "\n"
                        "\n"
-                       "Hibikase makes use of the dr_mp3 and dr_flac libraries from <https://github.com/mackron/dr_libs>.");
+                       "Hibikase makes use of the dr_mp3 and dr_flac libraries from <https://github.com/mackron/dr_libs>.\n"
+                       "\n"
+                       "Hibikase makes use of the Rubber Band audio stretching library from <https://breakfastquay.com/rubberband/>.");
 }
 
 void MainWindow::LoadAudio()

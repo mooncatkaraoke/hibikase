@@ -7,11 +7,12 @@ TARGET = hibikase
 TEMPLATE = app
 CONFIG += c++14
 
-win32 {
+win32-msvc* {
     msvc:QMAKE_CXXFLAGS += /utf-8
 }
 
 include(../external/dr_libs.pri)
+include(../external/rubberband.pri)
 
 SOURCES += main.cpp \
     AudioFile.cpp \

@@ -1,4 +1,9 @@
 TEMPLATE = subdirs
 
 SUBDIRS = \
-    hibikase
+    hibikase \
+    rubberband
+
+rubberband.file = external/rubberband.pro
+
+hibikase.depends = rubberband
