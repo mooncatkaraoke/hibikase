@@ -25,7 +25,10 @@
 #include <QThread>
 #include <QWidget>
 
+#include <RubberBandStretcher.h>
+
 #include "AudioFile.h"
+#include "CircularBuffer.h"
 
 class AudioOutputWorker final : public QObject
 {
@@ -45,14 +48,21 @@ signals:
     void TimeUpdated(std::chrono::microseconds current, std::chrono::microseconds length);
 
 private slots:
+    void PushSamples();
     void OnNotify();
     void OnStateChanged(QAudio::State state);
 
 private:
+    std::chrono::microseconds DurationForBytes(qint32 bytes);
+
     std::unique_ptr<QIODevice> m_io_device;
     std::unique_ptr<AudioFile> m_audio_file;
+    std::unique_ptr<RubberBand::RubberBandStretcher> m_stretcher;
+    std::unique_ptr<CircularBuffer> m_buffer;
     std::unique_ptr<QAudioOutput> m_audio_output;
-    std::chrono::microseconds m_start_offset;
+    qint32 m_start_offset;
+    qint32 m_current_offset;
+    qint32 m_last_seek_offset;
 };
 
 class PlaybackWidget : public QWidget

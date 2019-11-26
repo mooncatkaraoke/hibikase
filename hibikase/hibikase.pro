@@ -16,6 +16,7 @@ include(../external/rubberband.pri)
 
 SOURCES += main.cpp \
     AudioFile.cpp \
+    CircularBuffer.cpp \
     MainWindow.cpp \
     KaraokeData/Song.cpp \
     KaraokeData/SoramimiSong.cpp \
@@ -32,6 +33,7 @@ SOURCES += main.cpp \
 
 HEADERS  += MainWindow.h \
     AudioFile.h \
+    CircularBuffer.h \
     KaraokeData/Song.h \
     KaraokeData/SoramimiSong.h \
     KaraokeContainer/Container.h \
