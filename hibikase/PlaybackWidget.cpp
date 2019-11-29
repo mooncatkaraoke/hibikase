@@ -15,6 +15,9 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <cstdint>
+#include <limits>
+#include <type_traits>
 #include <utility>
 
 #include <QHBoxLayout>
@@ -210,8 +213,12 @@ void AudioOutputWorker::Initialize()
     m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat(), this);
     m_audio_output->setNotifyInterval(10);
 
+    m_stretcher_float_buffers.resize(m_audio_output->format().channelCount());
+    m_stretcher_float_buffers_pointers.resize(m_audio_output->format().channelCount());
+
     m_stretcher = std::make_unique<RubberBand::RubberBandStretcher>(
-                m_audio_output->format().sampleRate(), m_audio_output->format().channelCount());
+                m_audio_output->format().sampleRate(), m_audio_output->format().channelCount(),
+                RubberBand::RubberBandStretcher::Option::OptionProcessRealTime);
 
     connect(m_audio_output.get(), &QAudioOutput::stateChanged, this, &AudioOutputWorker::OnStateChanged);
     connect(m_audio_output.get(), &QAudioOutput::notify, this, &AudioOutputWorker::OnNotify);
@@ -236,7 +243,7 @@ void AudioOutputWorker::Play(std::chrono::microseconds from)
     {
         Stop();
         m_output_buffer = m_audio_output->start();
-        PushSamples();
+        PushSamplesToOutput();
     }
 }
 
@@ -247,11 +254,99 @@ void AudioOutputWorker::Stop()
     m_stretcher->reset();
 }
 
-void AudioOutputWorker::PushSamples()
+template <typename T>
+static void ToFloat(const T* in, std::vector<std::vector<float>>* out)
+{
+    static_assert(std::is_integral_v<T> && std::is_signed_v<T>, "Incompatible type");
+    const float scale = 1.0f / (std::numeric_limits<T>::max() + 1.0f);
+
+    for (size_t i = 0; i < out->size(); ++i)
+    {
+        const T* ptr = in + i;
+        for (size_t j = 0; j < (*out)[i].size(); ++j)
+        {
+            (*out)[i][j] = *ptr * scale;
+            ptr += out->size();
+        }
+    }
+}
+
+template <typename T>
+static void FromFloat(const std::vector<std::vector<float>>& in, T* out)
+{
+    static_assert(std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) < sizeof(int),
+                  "Incompatible type");
+    const int min = std::numeric_limits<T>::min();
+    const int max = std::numeric_limits<T>::max();
+
+    for (size_t i = 0; i < in.size(); ++i)
+    {
+        T* ptr = out + i;
+        for (size_t j = 0; j < in[i].size(); ++j)
+        {
+            *ptr = static_cast<T>(qBound(min, static_cast<int>(in[i][j] * (max + 1)), max));
+            ptr += in.size();
+        }
+    }
+}
+
+bool AudioOutputWorker::PushSamplesToStretcher()
 {
     const QByteArray& audio_buffer = m_audio_file->GetPCMBuffer()->data();
-    const int size = std::min(m_audio_output->bytesFree(), audio_buffer.size() - m_current_offset);
-    m_current_offset += m_output_buffer->write(audio_buffer.data() + m_current_offset, size);
+    if (m_current_offset >= audio_buffer.size())
+        return false;
+
+    const size_t bytes_per_frame = m_audio_output->format().bytesPerFrame();
+    const size_t frames = std::min<size_t>((audio_buffer.size() - m_current_offset) / bytes_per_frame,
+                                           m_stretcher->getSamplesRequired());
+    for (size_t i = 0; i < m_stretcher_float_buffers.size(); ++i)
+    {
+        m_stretcher_float_buffers[i].resize(frames);
+        m_stretcher_float_buffers_pointers[i] = m_stretcher_float_buffers[i].data();
+    }
+
+    const size_t bytes_per_sample = bytes_per_frame / m_stretcher_float_buffers.size();
+    Q_ASSERT(bytes_per_sample == 2 &&
+             m_audio_output->format().sampleType() == QAudioFormat::SampleType::SignedInt);
+    ToFloat(reinterpret_cast<const int16_t*>(audio_buffer.data() + m_current_offset),
+            &m_stretcher_float_buffers);
+
+    m_current_offset += frames * bytes_per_frame;
+    const bool final = m_current_offset == audio_buffer.size();
+    m_stretcher->process(m_stretcher_float_buffers_pointers.data(), frames, final);
+
+    return true;
+}
+
+void AudioOutputWorker::PushSamplesToOutput()
+{
+    do
+    {
+        const size_t bytes_per_frame = m_audio_output->format().bytesPerFrame();
+        size_t frames = std::min<size_t>(m_audio_output->bytesFree() / bytes_per_frame,
+                                         m_stretcher->available());
+        if (frames == 0)
+            continue;
+
+        const size_t channels = m_stretcher_float_buffers.size();
+        for (size_t i = 0; i < m_stretcher_float_buffers.size(); ++i)
+        {
+            m_stretcher_float_buffers[i].resize(frames);
+            m_stretcher_float_buffers_pointers[i] = m_stretcher_float_buffers[i].data();
+        }
+
+        frames = m_stretcher->retrieve(m_stretcher_float_buffers_pointers.data(), frames);
+        if (frames == 0)
+            continue;
+
+        const size_t bytes_per_sample = bytes_per_frame / channels;
+        Q_ASSERT(bytes_per_sample == 2 &&
+                 m_audio_output->format().sampleType() == QAudioFormat::SampleType::SignedInt);
+        m_stretcher_buffer.resize(frames * bytes_per_frame);
+        FromFloat(m_stretcher_float_buffers, reinterpret_cast<int16_t*>(m_stretcher_buffer.data()));
+
+        m_output_buffer->write(m_stretcher_buffer.data(), m_stretcher_buffer.size());
+    } while (m_audio_output->bytesFree() && PushSamplesToStretcher());
 }
 
 std::chrono::microseconds AudioOutputWorker::DurationForBytes(qint32 bytes)
@@ -262,13 +357,15 @@ std::chrono::microseconds AudioOutputWorker::DurationForBytes(qint32 bytes)
 
 void AudioOutputWorker::OnNotify()
 {
+    const qint64 latency = m_audio_output->format().durationForFrames(
+            static_cast<qint32>(m_stretcher->getLatency()));
     const std::chrono::microseconds time = DurationForBytes(m_start_offset) +
-                                           std::chrono::microseconds(m_audio_output->processedUSecs());
+            std::chrono::microseconds(m_audio_output->processedUSecs() - latency);
     const std::chrono::microseconds last_seek = DurationForBytes(m_last_seek_offset);
 
     emit TimeUpdated(std::max(time, last_seek), m_audio_file->GetDuration());
 
-    PushSamples();
+    PushSamplesToOutput();
 }
 
 void AudioOutputWorker::OnStateChanged(QAudio::State state)

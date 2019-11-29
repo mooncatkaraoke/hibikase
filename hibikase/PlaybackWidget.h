@@ -51,13 +51,17 @@ private slots:
     void OnStateChanged(QAudio::State state);
 
 private:
-    void PushSamples();
+    bool PushSamplesToStretcher();
+    void PushSamplesToOutput();
     std::chrono::microseconds DurationForBytes(qint32 bytes);
 
     std::unique_ptr<QIODevice> m_io_device;
     std::unique_ptr<AudioFile> m_audio_file;
     std::unique_ptr<RubberBand::RubberBandStretcher> m_stretcher;
     std::unique_ptr<QAudioOutput> m_audio_output;
+    std::vector<char> m_stretcher_buffer;
+    std::vector<std::vector<float>> m_stretcher_float_buffers;
+    std::vector<float*> m_stretcher_float_buffers_pointers;
     QIODevice* m_output_buffer;
     qint32 m_start_offset;
     qint32 m_current_offset;
