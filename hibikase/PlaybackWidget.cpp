@@ -26,29 +26,48 @@
 
 #include <RubberBandStretcher.h>
 
+static double ConvertSpeed(int speed)
+{
+    return 1 / (static_cast<double>(speed) * 0.1);
+}
+
 PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
 {
-    m_play_button = new QPushButton();
-    m_time_label = new QLabel();
-    m_time_slider = new QSlider(Qt::Orientation::Horizontal);
+    m_play_button = new QPushButton(this);
+    m_time_label = new QLabel(this);
+    m_speed_label = new QLabel(this);
+    m_time_slider = new QSlider(Qt::Orientation::Horizontal, this);
+    m_speed_slider = new QSlider(Qt::Orientation::Horizontal, this);
 
+    // We want a font where all numbers have the same width, so that labels don't change in size
     m_time_label->setTextFormat(Qt::PlainText);
     m_time_label->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    m_speed_label->setTextFormat(Qt::PlainText);
+    m_speed_label->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+
+    m_speed_slider->setRange(1, 10);
+    m_speed_slider->setValue(10);
+    UpdateSpeedLabel(m_speed_slider->value());
 
     QVBoxLayout* main_layout = new QVBoxLayout();
-    QHBoxLayout* sub_layout = new QHBoxLayout();
+    QHBoxLayout* first_row = new QHBoxLayout();
+    QHBoxLayout* second_row = new QHBoxLayout();
     main_layout->setMargin(0);
 
-    sub_layout->addWidget(m_time_label);
-    sub_layout->addWidget(m_time_slider);
-    main_layout->addLayout(sub_layout);
-    main_layout->addWidget(m_play_button);
+    first_row->addWidget(m_time_label);
+    first_row->addWidget(m_time_slider);
+    second_row->addWidget(m_play_button, 1);
+    second_row->addWidget(m_speed_label, 0);
+    second_row->addWidget(m_speed_slider, 1);
+    main_layout->addLayout(first_row);
+    main_layout->addLayout(second_row);
 
     setLayout(main_layout);
 
     connect(m_play_button, &QPushButton::clicked, this, &PlaybackWidget::OnPlayButtonClicked);
     connect(m_time_slider, &QSlider::sliderMoved, this, &PlaybackWidget::OnTimeSliderMoved);
     connect(m_time_slider, &QSlider::sliderReleased, this, &PlaybackWidget::OnTimeSliderReleased);
+    connect(m_speed_slider, &QSlider::sliderMoved, this, &PlaybackWidget::OnSpeedSliderMoved);
     LoadAudio(nullptr);
 
     m_thread.start();
@@ -114,9 +133,15 @@ void PlaybackWidget::OnPlayButtonClicked()
         return;
 
     if (m_state != QAudio::State::ActiveState)
+    {
+        QMetaObject::invokeMethod(m_worker, "SetSpeed",
+                                  Q_ARG(double, ConvertSpeed(m_speed_slider->value())));
         QMetaObject::invokeMethod(m_worker, "Play");
+    }
     else
+    {
         QMetaObject::invokeMethod(m_worker, "Stop");
+    }
 }
 
 void PlaybackWidget::OnTimeSliderMoved(int value)
@@ -136,6 +161,19 @@ void PlaybackWidget::OnTimeSliderReleased()
 
     std::chrono::microseconds new_pos(m_time_slider->value() * 1000);
     QMetaObject::invokeMethod(m_worker, "Play", Q_ARG(std::chrono::microseconds, new_pos));
+}
+
+void PlaybackWidget::OnSpeedSliderMoved(int value)
+{
+    UpdateSpeedLabel(value);
+
+    if (m_worker)
+        QMetaObject::invokeMethod(m_worker, "SetSpeed", Q_ARG(double, ConvertSpeed(value)));
+}
+
+void PlaybackWidget::UpdateSpeedLabel(int value)
+{
+    m_speed_label->setText(QStringLiteral("Speed: %1%").arg(QString::number(value * 10), 3, QChar(' ')));
 }
 
 void PlaybackWidget::OnStateChanged(QAudio::State state)
@@ -232,10 +270,12 @@ void AudioOutputWorker::Play(std::chrono::microseconds from)
     {
         m_start_offset = 0;
         m_current_offset = 0;
+        m_last_speed_change_offset = 0;
     }
 
     const qint32 from_bytes = m_audio_output->format().bytesForDuration(from.count());
-    m_start_offset += from_bytes - m_current_offset;
+    m_start_offset += static_cast<qint32>((from_bytes - m_current_offset) *
+                                          m_stretcher->getTimeRatio());
     m_current_offset = from_bytes;
     m_last_seek_offset = m_current_offset;
 
@@ -252,6 +292,15 @@ void AudioOutputWorker::Stop()
     m_audio_output->stop();
     m_audio_output->reset();
     m_stretcher->reset();
+}
+
+void AudioOutputWorker::SetSpeed(double slowdown)
+{
+    const qint32 duration = m_current_offset - m_last_speed_change_offset;
+    m_start_offset -= static_cast<qint32>(duration * (m_stretcher->getTimeRatio() - 1));
+    m_last_speed_change_offset = m_current_offset;
+
+    m_stretcher->setTimeRatio(slowdown);
 }
 
 template <typename T>
@@ -361,9 +410,13 @@ void AudioOutputWorker::OnNotify()
             static_cast<qint32>(m_stretcher->getLatency()));
     const std::chrono::microseconds time = DurationForBytes(m_start_offset) +
             std::chrono::microseconds(m_audio_output->processedUSecs() - latency);
+    const std::chrono::microseconds last_speed_change = DurationForBytes(m_last_speed_change_offset);
+    const std::chrono::microseconds scaled_time = last_speed_change +
+            std::chrono::microseconds(static_cast<long long>(
+                    (time - last_speed_change).count() / m_stretcher->getTimeRatio()));
     const std::chrono::microseconds last_seek = DurationForBytes(m_last_seek_offset);
 
-    emit TimeUpdated(std::max(time, last_seek), m_audio_file->GetDuration());
+    emit TimeUpdated(std::max(scaled_time, last_seek), m_audio_file->GetDuration());
 
     PushSamplesToOutput();
 }

@@ -40,6 +40,7 @@ public slots:
     void Initialize();
     void Play(std::chrono::microseconds from = std::chrono::microseconds::zero());
     void Stop();
+    void SetSpeed(double slowdown);
 
 signals:
     void LoadFinished(QString error);
@@ -66,6 +67,7 @@ private:
     qint32 m_start_offset;
     qint32 m_current_offset;
     qint32 m_last_seek_offset;
+    qint32 m_last_speed_change_offset;
 };
 
 class PlaybackWidget : public QWidget
@@ -86,13 +88,18 @@ private slots:
     void OnPlayButtonClicked();
     void OnTimeSliderMoved(int value);
     void OnTimeSliderReleased();
+    void OnSpeedSliderMoved(int value);
     void OnStateChanged(QAudio::State state);
     void UpdateTime(std::chrono::microseconds current, std::chrono::microseconds length);
 
 private:
+    void UpdateSpeedLabel(int value);
+
     QPushButton* m_play_button;
     QLabel* m_time_label;
+    QLabel* m_speed_label;
     QSlider* m_time_slider;
+    QSlider* m_speed_slider;
 
     AudioOutputWorker* m_worker = nullptr;
     QThread m_thread;
