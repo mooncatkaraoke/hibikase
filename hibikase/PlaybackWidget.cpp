@@ -213,14 +213,6 @@ void AudioOutputWorker::Initialize()
     m_stretcher = std::make_unique<RubberBand::RubberBandStretcher>(
                 m_audio_output->format().sampleRate(), m_audio_output->format().channelCount());
 
-    m_buffer = std::make_unique<CircularBuffer>(0);
-    m_buffer->open(QIODevice::ReadWrite);
-
-    // We use a queued connection here to give QAudioOutput a chance to do any necessary work
-    // with the samples it read before we hog the CPU with audio stretching calculations
-    connect(m_buffer.get(), &CircularBuffer::bytesRead, this, &AudioOutputWorker::PushSamples,
-            Qt::ConnectionType::QueuedConnection);
-
     connect(m_audio_output.get(), &QAudioOutput::stateChanged, this, &AudioOutputWorker::OnStateChanged);
     connect(m_audio_output.get(), &QAudioOutput::notify, this, &AudioOutputWorker::OnNotify);
 
@@ -243,7 +235,7 @@ void AudioOutputWorker::Play(std::chrono::microseconds from)
     if (m_audio_output->state() != QAudio::State::ActiveState)
     {
         Stop();
-        m_audio_output->start(m_buffer.get());
+        m_output_buffer = m_audio_output->start();
         PushSamples();
     }
 }
@@ -252,30 +244,14 @@ void AudioOutputWorker::Stop()
 {
     m_audio_output->stop();
     m_audio_output->reset();
-    m_buffer->clearData(0);
     m_stretcher->reset();
 }
 
 void AudioOutputWorker::PushSamples()
 {
-    if (m_buffer->bufferSize() == 0)
-    {
-        // We need to set the buffer size after starting playback, because if we try to do it before
-        // starting playback, m_audio_output->bufferSize() will return 0 (at least on Windows)
-
-        const int output_buffer_size = m_audio_output->bufferSize();
-        const int stretcher_buffer_size = m_audio_output->format()
-                .bytesForFrames(m_stretcher->getSamplesRequired());
-
-        int buffer_size = 0;
-        while (buffer_size < output_buffer_size + stretcher_buffer_size)
-            buffer_size += stretcher_buffer_size;
-        m_buffer->clearData(buffer_size);
-    }
-
     const QByteArray& audio_buffer = m_audio_file->GetPCMBuffer()->data();
-    m_current_offset += m_buffer->write(audio_buffer.data() + m_current_offset,
-                                        audio_buffer.size() - m_current_offset);
+    const int size = std::min(m_audio_output->bytesFree(), audio_buffer.size() - m_current_offset);
+    m_current_offset += m_output_buffer->write(audio_buffer.data() + m_current_offset, size);
 }
 
 std::chrono::microseconds AudioOutputWorker::DurationForBytes(qint32 bytes)
@@ -291,6 +267,8 @@ void AudioOutputWorker::OnNotify()
     const std::chrono::microseconds last_seek = DurationForBytes(m_last_seek_offset);
 
     emit TimeUpdated(std::max(time, last_seek), m_audio_file->GetDuration());
+
+    PushSamples();
 }
 
 void AudioOutputWorker::OnStateChanged(QAudio::State state)
