@@ -38,7 +38,9 @@ public:
 
 public slots:
     void Initialize();
-    void Play(std::chrono::microseconds from = std::chrono::microseconds::zero());
+    void Play();
+    void Seek(std::chrono::microseconds to);
+    void Pause();
     void Stop();
     void SetSpeed(double slowdown);
 
@@ -86,6 +88,7 @@ signals:
 private slots:
     void OnLoadResult(QString result);
     void OnPlayButtonClicked();
+    void OnStopButtonClicked();
     void OnTimeSliderMoved(int value);
     void OnTimeSliderReleased();
     void OnSpeedSliderMoved(int value);
@@ -96,6 +99,7 @@ private:
     void UpdateSpeedLabel(int value);
 
     QPushButton* m_play_button;
+    QPushButton* m_stop_button;
     QLabel* m_time_label;
     QLabel* m_speed_label;
     QSlider* m_time_slider;

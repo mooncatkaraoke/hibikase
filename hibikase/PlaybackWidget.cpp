@@ -34,6 +34,7 @@ static double ConvertSpeed(int speed)
 PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
 {
     m_play_button = new QPushButton(this);
+    m_stop_button = new QPushButton(QStringLiteral("Stop"), this);
     m_time_label = new QLabel(this);
     m_speed_label = new QLabel(this);
     m_time_slider = new QSlider(Qt::Orientation::Horizontal, this);
@@ -57,6 +58,7 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
     first_row->addWidget(m_time_label);
     first_row->addWidget(m_time_slider);
     second_row->addWidget(m_play_button, 1);
+    second_row->addWidget(m_stop_button, 1);
     second_row->addWidget(m_speed_label, 0);
     second_row->addWidget(m_speed_slider, 1);
     main_layout->addLayout(first_row);
@@ -65,6 +67,7 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
     setLayout(main_layout);
 
     connect(m_play_button, &QPushButton::clicked, this, &PlaybackWidget::OnPlayButtonClicked);
+    connect(m_stop_button, &QPushButton::clicked, this, &PlaybackWidget::OnStopButtonClicked);
     connect(m_time_slider, &QSlider::sliderMoved, this, &PlaybackWidget::OnTimeSliderMoved);
     connect(m_time_slider, &QSlider::sliderReleased, this, &PlaybackWidget::OnTimeSliderReleased);
     connect(m_speed_slider, &QSlider::sliderMoved, this, &PlaybackWidget::OnSpeedSliderMoved);
@@ -93,6 +96,7 @@ void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
     }
 
     m_play_button->setEnabled(false);
+    m_stop_button->setEnabled(false);
     m_time_slider->setEnabled(false);
     OnStateChanged(QAudio::State::StoppedState);
 
@@ -140,8 +144,14 @@ void PlaybackWidget::OnPlayButtonClicked()
     }
     else
     {
-        QMetaObject::invokeMethod(m_worker, "Stop");
+        QMetaObject::invokeMethod(m_worker, "Pause");
     }
+}
+
+void PlaybackWidget::OnStopButtonClicked()
+{
+    if (m_worker)
+        QMetaObject::invokeMethod(m_worker, "Stop");
 }
 
 void PlaybackWidget::OnTimeSliderMoved(int value)
@@ -160,7 +170,7 @@ void PlaybackWidget::OnTimeSliderReleased()
         return;
 
     std::chrono::microseconds new_pos(m_time_slider->value() * 1000);
-    QMetaObject::invokeMethod(m_worker, "Play", Q_ARG(std::chrono::microseconds, new_pos));
+    QMetaObject::invokeMethod(m_worker, "Seek", Q_ARG(std::chrono::microseconds, new_pos));
 }
 
 void PlaybackWidget::OnSpeedSliderMoved(int value)
@@ -183,7 +193,9 @@ void PlaybackWidget::OnStateChanged(QAudio::State state)
     if (state != QAudio::State::ActiveState)
         m_play_button->setText(QStringLiteral("Play"));
     else
-        m_play_button->setText(QStringLiteral("Stop"));
+        m_play_button->setText(QStringLiteral("Pause"));
+
+    m_stop_button->setEnabled(state != QAudio::State::StoppedState);
 
     if (state == QAudio::State::StoppedState)
         UpdateTime(std::chrono::microseconds(-1), std::chrono::microseconds(-1));
@@ -264,27 +276,39 @@ void AudioOutputWorker::Initialize()
     emit LoadFinished(QString());
 }
 
-void AudioOutputWorker::Play(std::chrono::microseconds from)
+void AudioOutputWorker::Play()
 {
-    if (m_audio_output->state() != QAudio::State::ActiveState)
+    if (m_audio_output->state() != QAudio::State::StoppedState)
+    {
+        m_audio_output->resume();
+    }
+    else
     {
         m_start_offset = 0;
         m_current_offset = 0;
+        m_last_seek_offset = 0;
         m_last_speed_change_offset = 0;
-    }
 
-    const qint32 from_bytes = m_audio_output->format().bytesForDuration(from.count());
-    m_start_offset += static_cast<qint32>((from_bytes - m_current_offset) *
-                                          m_stretcher->getTimeRatio());
-    m_current_offset = from_bytes;
-    m_last_seek_offset = m_current_offset;
-
-    if (m_audio_output->state() != QAudio::State::ActiveState)
-    {
-        Stop();
         m_output_buffer = m_audio_output->start();
         PushSamplesToOutput();
     }
+}
+
+void AudioOutputWorker::Seek(std::chrono::microseconds to)
+{
+    const qint32 offset = m_audio_output->format().bytesForDuration(to.count());
+    m_start_offset += static_cast<qint32>((offset - m_current_offset) *
+                                          m_stretcher->getTimeRatio());
+    m_current_offset = offset;
+    m_last_seek_offset = offset;
+
+    // Make sure to emit at least one TimeUpdated after seeking. OnNotify won't do it when suspended
+    emit TimeUpdated(DurationForBytes(offset), m_audio_file->GetDuration());
+}
+
+void AudioOutputWorker::Pause()
+{
+    m_audio_output->suspend();
 }
 
 void AudioOutputWorker::Stop()
@@ -396,6 +420,9 @@ void AudioOutputWorker::PushSamplesToOutput()
 
         m_output_buffer->write(m_stretcher_buffer.data(), m_stretcher_buffer.size());
     } while (m_audio_output->bytesFree() && PushSamplesToStretcher());
+
+    if (m_current_offset == m_audio_file->GetPCMBuffer()->size())
+        Stop();
 }
 
 std::chrono::microseconds AudioOutputWorker::DurationForBytes(qint32 bytes)
