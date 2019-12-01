@@ -57,14 +57,12 @@ QByteArray PlainContainer::ReadLyricsFile() const
     return file.readAll();
 }
 
-void PlainContainer::SaveLyricsFile(const QByteArray& content) const
+bool PlainContainer::SaveLyricsFile(const QByteArray& content) const
 {
     QFile file(m_path);
-    // TODO: Should this be an exception?
     if (!file.open(QIODevice::WriteOnly))
-        return;
-    // TODO: Check if this fails?
-    file.write(content.constData(), content.size());
+        return false;
+    return file.write(content.constData(), content.size()) == content.size();
 }
 
 }

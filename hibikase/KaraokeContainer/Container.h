@@ -35,7 +35,7 @@ public:
     virtual std::unique_ptr<QIODevice> ReadAudioFile() const = 0;
 
     virtual QByteArray ReadLyricsFile() const = 0;
-    virtual void SaveLyricsFile(const QByteArray& content) const = 0;
+    virtual bool SaveLyricsFile(const QByteArray& content) const = 0;
 };
 
 std::unique_ptr<Container> Load(const QString& path);

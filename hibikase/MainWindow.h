@@ -36,6 +36,9 @@ public:
 signals:
     void SongReplaced(KaraokeData::Song* song);
 
+protected:
+    void closeEvent(QCloseEvent* event);
+
 private slots:
     void on_actionOpen_triggered();
     void on_actionSave_triggered();
@@ -48,7 +51,9 @@ private slots:
 private:
     void UpdateWindowTitle();
     void LoadAudio();
-    void Save(QString path);
+    bool Save(QString path);
+    bool SaveAs();
+    bool SaveUnsavedChanges();
 
     Ui::MainWindow* ui;
 

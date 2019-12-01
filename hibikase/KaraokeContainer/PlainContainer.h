@@ -35,7 +35,7 @@ public:
 
     std::unique_ptr<QIODevice> ReadAudioFile() const override;
     QByteArray ReadLyricsFile() const override;
-    void SaveLyricsFile(const QByteArray& content) const override;
+    bool SaveLyricsFile(const QByteArray& content) const override;
 
 private:
     QString m_path;

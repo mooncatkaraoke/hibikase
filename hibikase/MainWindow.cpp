@@ -66,8 +66,19 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    if (SaveUnsavedChanges())
+        event->accept();
+    else
+        event->ignore();
+}
+
 void MainWindow::on_actionOpen_triggered()
 {
+    if (!SaveUnsavedChanges())
+        return;
+
     QString load_path = QFileDialog::getOpenFileName(this);
     if (load_path.isEmpty())
         return;
@@ -99,19 +110,12 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::on_actionSave_triggered()
 {
-    if (m_save_path.isEmpty())
-        on_actionSave_As_triggered();
-    else
-        Save(m_save_path);
+    Save(m_save_path);
 }
 
 void MainWindow::on_actionSave_As_triggered()
 {
-    const QString save_path = QFileDialog::getSaveFileName(this);
-    if (save_path.isEmpty())
-        return;
-
-    Save(save_path);
+    SaveAs();
 }
 
 void MainWindow::on_actionAbout_Qt_triggered()
@@ -163,10 +167,17 @@ void MainWindow::LoadAudio()
     ui->playbackWidget->LoadAudio(m_container ? m_container->ReadAudioFile() : nullptr);
 }
 
-void MainWindow::Save(QString path)
+bool MainWindow::Save(QString path)
 {
+    if (path.isEmpty())
+        return SaveAs();
+
     m_container = KaraokeContainer::Load(path);
-    m_container->SaveLyricsFile(m_song->GetRawBytes());
+    if (!m_container->SaveLyricsFile(m_song->GetRawBytes()))
+    {
+        QMessageBox::warning(this, "Error", "The file could not be saved.");
+        return false;
+    }
 
     if (m_save_path != path)
     {
@@ -176,4 +187,32 @@ void MainWindow::Save(QString path)
 
     m_unsaved_changes = false;
     UpdateWindowTitle();
+
+    return true;
+}
+
+bool MainWindow::SaveAs()
+{
+    const QString save_path = QFileDialog::getSaveFileName(this);
+    if (save_path.isEmpty())
+        return false;
+
+    return Save(save_path);
+}
+
+bool MainWindow::SaveUnsavedChanges()
+{
+    if (!m_unsaved_changes)
+        return true;
+
+    const QMessageBox::StandardButton result =
+            QMessageBox::question(this, "Hibikase", "Do you want to save your changes?",
+                                  QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+
+    if (result == QMessageBox::Save)
+        return Save(m_save_path);
+    else if (result == QMessageBox::Discard)
+        return true;
+    else
+        return false;
 }
