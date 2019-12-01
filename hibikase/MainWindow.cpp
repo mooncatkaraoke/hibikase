@@ -90,20 +90,21 @@ void MainWindow::on_actionOpen_triggered()
     LoadAudio();
 }
 
+void MainWindow::on_actionSave_triggered()
+{
+    if (m_save_path.isEmpty())
+        on_actionSave_As_triggered();
+    else
+        Save(m_save_path);
+}
+
 void MainWindow::on_actionSave_As_triggered()
 {
-    QString save_path = QFileDialog::getSaveFileName(this);
+    const QString save_path = QFileDialog::getSaveFileName(this);
     if (save_path.isEmpty())
         return;
 
-    m_container = KaraokeContainer::Load(save_path);
-    m_container->SaveLyricsFile(m_song->GetRawBytes());
-
-    if (m_save_path != save_path)
-    {
-        m_save_path = save_path;
-        LoadAudio();
-    }
+    Save(save_path);
 }
 
 void MainWindow::on_actionAbout_Qt_triggered()
@@ -138,4 +139,16 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
 void MainWindow::LoadAudio()
 {
     ui->playbackWidget->LoadAudio(m_container ? m_container->ReadAudioFile() : nullptr);
+}
+
+void MainWindow::Save(QString path)
+{
+    m_container = KaraokeContainer::Load(path);
+    m_container->SaveLyricsFile(m_song->GetRawBytes());
+
+    if (m_save_path != path)
+    {
+        m_save_path = path;
+        LoadAudio();
+    }
 }
