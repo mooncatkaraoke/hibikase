@@ -49,5 +49,5 @@ private:
 
     std::unique_ptr<KaraokeContainer::Container> m_container;
     std::unique_ptr<KaraokeData::Song> m_song;
-    bool m_has_valid_save_path = false;
+    QString m_save_path;
 };

@@ -78,12 +78,12 @@ void MainWindow::on_actionOpen_triggered()
         for (KaraokeData::Line* line : song->GetLines())
             converted_song->AddLine(line->GetSyllables());
         m_song = std::move(converted_song);
-        m_has_valid_save_path = false;
+        m_save_path.clear();
     }
     else
     {
         m_song = std::move(song);
-        m_has_valid_save_path = true;
+        m_save_path = load_path;
     }
 
     emit SongReplaced(m_song.get());
@@ -98,8 +98,12 @@ void MainWindow::on_actionSave_As_triggered()
 
     m_container = KaraokeContainer::Load(save_path);
     m_container->SaveLyricsFile(m_song->GetRawBytes());
-    m_has_valid_save_path = true;
-    LoadAudio();
+
+    if (m_save_path != save_path)
+    {
+        m_save_path = save_path;
+        LoadAudio();
+    }
 }
 
 void MainWindow::on_actionAbout_Qt_triggered()
