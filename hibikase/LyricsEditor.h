@@ -71,6 +71,9 @@ public:
 
     void SetMode(Mode mode);
 
+signals:
+    void Modified();
+
 public slots:
     void ReloadSong(KaraokeData::Song* song);
     void UpdateTime(std::chrono::milliseconds time);

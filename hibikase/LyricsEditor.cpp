@@ -260,6 +260,8 @@ void LyricsEditor::SetMode(Mode mode)
 void LyricsEditor::OnLinesChanged(int line_position, int lines_removed, int lines_added,
                                   int raw_position, int raw_chars_removed, int raw_chars_added)
 {
+    emit Modified();
+
     if (!m_raw_updates_disabled)
     {
         m_raw_updates_disabled = true;

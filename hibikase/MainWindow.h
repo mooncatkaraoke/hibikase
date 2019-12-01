@@ -43,7 +43,10 @@ private slots:
     void on_actionAbout_Qt_triggered();
     void on_actionAbout_Hibikase_triggered();
 
+    void OnSongModified();
+
 private:
+    void UpdateWindowTitle();
     void LoadAudio();
     void Save(QString path);
 
@@ -52,4 +55,5 @@ private:
     std::unique_ptr<KaraokeContainer::Container> m_container;
     std::unique_ptr<KaraokeData::Song> m_song;
     QString m_save_path;
+    bool m_unsaved_changes = false;
 };

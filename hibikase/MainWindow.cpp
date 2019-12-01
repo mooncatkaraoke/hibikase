@@ -16,6 +16,7 @@
 #include <utility>
 
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMediaContent>
 #include <QMessageBox>
 #include <QRadioButton>
@@ -37,6 +38,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
     connect(ui->playbackWidget, &PlaybackWidget::TimeUpdated, ui->mainLyrics, &LyricsEditor::UpdateTime);
+    connect(ui->mainLyrics, &LyricsEditor::Modified, this, &MainWindow::OnSongModified);
 
     connect(ui->timingRadioButton, &QRadioButton::toggled, [this](bool checked) {
         if (checked)
@@ -55,6 +57,8 @@ MainWindow::MainWindow(QWidget* parent) :
     // TODO: Add a way to create a Soramimi/MoonCat song instead of having to use Load
     m_song = KaraokeData::Load({});
     emit SongReplaced(m_song.get());
+
+    UpdateWindowTitle();
 }
 
 MainWindow::~MainWindow()
@@ -88,6 +92,9 @@ void MainWindow::on_actionOpen_triggered()
 
     emit SongReplaced(m_song.get());
     LoadAudio();
+
+    m_unsaved_changes = false;
+    UpdateWindowTitle();
 }
 
 void MainWindow::on_actionSave_triggered()
@@ -136,6 +143,21 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
                        "Hibikase makes use of the Rubber Band audio stretching library from <https://breakfastquay.com/rubberband/>.");
 }
 
+void MainWindow::OnSongModified()
+{
+    m_unsaved_changes = true;
+    UpdateWindowTitle();
+}
+
+void MainWindow::UpdateWindowTitle()
+{
+    QString file_name;
+    if (m_unsaved_changes)
+        file_name.append(QChar('*'));
+    file_name.append(m_save_path.isEmpty() ? "Untitled" : QFileInfo(m_save_path).fileName());
+    setWindowTitle(QStringLiteral("%1 - Hibikase").arg(file_name));
+}
+
 void MainWindow::LoadAudio()
 {
     ui->playbackWidget->LoadAudio(m_container ? m_container->ReadAudioFile() : nullptr);
@@ -151,4 +173,7 @@ void MainWindow::Save(QString path)
         m_save_path = path;
         LoadAudio();
     }
+
+    m_unsaved_changes = false;
+    UpdateWindowTitle();
 }
