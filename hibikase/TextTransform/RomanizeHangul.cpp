@@ -245,8 +245,12 @@ static void Resyllabify(QString* finals, Syllable* next_syllable)
     if (last_final == QChar(u'ᆼ') || next_syllable->initials != QStringLiteral(u"ᄋ"))
         return;
 
-    next_syllable->initials = Lookup(FINAL_TO_INITIAL, last_final);
     finals->chop(1);
+
+    if (last_final == QChar(u'ᇂ'))
+        return Resyllabify(finals, next_syllable);
+
+    next_syllable->initials = Lookup(FINAL_TO_INITIAL, last_final);
     Palatalize(next_syllable);
 }
 
