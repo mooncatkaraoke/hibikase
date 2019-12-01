@@ -330,7 +330,7 @@ void AudioOutputWorker::SetSpeed(double slowdown)
 template <typename T>
 static void ToFloat(const T* in, std::vector<std::vector<float>>* out)
 {
-    static_assert(std::is_integral_v<T> && std::is_signed_v<T>, "Incompatible type");
+    static_assert(std::is_integral<T>() && std::is_signed<T>(), "Incompatible type");
     const float scale = 1.0f / (std::numeric_limits<T>::max() + 1.0f);
 
     for (size_t i = 0; i < out->size(); ++i)
@@ -347,7 +347,7 @@ static void ToFloat(const T* in, std::vector<std::vector<float>>* out)
 template <typename T>
 static void FromFloat(const std::vector<std::vector<float>>& in, T* out)
 {
-    static_assert(std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) < sizeof(int),
+    static_assert(std::is_integral<T>() && std::is_signed<T>() && sizeof(T) < sizeof(int),
                   "Incompatible type");
     const int min = std::numeric_limits<T>::min();
     const int max = std::numeric_limits<T>::max();
