@@ -90,9 +90,11 @@ bool IsHangul(QChar c)
 
 bool IsHangulSyllableEnd(const QString& text, int i)
 {
-    return (EndsWithHangulFinal(text[i]) && !IsHangulFinal(text, i + 1) ||
-           (EndsWithHangulMedial(text[i]) && !IsHangulMedial(text, i + 1) &&
-            !IsHangulFinal(text, i + 1)));
+    if (IsHangulFinal(text, i + 1))
+        return false;
+
+    return EndsWithHangulFinal(text[i]) ||
+           (EndsWithHangulMedial(text[i]) && !IsHangulMedial(text, i + 1));
 }
 
 }
