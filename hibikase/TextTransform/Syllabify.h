@@ -19,6 +19,7 @@
 
 #include <memory>
 
+#include <QLocale>
 #include <QMap>
 #include <QString>
 #include <QVector>
@@ -41,9 +42,10 @@ public:
 private:
     void BuildPatterns(const QString& language_code);
     void BuildPattern(const QString& line, int i = 0);
-    QString ApplyPatterns(QStringRef word) const;
+    QString ApplyPatterns(const QString& word) const;
     void SyllabifyWord(QVector<int>* split_points, const QString& text, int start, int end) const;
 
+    QLocale m_locale;
     QMap<QString, QString> m_patterns;
 };
 

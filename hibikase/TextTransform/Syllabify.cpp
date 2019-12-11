@@ -20,6 +20,7 @@
 
 #include <QChar>
 #include <QFile>
+#include <QMessageBox>
 #include <QString>
 #include <QTextStream>
 #include <QVector>
@@ -31,8 +32,10 @@
 
 namespace TextTransform
 {
+static const QString::NormalizationForm NORMALIZATION_FORM = QString::NormalizationForm_KD;
 
 Syllabifier::Syllabifier(const QString& language_code)
+    : m_locale(language_code)
 {
     BuildPatterns(language_code);
 }
@@ -46,7 +49,7 @@ void Syllabifier::BuildPatterns(const QString& language_code)
     QTextStream in(&file);
     in.setCodec("UTF-8");
     while (!in.atEnd())
-        BuildPattern(in.readLine());
+        BuildPattern(in.readLine().normalized(NORMALIZATION_FORM));
 
     file.close();
 }
@@ -219,7 +222,7 @@ static void SyllabifyWordSimple(QVector<int>* split_points, const QString& text,
     }
 }
 
-QString Syllabifier::ApplyPatterns(QStringRef word) const
+QString Syllabifier::ApplyPatterns(const QString& word) const
 {
     const QString wrapped_word = QChar('.') + word + QChar('.');
     QString splits(word.size() - 1, QChar('0'));
@@ -228,6 +231,9 @@ QString Syllabifier::ApplyPatterns(QStringRef word) const
     {
         for (int j = 1; j <= wrapped_word.size() - i; ++j)
         {
+            if (i + j < wrapped_word.size() && QChar::isMark(NextCodepointFromUTF16(wrapped_word, i + j - 1)))
+                continue;  // A pattern that ends with "a" must not match "ä"
+
             const auto it = m_patterns.find(wrapped_word.mid(i, j));
             if (it != m_patterns.end())
             {
@@ -273,11 +279,32 @@ void Syllabifier::SyllabifyWord(QVector<int>* split_points, const QString& text,
         break;
 
     default:
-        const QString splits = ApplyPatterns(text.midRef(start, end - start));
+        const QString word = text.mid(start, end - start);
+
+        QVector<int> index_mapping;
+        for (int i = 0; i < word.size();)
+        {
+            const int size = word[i].isHighSurrogate() ? 2 : 1;
+
+            const QString normalized = m_locale.toLower(word.mid(i, size).normalized(NORMALIZATION_FORM));
+            for (int j = 0; j < normalized.size(); ++j)
+                index_mapping.append(start + i);
+
+            i += size;
+        }
+
+        const QString normalized_word = m_locale.toLower(word).normalized(NORMALIZATION_FORM);
+        if (index_mapping.size() != normalized_word.size())
+        {
+            QMessageBox::critical(nullptr, QStringLiteral("Error"),
+                                  QStringLiteral("Unexpected normalization length in word \"%1\"").arg(word));
+        }
+
+        const QString splits = ApplyPatterns(normalized_word);
         for (int i = 0; i < splits.size(); ++i)
         {
             if (splits[i].unicode() % 2 == 1)
-                split_points->append(start + 1 + i);
+                split_points->append(index_mapping[i + 1]);
         }
         break;
     }
