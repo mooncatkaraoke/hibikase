@@ -88,7 +88,7 @@ private slots:
     void ApplyLineTransformation(int start_line, int end_line,
                                  std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
     void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
-    void SyllabifyBasic();
+    void Syllabify(const QString& language_code);
     void RomanizeHangul();
     void SetSyllableStart();
     void SetSyllableEnd();

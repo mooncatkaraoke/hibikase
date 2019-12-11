@@ -19,6 +19,7 @@
 
 #include <memory>
 
+#include <QMap>
 #include <QString>
 #include <QVector>
 
@@ -27,9 +28,23 @@
 namespace TextTransform
 {
 
-// Returns the syllable split points for a line of text
-QVector<int> SyllabifyBasic(const QString& text);
+class Syllabifier final
+{
+public:
+    Syllabifier(const QString& language_code);
 
-std::unique_ptr<KaraokeData::Line> SyllabifyBasic(const KaraokeData::Line& line);
+    // Returns the syllable split points for a line of text
+    QVector<int> Syllabify(const QString& text) const;
+
+    std::unique_ptr<KaraokeData::Line> Syllabify(const KaraokeData::Line& line) const;
+
+private:
+    void BuildPatterns(const QString& language_code);
+    void BuildPattern(const QString& line, int i = 0);
+    QString ApplyPatterns(QStringRef word) const;
+    void SyllabifyWord(QVector<int>* split_points, const QString& text, int start, int end) const;
+
+    QMap<QString, QString> m_patterns;
+};
 
 }

@@ -418,7 +418,12 @@ void LyricsEditor::ShowContextMenu(const QPoint& point)
     menu->addSeparator();
     QMenu* syllabify = menu->addMenu(QStringLiteral("Syllabify"));
     syllabify->setEnabled(has_selection);
-    syllabify->addAction(QStringLiteral("Basic"), this, SLOT(SyllabifyBasic()));
+    syllabify->addAction(QStringLiteral("Basic"), [this]{ Syllabify(QString()); });
+    syllabify->addSeparator();
+    syllabify->addAction(QStringLiteral("Chinese (Romanized)"),
+                         [this]{ Syllabify(QStringLiteral("zh_Latn")); });
+    syllabify->addAction(QStringLiteral("Japanese (Romanized)"),
+                         [this]{ Syllabify(QStringLiteral("ja_Latn")); });
     menu->addAction(QStringLiteral("Romanize Hangul"), this,
                     SLOT(RomanizeHangul()))->setEnabled(has_selection);
 
@@ -456,10 +461,11 @@ void LyricsEditor::ApplyLineTransformation(
     ApplyLineTransformation(0, m_song_ref->GetLines().size(), std::move(f));
 }
 
-void LyricsEditor::SyllabifyBasic()
+void LyricsEditor::Syllabify(const QString& language_code)
 {
-    ApplyLineTransformation([](const KaraokeData::Line* line) {
-        return TextTransform::SyllabifyBasic(*line);
+    const TextTransform::Syllabifier syllabifier(language_code);
+    ApplyLineTransformation([&syllabifier](const KaraokeData::Line* line) {
+        return syllabifier.Syllabify(*line);
     });
 }
 

@@ -14,6 +14,12 @@ win32-msvc* {
 include(../external/dr_libs.pri)
 include(../external/rubberband.pri)
 
+copydata.commands = $$quote($(COPY_DIR) \"$$shell_path($$PWD/../data)\" \"$$shell_path($$OUT_PWD/data)\")
+first.depends = $(first) copydata
+export(first.depends)
+export(copydata.commands)
+QMAKE_EXTRA_TARGETS += first copydata
+
 SOURCES += main.cpp \
     AudioFile.cpp \
     MainWindow.cpp \

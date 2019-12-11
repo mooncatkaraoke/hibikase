@@ -19,7 +19,9 @@
 #include <memory>
 
 #include <QChar>
+#include <QFile>
 #include <QString>
+#include <QTextStream>
 #include <QVector>
 
 #include "KaraokeData/Song.h"
@@ -29,6 +31,79 @@
 
 namespace TextTransform
 {
+
+Syllabifier::Syllabifier(const QString& language_code)
+{
+    BuildPatterns(language_code);
+}
+
+void Syllabifier::BuildPatterns(const QString& language_code)
+{
+    QFile file(QStringLiteral("data/syllabification/") + language_code + QStringLiteral(".txt"));
+    if (!file.open(QIODevice::ReadOnly))
+        return;
+
+    QTextStream in(&file);
+    in.setCodec("UTF-8");
+    while (!in.atEnd())
+        BuildPattern(in.readLine());
+
+    file.close();
+}
+
+void Syllabifier::BuildPattern(const QString& line, int i)
+{
+    while (i < line.size() && line[i].isSpace())
+        ++i;
+
+    if (i >= line.size() || line[i] == '#' || line[i] == '%' || line[i].isUpper())
+        return;
+
+    int letters = 0;
+    int line_size = line.size();
+    for (int j = i; j < line_size; ++j)
+    {
+        if (line[j] == '/')
+        {
+            // A slash in the middle of a line indicates the start of a Hunspell Hyphen non-standard
+            // hyphenation pattern (e.g. tillåta -> till-låta). Since we are not doing hyphenation,
+            // we just treat the line as if the slash and everything after it doesn't exist.
+            line_size = j;
+        }
+        else if (line[j].isSpace() || line[j] == '#' || line[j] == '%')
+        {
+            // In TeX files but seemingly not Hunspell Hyphen files, spaces can be used to separate
+            // patterns on the same line, and a comment can start in the middle of a line.
+            line_size = j;
+            BuildPattern(line, j);
+        }
+        else if (line[j] < '0' || line[j] > '9')
+        {
+            letters++;
+        }
+    }
+
+    QString key(letters, QChar());
+    QString value(letters + 1, QChar('0'));
+
+    for (int j = i, k = 0; j < line_size; ++j)
+    {
+        if (line[j] < '0' || line[j] > '9')
+            key[k++] = line[j];
+        else
+            value[k] = line[j];
+    }
+
+    const auto it = m_patterns.find(key);
+    if (it != m_patterns.end())
+    {
+        const QString other_value = *it;
+        for (int i = 0; i < value.size(); ++i)
+            value[i] = std::max<QChar>(value[i], other_value[i]);
+    }
+
+    m_patterns.insert(key, value);
+}
 
 // For surrogate pairs, i must point to the second half (the low surrogate),
 // otherwise the result will be U+FFFD.
@@ -144,10 +219,36 @@ static void SyllabifyWordSimple(QVector<int>* split_points, const QString& text,
     }
 }
 
+QString Syllabifier::ApplyPatterns(QStringRef word) const
+{
+    const QString wrapped_word = QChar('.') + word + QChar('.');
+    QString splits(word.size() - 1, QChar('0'));
+
+    for (int i = 0; i < wrapped_word.size(); ++i)
+    {
+        for (int j = 1; j <= wrapped_word.size() - i; ++j)
+        {
+            const auto it = m_patterns.find(wrapped_word.mid(i, j));
+            if (it != m_patterns.end())
+            {
+                const QString& pattern = it.value();
+                for (int k = 0; k < pattern.size(); ++k)
+                {
+                    const int l = i - 2 + k;
+                    if (l >= 0 && l < splits.size())
+                        splits[l] = std::max<QChar>(splits[l], pattern[k]);
+                }
+            }
+        }
+    }
+
+    return splits;
+}
+
 // Adds split points inside a word, but not at the beginning or end.
 // Expects a word to contain 1 or more letters, 0 or more marks, and no other
 // character categories. The letters must not make use of more than one explicit script.
-static void SyllabifyWord(QVector<int>* split_points, const QString& text, int start, int end)
+void Syllabifier::SyllabifyWord(QVector<int>* split_points, const QString& text, int start, int end) const
 {
     switch (DetermineScript(text, start, end))
     {
@@ -172,11 +273,17 @@ static void SyllabifyWord(QVector<int>* split_points, const QString& text, int s
         break;
 
     default:
+        const QString splits = ApplyPatterns(text.midRef(start, end - start));
+        for (int i = 0; i < splits.size(); ++i)
+        {
+            if (splits[i].unicode() % 2 == 1)
+                split_points->append(start + 1 + i);
+        }
         break;
     }
 }
 
-QVector<int> SyllabifyBasic(const QString& text)
+QVector<int> Syllabifier::Syllabify(const QString& text) const
 {
     QVector<int> split_points;
 
@@ -247,14 +354,14 @@ QVector<int> SyllabifyBasic(const QString& text)
     return split_points;
 }
 
-std::unique_ptr<KaraokeData::Line> SyllabifyBasic(const KaraokeData::Line& line)
+std::unique_ptr<KaraokeData::Line> Syllabifier::Syllabify(const KaraokeData::Line& line) const
 {
     const QString line_text = line.GetText();
     std::unique_ptr<KaraokeData::ReadOnlyLine> new_line = std::make_unique<KaraokeData::ReadOnlyLine>();
     if (line_text.isEmpty())
         return std::move(new_line);
 
-    const QVector<int> split_points = SyllabifyBasic(line_text);
+    const QVector<int> split_points = Syllabify(line_text);
     new_line->m_syllables.reserve(split_points.size() - 1);
     for (int i = 1; i < split_points.size(); ++i)
     {
