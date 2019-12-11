@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include <functional>
 #include <memory>
 
 #include <QChar>
@@ -97,46 +98,81 @@ static bool ModifiesPreviousKana(const QChar character)
            (codepoint >= 0xFF67 && codepoint <= 0xFF6F);
 }
 
-static bool IsCJKSyllableEnd(const QString& text, int i)
+static QChar::Script DetermineScript(const QString& text, int start, int end)
 {
-    if (IsHangulSyllableEnd(text, i))
-        return true;
+    // We assume that the word cannot contain multiple explicit scripts, due to processing
+    // done earlier. It can however mix an explicit script with an implicit script such as
+    // Script_Common (e.g. if we have kana followed by U+30FC KATAKANA-HIRAGANA PROLONGED
+    // SOUND MARK). Therefore, we can't just check a single character of the word, since it
+    // might be of Script_Common or Script_Inherited instead of the actual script.
 
-    if (text[i].isHighSurrogate())
-        return false;
+    for (int i = start; i < end; ++i)
+    {
+        if (text[i].isHighSurrogate())
+            continue;
 
-    if (text.size() > i + 1 && ModifiesPreviousKana(text[i + 1]))
-        return false;
+        const uint codepoint = CodepointFromUTF16(text, i);
 
-    const uint codepoint = CodepointFromUTF16(text, i);
+        if (QChar::isMark(codepoint))
+            continue;
 
-    return codepoint == 0x3005 || codepoint == 0x3031 ||
-           codepoint == 0x3032 || codepoint == 0x3035 ||
-           (codepoint >= 0x3041 && codepoint <= 0x3096) ||
-           (codepoint >= 0x309D && codepoint <= 0x309F) ||
-           (codepoint >= 0x30A1 && codepoint <= 0x30FA) ||
-           (codepoint >= 0x30FC && codepoint <= 0x30FF) ||
-           (codepoint >= 0x31F0 && codepoint <= 0x31FF) ||
-           (codepoint >= 0x3400 && codepoint <= 0x4DBF) ||
-           (codepoint >= 0x4E00 && codepoint <= 0xA48F) ||
-           (codepoint >= 0xF900 && codepoint <= 0xFAFF) ||
-           (codepoint >= 0xFF66 && codepoint <= 0xFF9D) ||
-           (codepoint >= 0x16FE0 && codepoint <= 0x16FE1) ||
-           (codepoint >= 0x17000 && codepoint <= 0x187FF) ||
-           (codepoint >= 0x1B000 && codepoint <= 0x1B12F) ||
-           (codepoint >= 0x1B170 && codepoint <= 0x1B2FF) ||
-           (codepoint >= 0x20000 && codepoint <= 0x2A6DF) ||
-           (codepoint >= 0x2A700 && codepoint <= 0x2EBEF) ||
-           (codepoint >= 0x2F800 && codepoint <= 0x2FA1F);
+        const QChar::Script script = QChar::script(codepoint);
+        if (script > 2)
+            return script;
+    }
+
+    return QChar::Script_Unknown;
 }
 
-// Adds split points inside a word, but not at the beginning or end.
-static void SyllabifyWord(QVector<int>* split_points, const QString& text, int start, int end)
+static void SyllabifyWordSimple(QVector<int>* split_points, const QString& text, int start, int end,
+                                std::function<bool(const QString&, int)> split_predicate)
 {
     for (int i = start; i < end - 1; ++i)
     {
-        if (IsCJKSyllableEnd(text, i))
+        if (text[i].isHighSurrogate())
+        {
+        }
+        else if (QChar::isMark(CodepointFromUTF16(text, i)))
+        {
+            if (split_points->back() == i - (text[i].isLowSurrogate() ? 2 : 1))
+                (*split_points)[split_points->size() - 1] = i;
+        }
+        else if (split_predicate(text, i))
+        {
             split_points->append(i + 1);
+        }
+    }
+}
+
+// Adds split points inside a word, but not at the beginning or end.
+// Expects a word to contain 1 or more letters, 0 or more marks, and no other
+// character categories. The letters must not make use of more than one explicit script.
+static void SyllabifyWord(QVector<int>* split_points, const QString& text, int start, int end)
+{
+    switch (DetermineScript(text, start, end))
+    {
+    case QChar::Script_Hangul:
+        SyllabifyWordSimple(split_points, text, start, end, IsHangulSyllableEnd);
+        break;
+
+    case QChar::Script_Hiragana:
+    case QChar::Script_Katakana:
+        SyllabifyWordSimple(split_points, text, start, end, [](const QString& text, int i) {
+            return !ModifiesPreviousKana(text[i + 1]);
+        });
+        break;
+
+    case QChar::Script_Han:
+    case QChar::Script_Yi:
+    case QChar::Script_Tangut:
+    case QChar::Script_Nushu:
+        SyllabifyWordSimple(split_points, text, start, end, [](const QString&, int) {
+            return true;
+        });
+        break;
+
+    default:
+        break;
     }
 }
 
