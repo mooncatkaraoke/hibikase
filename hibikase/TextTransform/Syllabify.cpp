@@ -42,6 +42,8 @@ Syllabifier::Syllabifier(const QString& language_code)
 
 void Syllabifier::BuildPatterns(const QString& language_code)
 {
+    m_max_pattern_size = 0;
+
     QFile file(QStringLiteral("data/syllabification/") + language_code + QStringLiteral(".txt"));
     if (!file.open(QIODevice::ReadOnly))
         return;
@@ -106,6 +108,7 @@ void Syllabifier::BuildPattern(const QString& line, int i)
     }
 
     m_patterns.insert(key, value);
+    m_max_pattern_size = std::max(m_max_pattern_size, key.size());
 }
 
 static bool IsHighSurrogate(const QString& text, int i)
@@ -236,7 +239,7 @@ QString Syllabifier::ApplyPatterns(const QString& word) const
 
     for (int i = 0; i < wrapped_word.size(); ++i)
     {
-        for (int j = 1; j <= wrapped_word.size() - i; ++j)
+        for (int j = 1; j <= wrapped_word.size() - i && j <= m_max_pattern_size; ++j)
         {
             if (i + j < wrapped_word.size() && QChar::isMark(NextCodepointFromUTF16(wrapped_word, i + j - 1)))
                 continue;  // A pattern that ends with "a" must not match "ä"

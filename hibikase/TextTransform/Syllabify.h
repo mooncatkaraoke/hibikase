@@ -47,6 +47,7 @@ private:
 
     QLocale m_locale;
     QMap<QString, QString> m_patterns;
+    int m_max_pattern_size = 0;
 };
 
 }
