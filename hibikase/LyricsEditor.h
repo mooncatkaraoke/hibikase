@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <QEvent>
+#include <QMenu>
 #include <QPlainTextEdit>
 #include <QPoint>
 #include <QWidget>
@@ -85,6 +86,7 @@ private slots:
     void OnCursorPositionChanged();
     void GoToPosition(QPoint pos);
     void ShowContextMenu(const QPoint& point);
+    void AddSyllabificationLanguages(QMenu* menu);
     void ApplyLineTransformation(int start_line, int end_line,
                                  std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
     void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);

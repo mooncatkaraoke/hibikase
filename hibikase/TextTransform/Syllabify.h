@@ -39,6 +39,8 @@ public:
 
     std::unique_ptr<KaraokeData::Line> Syllabify(const KaraokeData::Line& line) const;
 
+    static QVector<QString> AvailableLanguages();
+
 private:
     void BuildPatterns(const QString& language_code);
     void BuildPattern(const QString& line, int i = 0);

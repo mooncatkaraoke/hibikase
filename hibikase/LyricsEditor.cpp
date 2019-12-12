@@ -20,7 +20,9 @@
 #include <QAction>
 #include <QEvent>
 #include <QFont>
+#include <QLocale>
 #include <QMenu>
+#include <QPair>
 #include <QPoint>
 #include <QRect>
 #include <QTextCursor>
@@ -420,16 +422,63 @@ void LyricsEditor::ShowContextMenu(const QPoint& point)
     syllabify->setEnabled(has_selection);
     syllabify->addAction(QStringLiteral("Basic"), [this]{ Syllabify(QString()); });
     syllabify->addSeparator();
-    syllabify->addAction(QStringLiteral("Chinese (Romanized)"),
-                         [this]{ Syllabify(QStringLiteral("zh_Latn")); });
-    syllabify->addAction(QStringLiteral("Japanese (Romanized)"),
-                         [this]{ Syllabify(QStringLiteral("ja_Latn")); });
+    AddSyllabificationLanguages(syllabify);
     menu->addAction(QStringLiteral("Romanize Hangul"), this,
                     SLOT(RomanizeHangul()))->setEnabled(has_selection);
 
     menu->exec(m_raw_text_edit->mapToGlobal(point));
 
     delete menu;
+}
+
+void LyricsEditor::AddSyllabificationLanguages(QMenu* menu)
+{
+    QVector<QPair<QString, QString>> languages;
+
+    for (const QString& language_code : TextTransform::Syllabifier::AvailableLanguages())
+    {
+        const QLocale locale(language_code);
+
+        if (locale.language() <= QLocale::Language::C)
+        {
+            languages.push_back(QPair<QString, QString>(language_code, language_code));
+        }
+        else
+        {
+            QString language_name = QLocale::languageToString(locale.language());
+
+            // Without this extra check, the language code "no" will give us the language name
+            // "Norwegian Bokmal". This not only inappropriately uses a instead of å, but is
+            // also overly specific ("nb" is the bokmål-specific code).
+            if (language_code == QStringLiteral("no"))
+                language_name = QStringLiteral("Norwegian");
+
+            for (const QString& component : language_code.split(QStringLiteral("_")))
+            {
+                if (component.size() == 2 && component[0].isUpper() && component[1].isUpper())
+                {
+                    language_name += QStringLiteral(" (%1)").arg(QLocale::countryToString(locale.country()));
+                }
+                else if (component.size() == 4)
+                {
+                    if (component == QStringLiteral("Latn") && locale.script() != QLocale::Script::LatinScript)
+                        language_name += QStringLiteral(" (Romanized)");
+                    else
+                        language_name += QStringLiteral(" (%1)").arg(QLocale::scriptToString(locale.script()));
+                }
+            }
+
+            languages.push_back(QPair<QString, QString>(language_code, language_name));
+        }
+    }
+
+    std::sort(languages.begin(), languages.end(),
+              [](const QPair<QString, QString>& a, const QPair<QString, QString>& b) {
+                    return a.second < b.second;
+    });
+
+    for (const QPair<QString, QString>& language : languages)
+        menu->addAction(language.second, [this, language]{ Syllabify(language.first); });
 }
 
 void LyricsEditor::ApplyLineTransformation(int start_line, int end_line,

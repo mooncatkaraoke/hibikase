@@ -19,7 +19,9 @@
 #include <memory>
 
 #include <QChar>
+#include <QDirIterator>
 #include <QFile>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QString>
 #include <QTextStream>
@@ -408,6 +410,22 @@ std::unique_ptr<KaraokeData::Line> Syllabifier::Syllabify(const KaraokeData::Lin
     }
 
     return std::move(new_line);
+}
+
+QVector<QString> Syllabifier::AvailableLanguages()
+{
+    QVector<QString> result;
+
+    QDirIterator iterator(QStringLiteral("data/syllabification/"));
+    while (iterator.hasNext())
+    {
+        iterator.next();
+        QFileInfo file_info = iterator.fileInfo();
+        if (file_info.isFile() && file_info.suffix() == QStringLiteral("txt"))
+            result.push_back(file_info.baseName());
+    }
+
+    return result;
 }
 
 }
