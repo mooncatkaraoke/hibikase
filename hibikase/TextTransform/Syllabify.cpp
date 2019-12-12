@@ -108,6 +108,16 @@ void Syllabifier::BuildPattern(const QString& line, int i)
     m_patterns.insert(key, value);
 }
 
+static bool IsHighSurrogate(const QString& text, int i)
+{
+    return text[i].isHighSurrogate() && i + 1 < text.size() && text[i + 1].isLowSurrogate();
+}
+
+static bool IsLowSurrogate(const QString& text, int i)
+{
+    return text[i].isLowSurrogate() && i > 0 && text[i - 1].isHighSurrogate();
+}
+
 // For surrogate pairs, i must point to the second half (the low surrogate),
 // otherwise the result will be U+FFFD.
 static uint CodepointFromUTF16(const QString& text, int i)
@@ -115,11 +125,8 @@ static uint CodepointFromUTF16(const QString& text, int i)
     if (text[i].isHighSurrogate())
         return 0xFFFD;
 
-    if (!text[i].isLowSurrogate())
+    if (!IsLowSurrogate(text, i))
         return text[i].unicode();
-
-    if (i == 0 || !text[i - 1].isHighSurrogate())
-        return 0xFFFD;
 
     return QChar::surrogateToUcs4(text[i - 1], text[i]);
 }
@@ -128,7 +135,7 @@ static uint CodepointFromUTF16(const QString& text, int i)
 // The size of the string must be at least i + 2.
 static uint NextCodepointFromUTF16(const QString& text, int i)
 {
-    return CodepointFromUTF16(text, i + (text.size() > i + 2 && text[i + 1].isHighSurrogate() ? 2 : 1));
+    return CodepointFromUTF16(text, i + (IsHighSurrogate(text, i + 1) ? 2 : 1));
 }
 
 static bool IsLetterOrNumber(const QString& text, int i, uint codepoint)
@@ -186,7 +193,7 @@ static QChar::Script DetermineScript(const QString& text, int start, int end)
 
     for (int i = start; i < end; ++i)
     {
-        if (text[i].isHighSurrogate())
+        if (IsHighSurrogate(text, i))
             continue;
 
         const uint codepoint = CodepointFromUTF16(text, i);
@@ -207,12 +214,12 @@ static void SyllabifyWordSimple(QVector<int>* split_points, const QString& text,
 {
     for (int i = start; i < end - 1; ++i)
     {
-        if (text[i].isHighSurrogate())
+        if (IsHighSurrogate(text, i))
         {
         }
         else if (QChar::isMark(CodepointFromUTF16(text, i)))
         {
-            if (split_points->back() == i - (text[i].isLowSurrogate() ? 2 : 1))
+            if (split_points->back() == i - (IsLowSurrogate(text, i) ? 2 : 1))
                 (*split_points)[split_points->size() - 1] = i;
         }
         else if (split_predicate(text, i))
@@ -284,7 +291,7 @@ void Syllabifier::SyllabifyWord(QVector<int>* split_points, const QString& text,
         QVector<int> index_mapping;
         for (int i = 0; i < word.size();)
         {
-            const int size = word[i].isHighSurrogate() ? 2 : 1;
+            const int size = IsHighSurrogate(text, i) ? 2 : 1;
 
             const QString normalized = m_locale.toLower(word.mid(i, size).normalized(NORMALIZATION_FORM));
             for (int j = 0; j < normalized.size(); ++j)
@@ -326,7 +333,7 @@ QVector<int> Syllabifier::Syllabify(const QString& text) const
     int word_start = 0;
     for (int i = 0; i < text.size(); ++i)
     {
-        if (text[i].isHighSurrogate())
+        if (IsHighSurrogate(text, i))
             continue;
 
         const uint codepoint = CodepointFromUTF16(text, i);
@@ -340,7 +347,7 @@ QVector<int> Syllabifier::Syllabify(const QString& text) const
         const bool scripts_match = is_number == last_was_number &&
                 (previous_script == script || script <= 2 || previous_script <= 2);
 
-        const int index_of_current_codepoint = text[i].isLowSurrogate() ? i - 1 : i;
+        const int index_of_current_codepoint = IsLowSurrogate(text, i) ? i - 1 : i;
 
         if ((!is_letter_or_number || !scripts_match) && last_was_letter_or_number)
         {
