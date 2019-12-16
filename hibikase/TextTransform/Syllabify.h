@@ -22,6 +22,7 @@
 #include <QLocale>
 #include <QMap>
 #include <QString>
+#include <QStringRef>
 #include <QVector>
 
 #include "KaraokeData/Song.h"
@@ -44,12 +45,12 @@ public:
 private:
     void BuildPatterns(const QString& language_code);
     void BuildPattern(const QString& line, int i = 0);
-    QString ApplyPatterns(const QString& word) const;
+    QString ApplyPatterns(QStringRef word, int level = 0) const;
     void SyllabifyWord(QVector<int>* split_points, const QString& text, int start, int end) const;
 
     QLocale m_locale;
-    QMap<QString, QString> m_patterns;
-    int m_max_pattern_size = 0;
+    QVector<QMap<QString, QString>> m_patterns;
+    QVector<int> m_max_pattern_size;
 };
 
 }

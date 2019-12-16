@@ -24,6 +24,7 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QString>
+#include <QStringRef>
 #include <QTextStream>
 #include <QVector>
 
@@ -44,7 +45,8 @@ Syllabifier::Syllabifier(const QString& language_code)
 
 void Syllabifier::BuildPatterns(const QString& language_code)
 {
-    m_max_pattern_size = 0;
+    m_patterns.push_back(QMap<QString, QString>());
+    m_max_pattern_size.push_back(0);
 
     QFile file(QStringLiteral("data/syllabification/") + language_code + QStringLiteral(".txt"));
     if (!file.open(QIODevice::ReadOnly))
@@ -63,8 +65,19 @@ void Syllabifier::BuildPattern(const QString& line, int i)
     while (i < line.size() && line[i].isSpace())
         ++i;
 
-    if (i >= line.size() || line[i] == '#' || line[i] == '%' || line[i].isUpper())
+    if (i >= line.size() || line[i] == '#' || line[i] == '%')
         return;
+
+    if (line[i].isUpper())
+    {
+        if (line == QStringLiteral("NEXTLEVEL"))
+        {
+            m_patterns.push_back(QMap<QString, QString>());
+            m_max_pattern_size.push_back(0);
+        }
+
+        return;
+    }
 
     int letters = 0;
     int line_size = line.size();
@@ -101,16 +114,16 @@ void Syllabifier::BuildPattern(const QString& line, int i)
             value[k] = line[j];
     }
 
-    const auto it = m_patterns.find(key);
-    if (it != m_patterns.end())
+    const auto it = m_patterns.back().find(key);
+    if (it != m_patterns.back().end())
     {
         const QString other_value = *it;
         for (int i = 0; i < value.size(); ++i)
             value[i] = std::max<QChar>(value[i], other_value[i]);
     }
 
-    m_patterns.insert(key, value);
-    m_max_pattern_size = std::max(m_max_pattern_size, key.size());
+    m_patterns.back().insert(key, value);
+    m_max_pattern_size.back() = std::max(m_max_pattern_size.back(), key.size());
 }
 
 static bool IsHighSurrogate(const QString& text, int i)
@@ -234,20 +247,20 @@ static void SyllabifyWordSimple(QVector<int>* split_points, const QString& text,
     }
 }
 
-QString Syllabifier::ApplyPatterns(const QString& word) const
+QString Syllabifier::ApplyPatterns(QStringRef word, int level) const
 {
     const QString wrapped_word = QChar('.') + word + QChar('.');
     QString splits(word.size() - 1, QChar('0'));
 
     for (int i = 0; i < wrapped_word.size(); ++i)
     {
-        for (int j = 1; j <= wrapped_word.size() - i && j <= m_max_pattern_size; ++j)
+        for (int j = 1; j <= wrapped_word.size() - i && j <= m_max_pattern_size[level]; ++j)
         {
             if (i + j < wrapped_word.size() && QChar::isMark(NextCodepointFromUTF16(wrapped_word, i + j - 1)))
                 continue;  // A pattern that ends with "a" must not match "ä"
 
-            const auto it = m_patterns.find(wrapped_word.mid(i, j));
-            if (it != m_patterns.end())
+            const auto it = m_patterns[level].find(wrapped_word.mid(i, j));
+            if (it != m_patterns[level].end())
             {
                 const QString& pattern = it.value();
                 for (int k = 0; k < pattern.size(); ++k)
@@ -257,6 +270,31 @@ QString Syllabifier::ApplyPatterns(const QString& word) const
                         splits[l] = std::max<QChar>(splits[l], pattern[k]);
                 }
             }
+        }
+    }
+
+    if (level + 1 < m_patterns.size())
+    {
+        int subword_start = 0;
+
+        for (int i = 0; i < splits.size(); ++i)
+        {
+            if (splits[i].unicode() % 2 == 1)
+            {
+                splits.replace(subword_start, i - subword_start,
+                               ApplyPatterns(word.mid(subword_start, i + 1 - subword_start), level));
+                subword_start = i + 1;
+            }
+        }
+
+        if (subword_start == 0)
+        {
+            return ApplyPatterns(word, level + 1);
+        }
+        else
+        {
+            splits.replace(subword_start, splits.size() - subword_start,
+                           ApplyPatterns(word.mid(subword_start, word.size() - subword_start), level));
         }
     }
 
@@ -312,7 +350,7 @@ void Syllabifier::SyllabifyWord(QVector<int>* split_points, const QString& text,
                                   QStringLiteral("Unexpected normalization length in word \"%1\"").arg(word));
         }
 
-        const QString splits = ApplyPatterns(normalized_word);
+        const QString splits = ApplyPatterns(QStringRef(&normalized_word));
         for (int i = 0; i < splits.size(); ++i)
         {
             if (splits[i].unicode() % 2 == 1)
