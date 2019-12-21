@@ -477,7 +477,7 @@ void LyricsEditor::AddSyllabificationLanguages(QMenu* menu)
     {
         const QLocale locale(language_code);
 
-        if (locale.language() <= QLocale::Language::C)
+        if (locale.language() <= QLocale::Language::C && language_code != QStringLiteral("la"))
         {
             languages.push_back(QPair<QString, QString>(language_code, language_code));
         }
@@ -490,6 +490,11 @@ void LyricsEditor::AddSyllabificationLanguages(QMenu* menu)
             // also overly specific ("nb" is the bokmål-specific code).
             if (language_code == QStringLiteral("no"))
                 language_name = QStringLiteral("Norwegian");
+
+            // Qt doesn't seem to be able to set the language of a QLocale to Latin.
+            // Let's handle Latin manually instead. (The locale will be the C locale.)
+            if (language_code == QStringLiteral("la"))
+                language_name = QStringLiteral("Latin");
 
             for (const QString& component : language_code.split(QStringLiteral("_")))
             {
