@@ -160,6 +160,7 @@ void MainWindow::UpdateWindowTitle()
         file_name.append(QChar('*'));
     file_name.append(m_save_path.isEmpty() ? "Untitled" : QFileInfo(m_save_path).fileName());
     setWindowTitle(QStringLiteral("%1 - Hibikase").arg(file_name));
+    setWindowFilePath(m_save_path); // macOS proxy icon support
 }
 
 void MainWindow::LoadAudio()
