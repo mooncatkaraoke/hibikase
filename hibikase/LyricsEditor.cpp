@@ -20,6 +20,7 @@
 #include <QAction>
 #include <QEvent>
 #include <QFont>
+#include <QInputDialog>
 #include <QLocale>
 #include <QMenu>
 #include <QPair>
@@ -28,6 +29,7 @@
 #include <QTextCursor>
 #include <QVBoxLayout>
 
+#include "KaraokeData/ReadOnlySong.h"
 #include "LyricsEditor.h"
 #include "TextTransform/RomanizeHangul.h"
 #include "TextTransform/Syllabify.h"
@@ -417,14 +419,20 @@ void LyricsEditor::ShowContextMenu(const QPoint& point)
     has_selection = true; // TODO: Remove this line once the selection actually is used
 
     QMenu* menu = m_raw_text_edit->createStandardContextMenu(point);
+
     menu->addSeparator();
+
     QMenu* syllabify = menu->addMenu(QStringLiteral("Syllabify"));
     syllabify->setEnabled(has_selection);
     syllabify->addAction(QStringLiteral("Basic"), [this]{ Syllabify(QString()); });
     syllabify->addSeparator();
     AddSyllabificationLanguages(syllabify);
+
     menu->addAction(QStringLiteral("Romanize Hangul"), this,
                     SLOT(RomanizeHangul()))->setEnabled(has_selection);
+
+    menu->addAction(QStringLiteral("Shift Timings..."), this,
+                    SLOT(ShiftTimings()))->setEnabled(has_selection);
 
     menu->exec(m_raw_text_edit->mapToGlobal(point));
 
@@ -522,6 +530,71 @@ void LyricsEditor::RomanizeHangul()
 {
     ApplyLineTransformation([](KaraokeData::Line* line) {
         return TextTransform::RomanizeHangul(line->GetSyllables(), line->GetPrefix());
+    });
+}
+
+void LyricsEditor::ShiftTimings()
+{
+    // Calculate what range the offset can be in without moving anything
+    // outside of the safe range.
+
+    KaraokeData::Centiseconds min_safe_offset = -KaraokeData::MAXIMUM_TIME;
+    KaraokeData::Centiseconds max_safe_offset = KaraokeData::MAXIMUM_TIME;
+
+    for (KaraokeData::Line* line : m_song_ref->GetLines())
+    {
+        for (KaraokeData::Syllable* syllable : line->GetSyllables())
+        {
+            if (syllable->GetStart() != KaraokeData::PLACEHOLDER_TIME)
+            {
+                min_safe_offset = std::max(min_safe_offset, KaraokeData::MINIMUM_TIME - syllable->GetStart());
+                max_safe_offset = std::min(max_safe_offset, KaraokeData::MAXIMUM_TIME - syllable->GetStart());
+            }
+            if (syllable->GetEnd() != KaraokeData::PLACEHOLDER_TIME)
+            {
+                min_safe_offset = std::max(min_safe_offset, KaraokeData::MINIMUM_TIME - syllable->GetEnd());
+                max_safe_offset = std::min(max_safe_offset, KaraokeData::MAXIMUM_TIME - syllable->GetEnd());
+            }
+        }
+    }
+
+    bool ok;
+    double offset = QInputDialog::getDouble(
+        this,
+        "Shift Timings",
+        "Enter an offset in seconds. A positive offset shifts timings to "
+        "be later; a negative offset shifts timings to be earlier.",
+        0.05, // MP3 adds approximately this offset when compressing for 44.1kHz
+        static_cast<double>(min_safe_offset.count()) / 100,
+        static_cast<double>(max_safe_offset.count()) / 100,
+        2, // at most centisecond precision
+        &ok
+    );
+    if (!ok)
+        return;
+
+    KaraokeData::Centiseconds offset_cs(static_cast<int>(offset * 100));
+    ApplyLineTransformation([offset_cs](KaraokeData::Line* line) {
+        auto syllables = line->GetSyllables();
+
+        auto shifted_line = std::make_unique<KaraokeData::ReadOnlyLine>();
+        shifted_line->m_prefix = line->GetPrefix();
+        shifted_line->m_syllables.reserve(syllables.size());
+
+        for (const KaraokeData::Syllable* syllable : syllables)
+        {
+            KaraokeData::Centiseconds new_start = syllable->GetStart();
+            if (new_start != KaraokeData::PLACEHOLDER_TIME)
+                new_start += offset_cs;
+            KaraokeData::Centiseconds new_end = syllable->GetEnd();
+            if (new_end != KaraokeData::PLACEHOLDER_TIME)
+                new_end += offset_cs;
+
+            shifted_line->m_syllables.emplace_back(std::make_unique<KaraokeData::ReadOnlySyllable>(
+                    syllable->GetText(), new_start, new_end));
+        }
+
+        return shifted_line;
     });
 }
 

@@ -44,7 +44,12 @@ namespace KaraokeData
 
 typedef std::chrono::duration<int32_t, std::centi> Centiseconds;
 
-static constexpr Centiseconds PLACEHOLDER_TIME = Centiseconds(99 * 60 * 100 + 59 * 100 + 99);
+static constexpr Centiseconds PLACEHOLDER_TIME = Centiseconds(100 * 60 * 100 - 1);
+
+// Largest and smallest times safely representable given how Hibikase uses the
+// Soramimi [mm:ss:cc] format
+static constexpr Centiseconds MAXIMUM_TIME = PLACEHOLDER_TIME - Centiseconds(1);
+static constexpr Centiseconds MINIMUM_TIME = Centiseconds(0);
 
 class Syllable : public QObject
 {
