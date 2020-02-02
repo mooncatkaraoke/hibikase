@@ -26,6 +26,7 @@
 #include "KaraokeContainer/Container.h"
 #include "KaraokeContainer/PlainContainer.h"
 #include "KaraokeData/Song.h"
+#include "KaraokeData/SoramimiSong.h"
 
 #include "LyricsEditor.h"
 #include "MainWindow.h"
@@ -90,7 +91,7 @@ void MainWindow::on_actionOpen_triggered()
     {
         // TODO: Add a way to create a Soramimi/MoonCat song instead of having to use Load
         std::unique_ptr<KaraokeData::Song> converted_song = KaraokeData::Load({});
-        for (KaraokeData::Line* line : song->GetLines())
+        for (const KaraokeData::Line* line : song->GetLines())
             converted_song->AddLine(line->GetSyllables());
         m_song = std::move(converted_song);
         m_save_path.clear();

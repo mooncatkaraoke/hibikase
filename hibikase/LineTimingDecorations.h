@@ -71,7 +71,7 @@ class LineTimingDecorations final : public QObject
     using Milliseconds = std::chrono::milliseconds;
 
 public:
-    LineTimingDecorations(KaraokeData::Line* line, int position, QPlainTextEdit* text_edit,
+    LineTimingDecorations(const KaraokeData::Line& line, int position, QPlainTextEdit* text_edit,
                           Milliseconds time, QObject* parent = nullptr);
 
     void Update(Milliseconds time);
@@ -82,8 +82,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<SyllableDecorations>> m_syllables;
-    // TODO: Use a const reference instead
-    KaraokeData::Line* m_line;
+    const KaraokeData::Line& m_line;
     int m_start_index;
     int m_end_index;
     TimingState m_state;

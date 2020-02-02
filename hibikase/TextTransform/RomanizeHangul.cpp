@@ -441,7 +441,7 @@ static QString RomanizeHangul(const QString& text, QString* next_text)
 }
 
 std::unique_ptr<KaraokeData::Line> RomanizeHangul(
-        const QVector<KaraokeData::Syllable*>& syllables, QString prefix)
+        const QVector<const KaraokeData::Syllable*>& syllables, QString prefix)
 {
     std::unique_ptr<KaraokeData::ReadOnlyLine> line = std::make_unique<KaraokeData::ReadOnlyLine>();
     line->m_syllables.reserve(syllables.size());

@@ -70,7 +70,7 @@ SoramimiLine::SoramimiLine(const QString& content)
     BuildText();
 }
 
-SoramimiLine::SoramimiLine(const QVector<Syllable*>& syllables, QString prefix)
+SoramimiLine::SoramimiLine(const QVector<const Syllable*>& syllables, QString prefix)
     : m_prefix(prefix)
 {
     Serialize(syllables);
@@ -83,6 +83,15 @@ QVector<Syllable*> SoramimiLine::GetSyllables()
     QVector<Syllable*> result{};
     result.reserve(m_syllables.size());
     for (std::unique_ptr<SoramimiSyllable>& syllable : m_syllables)
+        result.push_back(syllable.get());
+    return result;
+}
+
+QVector<const Syllable*> SoramimiLine::GetSyllables() const
+{
+    QVector<const Syllable*> result{};
+    result.reserve(m_syllables.size());
+    for (const std::unique_ptr<SoramimiSyllable>& syllable : m_syllables)
         result.push_back(syllable.get());
     return result;
 }
@@ -154,10 +163,10 @@ int SoramimiLine::PositionToRaw(int position) const
 void SoramimiLine::Serialize()
 {
     // TODO: Performance cost of GetSyllables() copying pointers into a QVector?
-    Serialize(GetSyllables());
+    Serialize(static_cast<const SoramimiLine*>(this)->GetSyllables());
 }
 
-void SoramimiLine::Serialize(const QVector<Syllable*>& syllables)
+void SoramimiLine::Serialize(const QVector<const Syllable*>& syllables)
 {
     m_raw_content.clear();
     m_raw_syllable_positions.clear();
@@ -324,9 +333,9 @@ SoramimiSong::SoramimiSong(const QByteArray& data)
         m_lines.push_back(SetUpLine(std::make_unique<SoramimiLine>(stream.readLine())));
 }
 
-SoramimiSong::SoramimiSong(const QVector<Line*>& lines)
+SoramimiSong::SoramimiSong(const QVector<const Line*>& lines)
 {
-    for (Line* line : lines)
+    for (const Line* line : lines)
     {
         m_lines.push_back(SetUpLine(std::make_unique<SoramimiLine>(
                                     line->GetSyllables(), line->GetPrefix())));
@@ -370,14 +379,24 @@ QVector<Line*> SoramimiSong::GetLines()
     return result;
 }
 
-void SoramimiSong::AddLine(const QVector<Syllable*>& syllables, QString prefix)
+QVector<const Line*> SoramimiSong::GetLines() const
+{
+    QVector<const Line*> result;
+    result.reserve(m_lines.size());
+    for (const std::unique_ptr<SoramimiLine>& line : m_lines)
+        result.push_back(line.get());
+    return result;
+}
+
+void SoramimiSong::AddLine(const QVector<const Syllable*>& syllables, QString prefix)
 {
     const int raw_position = LineNumberToRaw(m_lines.size());
     m_lines.push_back(SetUpLine(std::make_unique<SoramimiLine>(syllables, prefix)));
     emit LinesChanged(m_lines.size() - 1, 1, 1, raw_position, 0, m_lines.back()->GetRaw().size());
 }
 
-void SoramimiSong::ReplaceLines(int start_line, int lines_to_remove, const QVector<Line*>& replace_with)
+void SoramimiSong::ReplaceLines(int start_line, int lines_to_remove,
+                                const QVector<const Line*>& replace_with)
 {
     int old_raw_length = 0;
     if (lines_to_remove > 0)

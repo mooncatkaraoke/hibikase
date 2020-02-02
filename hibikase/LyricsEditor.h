@@ -87,9 +87,6 @@ private slots:
     void GoToPosition(QPoint pos);
     void ShowContextMenu(const QPoint& point);
     void AddSyllabificationLanguages(QMenu* menu);
-    void ApplyLineTransformation(int start_line, int end_line,
-                                 std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
-    void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
     void Syllabify(const QString& language_code);
     void RomanizeHangul();
     void ShiftTimings();
@@ -97,6 +94,10 @@ private slots:
     void SetSyllableEnd();
 
 private:
+    void ApplyLineTransformation(int start_line, int end_line,
+                                 std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);
+    void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);
+
     void GoTo(SyllablePosition position);
     int TextPositionToLine(int position) const;
     SyllablePosition TextPositionToSyllable(int position) const;

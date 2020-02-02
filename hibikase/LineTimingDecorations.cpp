@@ -182,16 +182,16 @@ void SyllableDecorations::CalculateGeometry()
     setGeometry(QRect(left, top, width, height));
 }
 
-LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, int position,
+LineTimingDecorations::LineTimingDecorations(const KaraokeData::Line& line, int position,
                                              QPlainTextEdit* text_edit, Milliseconds time, QObject* parent)
     : QObject(parent), m_line(line), m_start_index(position)
 {
-    m_state = GetTimingState(time, m_line->GetStart(), m_line->GetEnd());
+    m_state = GetTimingState(time, m_line.GetStart(), m_line.GetEnd());
 
-    auto syllables = m_line->GetSyllables();
+    const QVector<const KaraokeData::Syllable*> syllables = m_line.GetSyllables();
     m_syllables.reserve(syllables.size());
-    int i = m_start_index + m_line->GetPrefix().size();
-    for (KaraokeData::Syllable* syllable : syllables)
+    int i = m_start_index + m_line.GetPrefix().size();
+    for (const KaraokeData::Syllable* syllable : syllables)
     {
         const int start_index = i;
         i += syllable->GetText().size();
@@ -205,7 +205,7 @@ LineTimingDecorations::LineTimingDecorations(KaraokeData::Line* line, int positi
 
 void LineTimingDecorations::Update(Milliseconds time)
 {
-    const TimingState state = GetTimingState(time, m_line->GetStart(), m_line->GetEnd());
+    const TimingState state = GetTimingState(time, m_line.GetStart(), m_line.GetEnd());
     if (state == m_state && state != TimingState::Playing)
         return;
     m_state = state;

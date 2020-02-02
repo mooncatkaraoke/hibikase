@@ -168,9 +168,9 @@ void LyricsEditor::ReloadSong(KaraokeData::Song* song)
     m_line_timing_decorations.clear();
     m_line_timing_decorations.reserve(lines.size());
     int i = 0;
-    for (KaraokeData::Line* line : lines)
+    for (const KaraokeData::Line* line : lines)
     {
-        auto decorations = std::make_unique<LineTimingDecorations>(line, i, m_rich_text_edit, m_time);
+        auto decorations = std::make_unique<LineTimingDecorations>(*line, i, m_rich_text_edit, m_time);
         decorations->Update(m_time);
         m_line_timing_decorations.emplace_back(std::move(decorations));
 
@@ -322,7 +322,7 @@ void LyricsEditor::OnLinesChanged(int line_position, int lines_removed, int line
         for (int i = line_position; i < line_position + lines_added; ++i)
         {
             auto decorations = std::make_unique<LineTimingDecorations>(
-                        lines[i], current_position, m_rich_text_edit, m_time);
+                        *lines[i], current_position, m_rich_text_edit, m_time);
             decorations->Update(m_time);
             m_line_timing_decorations[i] = std::move(decorations);
 
@@ -490,17 +490,17 @@ void LyricsEditor::AddSyllabificationLanguages(QMenu* menu)
 }
 
 void LyricsEditor::ApplyLineTransformation(int start_line, int end_line,
-        std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f)
+        std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f)
 {
-    QVector<KaraokeData::Line*> old_lines = m_song_ref->GetLines();
+    const QVector<KaraokeData::Line*> old_lines = m_song_ref->GetLines();
     std::vector<std::unique_ptr<KaraokeData::Line>> new_lines;
-    QVector<KaraokeData::Line*> new_line_pointers;
+    QVector<const KaraokeData::Line*> new_line_pointers;
     new_lines.reserve(end_line - start_line);
     new_line_pointers.reserve(end_line - start_line);
 
     for (int i = 0; i < end_line - start_line; ++i)
     {
-        new_lines.push_back(f(old_lines[start_line + i]));
+        new_lines.push_back(f(*old_lines[start_line + i]));
         new_line_pointers.push_back(new_lines.back().get());
     }
 
@@ -508,7 +508,7 @@ void LyricsEditor::ApplyLineTransformation(int start_line, int end_line,
 }
 
 void LyricsEditor::ApplyLineTransformation(
-        std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f)
+        std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f)
 {
     // TODO: Only use the selection, not the whole document
     /*QTextCursor cursor = m_raw_text_edit->textCursor();
@@ -521,15 +521,15 @@ void LyricsEditor::ApplyLineTransformation(
 void LyricsEditor::Syllabify(const QString& language_code)
 {
     const TextTransform::Syllabifier syllabifier(language_code);
-    ApplyLineTransformation([&syllabifier](const KaraokeData::Line* line) {
-        return syllabifier.Syllabify(*line);
+    ApplyLineTransformation([&syllabifier](const KaraokeData::Line& line) {
+        return syllabifier.Syllabify(line);
     });
 }
 
 void LyricsEditor::RomanizeHangul()
 {
-    ApplyLineTransformation([](KaraokeData::Line* line) {
-        return TextTransform::RomanizeHangul(line->GetSyllables(), line->GetPrefix());
+    ApplyLineTransformation([](const KaraokeData::Line& line) {
+        return TextTransform::RomanizeHangul(line.GetSyllables(), line.GetPrefix());
     });
 }
 
@@ -541,9 +541,9 @@ void LyricsEditor::ShiftTimings()
     KaraokeData::Centiseconds min_safe_offset = -KaraokeData::MAXIMUM_TIME;
     KaraokeData::Centiseconds max_safe_offset = KaraokeData::MAXIMUM_TIME;
 
-    for (KaraokeData::Line* line : m_song_ref->GetLines())
+    for (const KaraokeData::Line* line : m_song_ref->GetLines())
     {
-        for (KaraokeData::Syllable* syllable : line->GetSyllables())
+        for (const KaraokeData::Syllable* syllable : line->GetSyllables())
         {
             if (syllable->GetStart() != KaraokeData::PLACEHOLDER_TIME)
             {
@@ -574,11 +574,11 @@ void LyricsEditor::ShiftTimings()
         return;
 
     KaraokeData::Centiseconds offset_cs(static_cast<int>(offset * 100));
-    ApplyLineTransformation([offset_cs](KaraokeData::Line* line) {
-        auto syllables = line->GetSyllables();
+    ApplyLineTransformation([offset_cs](const KaraokeData::Line& line) {
+        const QVector<const KaraokeData::Syllable*> syllables = line.GetSyllables();
 
         auto shifted_line = std::make_unique<KaraokeData::ReadOnlyLine>();
-        shifted_line->m_prefix = line->GetPrefix();
+        shifted_line->m_prefix = line.GetPrefix();
         shifted_line->m_syllables.reserve(syllables.size());
 
         for (const KaraokeData::Syllable* syllable : syllables)

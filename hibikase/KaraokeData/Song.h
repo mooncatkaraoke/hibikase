@@ -74,6 +74,7 @@ public:
     virtual ~Line() = default;
 
     virtual QVector<Syllable*> GetSyllables() = 0;
+    virtual QVector<const Syllable*> GetSyllables() const = 0;
     virtual Centiseconds GetStart() const = 0;
     virtual Centiseconds GetEnd() const = 0;
     virtual QString GetPrefix() const = 0;
@@ -109,13 +110,13 @@ public:
     virtual QString GetRaw() const = 0;
     virtual QByteArray GetRawBytes() const = 0;
     virtual QVector<Line*> GetLines() = 0;
-    // TODO: Should be const QVector<const Syllable*>&
-    virtual void AddLine(const QVector<Syllable*>& syllables, QString prefix = QString()) = 0;
-    virtual void ReplaceLines(int start_line, int lines_to_remove, const QVector<Line*>& replace_with) = 0;
+    virtual QVector<const Line*> GetLines() const = 0;
+    virtual void AddLine(const QVector<const Syllable*>& syllables, QString prefix = QString()) = 0;
+    virtual void ReplaceLines(int start_line, int lines_to_remove,
+                              const QVector<const Line*>& replace_with) = 0;
     virtual void RemoveAllLines() = 0;
-    // TODO: GetText() is supposed to be const
-    virtual QString GetText(int start_line, int end_line);
-    virtual QString GetText();
+    virtual QString GetText(int start_line, int end_line) const;
+    virtual QString GetText() const;
 
     virtual bool SupportsPositionConversion() const { return false; }
     virtual SongPosition PositionFromRaw(int) const { throw not_supported; }

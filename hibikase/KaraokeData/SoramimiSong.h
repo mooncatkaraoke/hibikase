@@ -72,9 +72,10 @@ class SoramimiLine final : public Line
 
 public:
     SoramimiLine(const QString& content);
-    SoramimiLine(const QVector<Syllable*>& syllables, QString prefix = QString());
+    SoramimiLine(const QVector<const Syllable*>& syllables, QString prefix = QString());
 
     QVector<Syllable*> GetSyllables() override;
+    QVector<const Syllable*> GetSyllables() const override;
     Centiseconds GetStart() const override { return m_start; }
     Centiseconds GetEnd() const override { return m_end; }
     QString GetPrefix() const override { return m_prefix; }
@@ -90,7 +91,7 @@ signals:
 
 private:
     void Serialize();
-    void Serialize(const QVector<Syllable*>& syllables);
+    void Serialize(const QVector<const Syllable*>& syllables);
     void Deserialize();
     void CalculateStartAndEnd();
     void AddSyllable(size_t start, size_t end, Centiseconds start_time, Centiseconds end_time);
@@ -116,7 +117,7 @@ class SoramimiSong final : public Song
 public:
     SoramimiSong(const QByteArray& data);
     // TODO: Use this constructor when converting, and remove the AddLine function
-    SoramimiSong(const QVector<Line*>& lines);
+    SoramimiSong(const QVector<const Line*>& lines);
 
     bool IsValid() const override { return true; }
     bool IsEditable() const override { return true; }
@@ -124,8 +125,10 @@ public:
     QString GetRaw() const override;
     QByteArray GetRawBytes() const override;
     QVector<Line*> GetLines() override;
-    void AddLine(const QVector<Syllable*>& syllables, QString prefix) override;
-    void ReplaceLines(int start_line, int lines_to_remove, const QVector<Line*>& replace_with) override;
+    QVector<const Line*> GetLines() const override;
+    void AddLine(const QVector<const Syllable*>& syllables, QString prefix) override;
+    void ReplaceLines(int start_line, int lines_to_remove,
+                      const QVector<const Line*>& replace_with) override;
     void RemoveAllLines() override;
 
     bool SupportsPositionConversion() const override;

@@ -76,6 +76,14 @@ public:
             result.push_back(syllable.get());
         return result;
     }
+    virtual QVector<const Syllable*> GetSyllables() const override
+    {
+        QVector<const Syllable*> result;
+        result.reserve(m_syllables.size());
+        for (const std::unique_ptr<ReadOnlySyllable>& syllable : m_syllables)
+            result.push_back(syllable.get());
+        return result;
+    }
     Centiseconds GetStart() const override { throw not_editable; }
     Centiseconds GetEnd() const override { throw not_editable; }
     QString GetPrefix() const override { return m_prefix; }
@@ -108,8 +116,16 @@ public:
             result.push_back(line.get());
         return result;
     }
-    void AddLine(const QVector<Syllable*>&, QString) override { throw not_editable; }
-    void ReplaceLines(int, int, const QVector<Line*>&) override { throw not_editable; }
+    QVector<const Line*> GetLines() const override
+    {
+        QVector<const Line*> result;
+        result.reserve(m_lines.size());
+        for (const std::unique_ptr<ReadOnlyLine>& line : m_lines)
+            result.push_back(line.get());
+        return result;
+    }
+    void AddLine(const QVector<const Syllable*>&, QString) override { throw not_editable; }
+    void ReplaceLines(int, int, const QVector<const Line*>&) override { throw not_editable; }
     void RemoveAllLines() override { throw not_editable; }
 
     bool m_valid = false;
