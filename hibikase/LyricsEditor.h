@@ -92,6 +92,7 @@ private slots:
     void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(KaraokeData::Line*)> f);
     void Syllabify(const QString& language_code);
     void RomanizeHangul();
+    void ShiftTimings();
     void SetSyllableStart();
     void SetSyllableEnd();
 
