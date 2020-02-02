@@ -388,13 +388,6 @@ QVector<const Line*> SoramimiSong::GetLines() const
     return result;
 }
 
-void SoramimiSong::AddLine(const QVector<const Syllable*>& syllables, QString prefix)
-{
-    const int raw_position = LineNumberToRaw(m_lines.size());
-    m_lines.push_back(SetUpLine(std::make_unique<SoramimiLine>(syllables, prefix)));
-    emit LinesChanged(m_lines.size() - 1, 1, 1, raw_position, 0, m_lines.back()->GetRaw().size());
-}
-
 void SoramimiSong::ReplaceLines(int start_line, int lines_to_remove,
                                 const QVector<const Line*>& replace_with)
 {

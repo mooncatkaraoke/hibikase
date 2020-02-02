@@ -116,7 +116,6 @@ class SoramimiSong final : public Song
 
 public:
     SoramimiSong(const QByteArray& data);
-    // TODO: Use this constructor when converting, and remove the AddLine function
     SoramimiSong(const QVector<const Line*>& lines);
 
     bool IsValid() const override { return true; }
@@ -126,7 +125,6 @@ public:
     QByteArray GetRawBytes() const override;
     QVector<Line*> GetLines() override;
     QVector<const Line*> GetLines() const override;
-    void AddLine(const QVector<const Syllable*>& syllables, QString prefix) override;
     void ReplaceLines(int start_line, int lines_to_remove,
                       const QVector<const Line*>& replace_with) override;
     void RemoveAllLines() override;

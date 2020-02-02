@@ -124,7 +124,6 @@ public:
             result.push_back(line.get());
         return result;
     }
-    void AddLine(const QVector<const Syllable*>&, QString) override { throw not_editable; }
     void ReplaceLines(int, int, const QVector<const Line*>&) override { throw not_editable; }
     void RemoveAllLines() override { throw not_editable; }
 

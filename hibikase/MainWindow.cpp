@@ -89,11 +89,8 @@ void MainWindow::on_actionOpen_triggered()
 
     if (!song->IsEditable())
     {
-        // TODO: Add a way to create a Soramimi/MoonCat song instead of having to use Load
-        std::unique_ptr<KaraokeData::Song> converted_song = KaraokeData::Load({});
-        for (const KaraokeData::Line* line : song->GetLines())
-            converted_song->AddLine(line->GetSyllables());
-        m_song = std::move(converted_song);
+        const KaraokeData::Song* const_song = static_cast<const KaraokeData::Song*>(song.get());
+        m_song = std::make_unique<KaraokeData::SoramimiSong>(const_song->GetLines());
         m_save_path.clear();
     }
     else
