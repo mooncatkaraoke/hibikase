@@ -35,7 +35,7 @@
 namespace KaraokeData
 {
 
-static const QString PLACEHOLDER_TIMECODE = QStringLiteral("[99:59:99]");
+static const QString PLACEHOLDER_TIMECODE = QStringLiteral("[__:__:__]");
 
 // TODO: The user might want LF instead of CRLF
 static const QString LINE_ENDING = "\r\n";
@@ -210,7 +210,25 @@ void SoramimiLine::Deserialize()
     // the start of a timecode (the tenth character from the end)
     for (int i = 0; i <= m_raw_content.size() - 10; ++i)
     {
-        if (m_raw_content[i] == '[' && m_raw_content[i + 3] == ':' &&
+        if (m_raw_content.midRef(i, PLACEHOLDER_TIMECODE.length()) == PLACEHOLDER_TIMECODE)
+        {
+            if (first_timecode)
+            {
+                m_prefix = m_raw_content.left(i);
+                first_timecode = false;
+            }
+            else
+            {
+                AddSyllable(previous_index, i, previous_time, PLACEHOLDER_TIME);
+            }
+
+            previous_index = i + PLACEHOLDER_TIMECODE.length();
+            previous_time = PLACEHOLDER_TIME;
+
+            // Skip unnecessary loop iterations
+            i += PLACEHOLDER_TIMECODE.length();
+        }
+        else if (m_raw_content[i] == '[' && m_raw_content[i + 3] == ':' &&
             m_raw_content[i + 6] == ':' && m_raw_content[i + 9] == ']')
         {
             bool minutesOk;
@@ -300,12 +318,15 @@ void SoramimiLine::AddSyllable(size_t start, size_t end,
 
 QString SoramimiLine::SerializeTime(Centiseconds time)
 {
+    if (time == PLACEHOLDER_TIME)
+        return PLACEHOLDER_TIMECODE;
+
     // This relies on minutes and seconds being integers
     Minutes minutes = std::chrono::duration_cast<Minutes>(time);
     Seconds seconds = std::chrono::duration_cast<Seconds>(time - minutes);
     Centiseconds centiseconds = time - minutes - seconds;
 
-    // TODO: What if minutes >= 100?
+    // TODO: What if minutes >= 100, or < -1?
     return "[" + SerializeNumber(minutes.count(), 2) + ":" +
                  SerializeNumber(seconds.count(), 2) + ":" +
                  SerializeNumber(centiseconds.count(), 2) + "]";
