@@ -48,6 +48,20 @@ private:
     bool eventFilter(QObject* obj, QEvent* event) override;
 };
 
+class TextEventFilter : public QObject
+{
+    Q_OBJECT
+
+public:
+    TextEventFilter(QObject* parent = nullptr);
+
+signals:
+    void ToggleSyllable();
+
+private:
+    bool eventFilter(QObject* obj, QEvent* event) override;
+};
+
 class LyricsEditor : public QWidget
 {
     Q_OBJECT
@@ -92,6 +106,7 @@ private slots:
     void ShiftTimings();
     void SetSyllableStart();
     void SetSyllableEnd();
+    void ToggleSyllable();
 
 private:
     void ApplyLineTransformation(int start_line, int end_line,
@@ -111,6 +126,7 @@ private:
     KaraokeData::Syllable* GetSyllable(SyllablePosition pos) const;
 
     TimingEventFilter m_timing_event_filter;
+    TextEventFilter m_text_event_filter;
     QPlainTextEdit* m_raw_text_edit;
     QPlainTextEdit* m_rich_text_edit;
     std::vector<std::unique_ptr<LineTimingDecorations>> m_line_timing_decorations;

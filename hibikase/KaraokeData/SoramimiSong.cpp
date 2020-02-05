@@ -388,6 +388,18 @@ QVector<const Line*> SoramimiSong::GetLines() const
     return result;
 }
 
+void SoramimiSong::ReplaceLine(int line_index, const Line* replace_with)
+{
+    const int old_raw_length = m_lines[line_index]->GetRaw().size();
+
+    m_lines[line_index] = SetUpLine(std::make_unique<SoramimiLine>(
+                                    replace_with->GetSyllables(), replace_with->GetPrefix()));
+
+    const int new_raw_length = m_lines[line_index]->GetRaw().size();
+
+    emit LinesChanged(line_index, 1, 1, LineNumberToRaw(line_index), old_raw_length, new_raw_length);
+}
+
 void SoramimiSong::ReplaceLines(int start_line, int lines_to_remove,
                                 const QVector<const Line*>& replace_with)
 {

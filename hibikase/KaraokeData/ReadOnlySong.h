@@ -20,6 +20,7 @@
 #include <exception>
 #include <memory>
 #include <vector>
+#include <utility>
 
 #include <QString>
 
@@ -46,8 +47,12 @@ class ReadOnlySyllable final : public Syllable
 public:
     // Note: This default constructor won't initialize class members properly
     ReadOnlySyllable() {}
-    ReadOnlySyllable(const QString& text, Centiseconds start, Centiseconds end)
-        : m_text(text), m_start(start), m_end(end)
+    ReadOnlySyllable(QString text, Centiseconds start, Centiseconds end)
+        : m_text(std::move(text)), m_start(start), m_end(end)
+    {
+    }
+    ReadOnlySyllable(const Syllable& syllable)
+        : m_text(syllable.GetText()), m_start(syllable.GetStart()), m_end(syllable.GetEnd())
     {
     }
 
@@ -68,6 +73,12 @@ class ReadOnlyLine final : public Line
     Q_OBJECT
 
 public:
+    ReadOnlyLine() {}
+    ReadOnlyLine(std::vector<std::unique_ptr<ReadOnlySyllable>> syllables, QString prefix)
+        : m_syllables(std::move(syllables)), m_prefix(std::move(prefix))
+    {
+    }
+
     virtual QVector<Syllable*> GetSyllables() override
     {
         QVector<Syllable*> result;
@@ -124,6 +135,7 @@ public:
             result.push_back(line.get());
         return result;
     }
+    void ReplaceLine(int, const Line*) override { throw not_editable; }
     void ReplaceLines(int, int, const QVector<const Line*>&) override { throw not_editable; }
     void RemoveAllLines() override { throw not_editable; }
 

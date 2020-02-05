@@ -125,6 +125,7 @@ public:
     QByteArray GetRawBytes() const override;
     QVector<Line*> GetLines() override;
     QVector<const Line*> GetLines() const override;
+    void ReplaceLine(int start_line, const Line* replace_with) override;
     void ReplaceLines(int start_line, int lines_to_remove,
                       const QVector<const Line*>& replace_with) override;
     void RemoveAllLines() override;

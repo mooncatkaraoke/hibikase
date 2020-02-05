@@ -104,6 +104,27 @@ bool TimingEventFilter::eventFilter(QObject* obj, QEvent* event)
     }
 }
 
+TextEventFilter::TextEventFilter(QObject* parent) : QObject(parent)
+{
+}
+
+bool TextEventFilter::eventFilter(QObject* obj, QEvent* event)
+{
+    if (event->type() == QEvent::KeyPress)
+    {
+        QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
+
+        if (key_event->key() == Qt::Key_Space &&
+            key_event->modifiers().testFlag(Qt::ControlModifier))
+        {
+            emit ToggleSyllable();
+            return true;
+        }
+    }
+
+    return QObject::eventFilter(obj, event);
+}
+
 LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
 {
     m_raw_text_edit = new QPlainTextEdit();
@@ -131,6 +152,9 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
             [this]() { GoTo(GetPreviousLine()); });
     connect(&m_timing_event_filter, &TimingEventFilter::GoToNextLine,
             [this]() { GoTo(GetNextLine()); });
+
+    connect(&m_text_event_filter, &TextEventFilter::ToggleSyllable,
+            this, &LyricsEditor::ToggleSyllable);
 
     m_rich_text_edit->setReadOnly(true);
 
@@ -191,9 +215,15 @@ void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
 void LyricsEditor::SetMode(Mode mode)
 {
     if (mode == Mode::Timing)
+    {
+        m_rich_text_edit->removeEventFilter(&m_text_event_filter);
         m_rich_text_edit->installEventFilter(&m_timing_event_filter);
+    }
     else
+    {
         m_rich_text_edit->removeEventFilter(&m_timing_event_filter);
+        m_rich_text_edit->installEventFilter(&m_text_event_filter);
+    }
 
     switch (mode)
     {
@@ -773,4 +803,71 @@ KaraokeData::Syllable* LyricsEditor::GetSyllable(SyllablePosition position) cons
         return nullptr;
 
     return syllables[position.syllable];
+}
+
+void LyricsEditor::ToggleSyllable()
+{
+    QTextCursor cursor = m_rich_text_edit->textCursor();
+    const int cursor_position = cursor.position();
+    const int line_index = TextPositionToLine(cursor_position);
+    if (line_index >= m_line_timing_decorations.size())
+        return;
+
+    const KaraokeData::Line* line = m_song_ref->GetLines()[line_index];
+    const int index_in_line = cursor_position - m_line_timing_decorations[line_index]->GetPosition();
+    if (index_in_line == 0 || index_in_line >= line->GetText().size())
+        return;
+
+    QVector<const KaraokeData::Syllable*> old_syllables = line->GetSyllables();
+    std::vector<std::unique_ptr<KaraokeData::ReadOnlySyllable>> new_syllables;
+    new_syllables.reserve(old_syllables.size() + 1);
+    for (const KaraokeData::Syllable* syllable : line->GetSyllables())
+        new_syllables.push_back(std::make_unique<KaraokeData::ReadOnlySyllable>(*syllable));
+
+    QString prefix = line->GetPrefix();
+
+    if (index_in_line < prefix.size())
+    {
+        new_syllables.insert(new_syllables.begin(), std::make_unique<KaraokeData::ReadOnlySyllable>(
+                                 prefix.right(prefix.size() - index_in_line),
+                                 KaraokeData::PLACEHOLDER_TIME, KaraokeData::PLACEHOLDER_TIME));
+        prefix = prefix.left(index_in_line);
+    }
+    else if (index_in_line == prefix.size())
+    {
+        prefix += new_syllables[0]->GetText();
+        new_syllables.erase(new_syllables.begin(), new_syllables.begin() + 1);
+    }
+    else
+    {
+        int text_length = prefix.size();
+        for (size_t i = 0; i < new_syllables.size(); ++i)
+        {
+            const QString& text = new_syllables[i]->m_text;
+            text_length += text.size();
+
+            if (index_in_line < text_length)
+            {
+                new_syllables.insert(new_syllables.begin() + i + 1,
+                        std::make_unique<KaraokeData::ReadOnlySyllable>(text.right(text_length - index_in_line),
+                                KaraokeData::PLACEHOLDER_TIME, new_syllables[i]->GetEnd()));
+                new_syllables[i]->m_text = text.left(index_in_line - (text_length - text.size()));
+                new_syllables[i]->m_end = KaraokeData::PLACEHOLDER_TIME;
+                break;
+            }
+            else if (index_in_line == text_length)
+            {
+                new_syllables[i]->m_text += new_syllables[i + 1]->GetText();
+                new_syllables[i]->m_end = new_syllables[i + 1]->GetEnd();
+                new_syllables.erase(new_syllables.begin() + i + 1, new_syllables.begin() + i + 2);
+                break;
+            }
+        }
+    }
+
+    const auto new_line = std::make_unique<KaraokeData::ReadOnlyLine>(std::move(new_syllables), prefix);
+    m_song_ref->ReplaceLine(line_index, new_line.get());
+
+    cursor.setPosition(cursor_position);
+    m_rich_text_edit->setTextCursor(cursor);
 }

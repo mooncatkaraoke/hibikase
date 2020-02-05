@@ -111,6 +111,7 @@ public:
     virtual QByteArray GetRawBytes() const = 0;
     virtual QVector<Line*> GetLines() = 0;
     virtual QVector<const Line*> GetLines() const = 0;
+    virtual void ReplaceLine(int line_index, const Line* replace_with) = 0;
     virtual void ReplaceLines(int start_line, int lines_to_remove,
                               const QVector<const Line*>& replace_with) = 0;
     virtual void RemoveAllLines() = 0;
