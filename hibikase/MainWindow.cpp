@@ -59,7 +59,7 @@ MainWindow::MainWindow(QWidget* parent) :
     ui->textRadioButton->setFocusPolicy(Qt::FocusPolicy::TabFocus);
     ui->rawRadioButton->setFocusPolicy(Qt::FocusPolicy::TabFocus);
 
-    // TODO: Add a way to create a Soramimi/MoonCat song instead of having to use Load
+    // TODO: Add a way to create a Soramimi song instead of having to use Load
     m_song = KaraokeData::Load({});
     emit SongReplaced(m_song.get());
 
@@ -77,6 +77,23 @@ void MainWindow::closeEvent(QCloseEvent* event)
         event->accept();
     else
         event->ignore();
+}
+
+void MainWindow::on_actionNew_triggered()
+{
+    if (!SaveUnsavedChanges())
+        return;
+
+    // TODO: Add a way to create a Soramimi song instead of having to use Load
+    m_song = KaraokeData::Load({});
+    emit SongReplaced(m_song.get());
+
+    m_container = nullptr;
+    LoadAudio();
+
+    m_save_path.clear();
+    m_unsaved_changes = false;
+    UpdateWindowTitle();
 }
 
 void MainWindow::on_actionOpen_triggered()

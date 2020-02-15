@@ -40,6 +40,7 @@ protected:
     void closeEvent(QCloseEvent* event);
 
 private slots:
+    void on_actionNew_triggered();
     void on_actionOpen_triggered();
     void on_actionSave_triggered();
     void on_actionSave_As_triggered();
