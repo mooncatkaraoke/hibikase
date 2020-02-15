@@ -40,6 +40,11 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
     m_time_slider = new QSlider(Qt::Orientation::Horizontal, this);
     m_speed_slider = new QSlider(Qt::Orientation::Horizontal, this);
 
+    m_play_button->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+    m_stop_button->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+    m_time_slider->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+    m_speed_slider->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+
     // We want a font where all numbers have the same width, so that labels don't change in size
     m_time_label->setTextFormat(Qt::PlainText);
     m_time_label->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));

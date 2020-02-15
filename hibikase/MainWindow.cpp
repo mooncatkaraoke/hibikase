@@ -55,6 +55,10 @@ MainWindow::MainWindow(QWidget* parent) :
     });
     ui->textRadioButton->setChecked(true);
 
+    ui->timingRadioButton->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+    ui->textRadioButton->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+    ui->rawRadioButton->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+
     // TODO: Add a way to create a Soramimi/MoonCat song instead of having to use Load
     m_song = KaraokeData::Load({});
     emit SongReplaced(m_song.get());
