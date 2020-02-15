@@ -697,10 +697,10 @@ int LyricsEditor::TextPositionToLine(int position) const
 
 LyricsEditor::SyllablePosition LyricsEditor::TextPositionToSyllable(int position) const
 {
-    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
-    if (lines.empty())
+    if (m_line_timing_decorations.empty())
         return SyllablePosition{-1, 0};
 
+    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
     int line = TextPositionToLine(position);
     int syllable = m_line_timing_decorations[line]->TextPositionToSyllable(position);
 
