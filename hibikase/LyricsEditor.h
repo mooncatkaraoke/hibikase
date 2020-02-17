@@ -99,7 +99,7 @@ private slots:
     void OnRawContentsChange(int position, int chars_removed, int chars_added);
     void OnCursorPositionChanged();
     void GoToPosition(QPoint pos);
-    void ShowContextMenu(const QPoint& point);
+    void ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edit);
     void AddSyllabificationLanguages(QMenu* menu);
     void Syllabify(const QString& language_code);
     void RomanizeHangul();

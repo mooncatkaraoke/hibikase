@@ -136,9 +136,12 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     connect(m_raw_text_edit->document(), &QTextDocument::contentsChange,
             this, &LyricsEditor::OnRawContentsChange);
 
+    m_rich_text_edit->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_rich_text_edit, &QPlainTextEdit::customContextMenuRequested,
+            [this](const QPoint& point) { ShowContextMenu(point, m_rich_text_edit); });
     m_raw_text_edit->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_raw_text_edit, &QPlainTextEdit::customContextMenuRequested,
-            this, &LyricsEditor::ShowContextMenu);
+            [this](const QPoint& point) { ShowContextMenu(point, m_raw_text_edit); });
 
     connect(&m_timing_event_filter, &TimingEventFilter::SetSyllableStart,
             this, &LyricsEditor::SetSyllableStart);
@@ -443,12 +446,12 @@ void LyricsEditor::GoToPosition(QPoint pos)
     }
 }
 
-void LyricsEditor::ShowContextMenu(const QPoint& point)
+void LyricsEditor::ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edit)
 {
-    bool has_selection = m_raw_text_edit->textCursor().hasSelection();
+    bool has_selection = text_edit->textCursor().hasSelection();
     has_selection = true; // TODO: Remove this line once the selection actually is used
 
-    QMenu* menu = m_raw_text_edit->createStandardContextMenu(point);
+    QMenu* menu = text_edit->createStandardContextMenu(point);
 
     menu->addSeparator();
 
@@ -464,7 +467,7 @@ void LyricsEditor::ShowContextMenu(const QPoint& point)
     menu->addAction(QStringLiteral("Shift Timings..."), this,
                     SLOT(ShiftTimings()))->setEnabled(has_selection);
 
-    menu->exec(m_raw_text_edit->mapToGlobal(point));
+    menu->exec(text_edit->mapToGlobal(point));
 
     delete menu;
 }
