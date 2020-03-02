@@ -20,7 +20,10 @@ export(first.depends)
 export(copydata.commands)
 QMAKE_EXTRA_TARGETS += first copydata
 
+RESOURCES += ../resources/resources.qrc
+
 SOURCES += main.cpp \
+    AboutDialog.cpp \
     AudioFile.cpp \
     MainWindow.cpp \
     KaraokeData/Song.cpp \
@@ -37,6 +40,7 @@ SOURCES += main.cpp \
     LineTimingDecorations.cpp
 
 HEADERS  += MainWindow.h \
+    AboutDialog.h \
     AudioFile.h \
     KaraokeData/Song.h \
     KaraokeData/SoramimiSong.h \

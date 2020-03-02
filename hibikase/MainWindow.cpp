@@ -11,6 +11,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include "MainWindow.h"
+#include "ui_MainWindow.h"
+
 #include <chrono>
 #include <memory>
 #include <utility>
@@ -23,14 +26,12 @@
 #include <QString>
 #include <QBuffer>
 
+#include "AboutDialog.h"
 #include "KaraokeContainer/Container.h"
 #include "KaraokeContainer/PlainContainer.h"
 #include "KaraokeData/Song.h"
 #include "KaraokeData/SoramimiSong.h"
-
 #include "LyricsEditor.h"
-#include "MainWindow.h"
-#include "ui_MainWindow.h"
 
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent), ui(new Ui::MainWindow)
@@ -137,33 +138,10 @@ void MainWindow::on_actionSave_As_triggered()
     SaveAs();
 }
 
-void MainWindow::on_actionAbout_Qt_triggered()
-{
-    QMessageBox::aboutQt(this);
-}
-
 void MainWindow::on_actionAbout_Hibikase_triggered()
 {
-    QMessageBox::about(this, "Hibikase",
-                       "Hibikase, a karaoke editor by MoonCat Karaoke\n"
-                       "\n"
-                       "This program is free software: you can redistribute it and/or modify "
-                       "it under the terms of the GNU General Public License as published by "
-                       "the Free Software Foundation, either version 2 of the License, or "
-                       "(at your option) any later version.\n"
-                       "\n"
-                       "This program is distributed in the hope that it will be useful, "
-                       "but WITHOUT ANY WARRANTY; without even the implied warranty of "
-                       "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
-                       "GNU General Public License for more details.\n"
-                       "\n"
-                       "You should have received a copy of the GNU General Public License "
-                       "along with this program. If not, see <http://www.gnu.org/licenses/>."
-                       "\n"
-                       "\n"
-                       "Hibikase makes use of the dr_mp3 and dr_flac libraries from <https://github.com/mackron/dr_libs>.\n"
-                       "\n"
-                       "Hibikase makes use of the Rubber Band audio stretching library from <https://breakfastquay.com/rubberband/>.");
+    AboutDialog dialog(this);
+    dialog.exec();
 }
 
 void MainWindow::OnSongModified()

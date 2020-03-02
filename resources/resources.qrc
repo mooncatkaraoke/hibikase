@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>licenses/About dr_flac.txt</file>
+    <file>licenses/About dr_mp3.txt</file>
+    <file>licenses/About Rubber Band.txt</file>
+    <file>licenses/GNU General Public License, version 2.txt</file>
+</qresource>
+</RCC>

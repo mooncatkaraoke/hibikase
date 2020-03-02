@@ -78,7 +78,6 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
-    <addaction name="actionAbout_Qt"/>
     <addaction name="actionAbout_Hibikase"/>
    </widget>
    <addaction name="menuFile"/>
@@ -118,12 +117,7 @@
   </action>
   <action name="actionAbout_Hibikase">
    <property name="text">
-    <string>About &amp;Hibikase</string>
-   </property>
-  </action>
-  <action name="actionAbout_Qt">
-   <property name="text">
-    <string>About &amp;Qt</string>
+    <string>&amp;About Hibikase</string>
    </property>
   </action>
  </widget>
