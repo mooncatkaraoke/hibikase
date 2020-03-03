@@ -14,8 +14,22 @@
 #include "Settings.h"
 
 #include <QByteArray>
+#include <QCoreApplication>
+#include <QDir>
 #include <QString>
 #include <QTextCodec>
+
+QString Settings::GetDataPath()
+{
+    const QString path(QStringLiteral("data/"));
+
+#ifdef Q_OS_DARWIN
+    if (!QDir(path).exists())
+        return QCoreApplication::applicationDirPath() + QStringLiteral("/../Resources/");
+#endif
+
+    return path;
+}
 
 QTextCodec* Settings::GetLoadCodec(const QByteArray& data)
 {

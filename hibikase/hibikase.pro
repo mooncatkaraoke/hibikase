@@ -14,11 +14,17 @@ win32-msvc* {
 include(../external/dr_libs.pri)
 include(../external/rubberband.pri)
 
+# Copy the data folder, for builds other than macOS application bundles
 copydata.commands = $$quote($(COPY_DIR) \"$$shell_path($$PWD/../data)\" \"$$shell_path($$OUT_PWD/data)\")
 first.depends = $(first) copydata
 export(first.depends)
 export(copydata.commands)
 QMAKE_EXTRA_TARGETS += first copydata
+
+# Copy the data folder, for macOS application bundles
+BUNDLE_DATA.files = $$PWD/../data/syllabification
+BUNDLE_DATA.path = Contents/Resources
+QMAKE_BUNDLE_DATA += BUNDLE_DATA
 
 RESOURCES += ../resources/resources.qrc
 

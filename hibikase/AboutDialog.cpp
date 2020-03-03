@@ -18,6 +18,8 @@
 #include <QTextStream>
 #include <QVBoxLayout>
 
+#include "Settings.h"
+
 AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
 {
     setWindowTitle(QStringLiteral("About Hibikase"));
@@ -152,7 +154,7 @@ void AboutDialog::PopulateComboBox()
     }
 
     {
-        QDirIterator iterator(QStringLiteral("data/syllabification/"));
+        QDirIterator iterator(Settings::GetDataPath() + QStringLiteral("syllabification/"));
         while (iterator.hasNext())
         {
             iterator.next();

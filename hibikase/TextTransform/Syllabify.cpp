@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include "TextTransform/Syllabify.h"
+
 #include <functional>
 #include <memory>
 
@@ -30,8 +32,8 @@
 
 #include "KaraokeData/Song.h"
 #include "KaraokeData/ReadOnlySong.h"
+#include "Settings.h"
 #include "TextTransform/HangulUtils.h"
-#include "TextTransform/Syllabify.h"
 
 namespace TextTransform
 {
@@ -48,7 +50,8 @@ void Syllabifier::BuildPatterns(const QString& language_code)
     m_patterns.push_back(QMap<QString, QString>());
     m_max_pattern_size.push_back(0);
 
-    QFile file(QStringLiteral("data/syllabification/") + language_code + QStringLiteral(".txt"));
+    QFile file(Settings::GetDataPath() + QStringLiteral("syllabification/") +
+               language_code + QStringLiteral(".txt"));
     if (!file.open(QIODevice::ReadOnly))
         return;
 
@@ -454,7 +457,7 @@ QVector<QString> Syllabifier::AvailableLanguages()
 {
     QVector<QString> result;
 
-    QDirIterator iterator(QStringLiteral("data/syllabification/"));
+    QDirIterator iterator(Settings::GetDataPath() + QStringLiteral("syllabification/"));
     while (iterator.hasNext())
     {
         iterator.next();

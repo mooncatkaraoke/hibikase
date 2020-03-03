@@ -14,11 +14,14 @@
 #pragma once
 
 #include <QByteArray>
+#include <QString>
 #include <QTextCodec>
 
 class Settings
 {
 public:
+    static QString GetDataPath();
+
     static QTextCodec* GetLoadCodec(const QByteArray& data);
     static QTextCodec* GetSaveCodec();
 };
