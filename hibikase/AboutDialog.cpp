@@ -25,8 +25,12 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
     setWindowTitle(QStringLiteral("About Hibikase"));
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
+    QString git_version(GIT_VERSION);
+    if (!git_version.isEmpty())
+        git_version.prepend(QStringLiteral("<br>"));
+
     QLabel* label = new QLabel(QStringLiteral(
-                "<p><b>Hibikase, a karaoke editor by MoonCat Karaoke</b></p>\n"
+                "<p><b>Hibikase, a karaoke editor by MoonCat Karaoke%1</b></p>\n"
                 "\n"
                 "<p>This program is free software: you can redistribute it and/or modify it under "
                 "the terms of the GNU General Public License as published by the Free Software "
@@ -36,7 +40,7 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
                 "<p>This program is distributed in the hope that it will be useful, but WITHOUT "
                 "ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR "
                 "A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>"
-                ));
+                ).arg(git_version));
     label->setWordWrap(true);
 
     QFrame* divider = new QFrame();

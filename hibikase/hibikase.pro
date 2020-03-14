@@ -11,6 +11,9 @@ win32-msvc* {
     msvc:QMAKE_CXXFLAGS += /utf-8
 }
 
+GIT_VERSION = $$system(git --git-dir $$PWD/../.git --work-tree $$PWD/.. describe --always --tags)
+DEFINES += GIT_VERSION=\\\"$$GIT_VERSION\\\"
+
 include(../external/dr_libs.pri)
 include(../external/rubberband.pri)
 
