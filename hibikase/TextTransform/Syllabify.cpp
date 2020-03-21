@@ -185,11 +185,6 @@ static bool IsLetterOrNumber(const QString& text, int i, uint codepoint)
     return false;
 }
 
-static bool IsLetterOrNumber(const QString& text, int i)
-{
-    return IsLetterOrNumber(text, i, CodepointFromUTF16(text, i));
-}
-
 static bool ModifiesPreviousKana(const QChar character)
 {
     const uint codepoint = character.unicode();

@@ -213,7 +213,7 @@ void SoramimiLine::Deserialize()
 
     bool first_timecode = true;
     Centiseconds previous_time;
-    size_t previous_index = 0;
+    ssize_t previous_index = 0;
 
     // Loops from first character to the last character that possibly can be
     // the start of a timecode (the tenth character from the end)
@@ -280,7 +280,7 @@ void SoramimiLine::CalculateStartAndEnd()
     }
 }
 
-void SoramimiLine::AddSyllable(size_t start, size_t end,
+void SoramimiLine::AddSyllable(int start, int end,
                                Centiseconds start_time, Centiseconds end_time)
 {
     const QStringRef text(&m_raw_content, start, end - start);

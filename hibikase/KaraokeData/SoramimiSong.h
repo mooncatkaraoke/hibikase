@@ -94,7 +94,7 @@ private:
     void Serialize(const QVector<const Syllable*>& syllables);
     void Deserialize();
     void CalculateStartAndEnd();
-    void AddSyllable(size_t start, size_t end, Centiseconds start_time, Centiseconds end_time);
+    void AddSyllable(int start, int end, Centiseconds start_time, Centiseconds end_time);
 
     static QString SerializeTime(Centiseconds time);
     static QString SerializeNumber(int number, int digits);

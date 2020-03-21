@@ -2,6 +2,10 @@ TARGET = rubberband
 TEMPLATE = lib
 CONFIG += static
 
+# Rubberband is external code we don't maintain, so trivial compiler warnings
+# in it are of no interest to us.
+CONFIG += warn_off
+
 win32-msvc* {
     DEFINES += __MSVC__
     DEFINES += NOMINMAX
@@ -77,9 +81,9 @@ SOURCES += \
     rubberband/src/audiocurves/PercussiveAudioCurve.cpp \
     rubberband/src/dsp/Resampler.cpp \
     rubberband/src/dsp/FFT.cpp \
-    rubberband/src/system/Allocators.cpp \
+#    rubberband/src/system/Allocators.cpp \ (unused in our configuration)
     rubberband/src/system/sysutils.cpp \
     rubberband/src/system/Thread.cpp \
-    rubberband/src/system/VectorOpsComplex.cpp \
+#    rubberband/src/system/VectorOpsComplex.cpp \ (unused in our configuration)
     rubberband/src/StretcherChannelData.cpp \
     rubberband/src/StretcherImpl.cpp
