@@ -32,7 +32,7 @@ namespace
 {
     class NotSupported final : public std::exception
     {
-        virtual const char* what() const throw()
+        virtual const char* what() const noexcept
         {
             return "Not supported";
         }
@@ -119,9 +119,23 @@ public:
     virtual QString GetText() const;
 
     virtual bool SupportsPositionConversion() const { return false; }
-    virtual SongPosition PositionFromRaw(int) const { throw not_supported; }
-    virtual int PositionToRaw(SongPosition) const { throw not_supported; }
-    virtual void UpdateRawText(int position, int chars_to_remove, QStringRef replace_with) { throw not_supported; }
+    virtual SongPosition PositionFromRaw(int raw_position) const
+    {
+        (void)raw_position;
+        throw not_supported;
+    }
+    virtual int PositionToRaw(SongPosition position) const
+    {
+        (void)position;
+        throw not_supported;
+    }
+    virtual void UpdateRawText(int position, int chars_to_remove, QStringRef replace_with)
+    {
+        (void)position;
+        (void)chars_to_remove;
+        (void)replace_with;
+        throw not_supported;
+    }
 
 signals:
     void LinesChanged(int line_position, int lines_removed, int lines_added,
