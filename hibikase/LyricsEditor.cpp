@@ -115,7 +115,16 @@ bool TextEventFilter::eventFilter(QObject* obj, QEvent* event)
         QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
 
         if (key_event->key() == Qt::Key_Space &&
+#if defined(Q_OS_MACOS) || defined(Q_OS_OSX)
+            // on macOS, ControlModifier is mapped to ⌘ (Command), but ⌘+Space
+            // is the default input method switching shortcut, which we can't
+            // override, so let's use MetaModifier which /actually/ maps to Ctrl
+            // on macOS. Ctrl+Space seems to be fine as a shortcut.
+            key_event->modifiers().testFlag(Qt::MetaModifier))
+#else
+            // on other platforms the shortcut is also Ctrl+Space
             key_event->modifiers().testFlag(Qt::ControlModifier))
+#endif
         {
             emit ToggleSyllable();
             return true;
