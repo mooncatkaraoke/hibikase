@@ -213,7 +213,7 @@ void SoramimiLine::Deserialize()
 
     bool first_timecode = true;
     Centiseconds previous_time;
-    ssize_t previous_index = 0;
+    int previous_index = 0;
 
     // Loops from first character to the last character that possibly can be
     // the start of a timecode (the tenth character from the end)
