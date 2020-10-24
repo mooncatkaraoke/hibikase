@@ -34,6 +34,7 @@ RESOURCES += ../resources/resources.qrc
 SOURCES += main.cpp \
     AboutDialog.cpp \
     AudioFile.cpp \
+    AudioOutputWorker.cpp \
     MainWindow.cpp \
     KaraokeData/Song.cpp \
     KaraokeData/SoramimiSong.cpp \
@@ -51,6 +52,7 @@ SOURCES += main.cpp \
 HEADERS  += MainWindow.h \
     AboutDialog.h \
     AudioFile.h \
+    AudioOutputWorker.h \
     KaraokeData/Song.h \
     KaraokeData/SoramimiSong.h \
     KaraokeContainer/Container.h \
