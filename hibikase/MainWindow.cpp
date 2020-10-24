@@ -42,23 +42,21 @@ MainWindow::MainWindow(QWidget* parent) :
     connect(ui->playbackWidget, &PlaybackWidget::TimeUpdated, ui->mainLyrics, &LyricsEditor::UpdateTime);
     connect(ui->mainLyrics, &LyricsEditor::Modified, this, &MainWindow::OnSongModified);
 
-    connect(ui->timingRadioButton, &QRadioButton::toggled, [this](bool checked) {
-        if (checked)
-            ui->mainLyrics->SetMode(LyricsEditor::Mode::Timing);
+#ifndef Q_OS_MACOS
+    // The macOS tab bar looks better with spacing between it and the editor,
+    // whereas the Windows one looks best with no spacing and no extra border.
+    ui->tabLayout->setSpacing(0);
+    ui->modeTabBar->setDrawBase(false);
+#endif
+    ui->modeTabBar->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+    for (QString mode : {"&Timing", "Te&xt", "&Raw"})
+    {
+        ui->modeTabBar->addTab(mode);
+    }
+    connect(ui->modeTabBar, &QTabBar::currentChanged, [this](int index) {
+        ui->mainLyrics->SetMode(static_cast<LyricsEditor::Mode>(index));
     });
-    connect(ui->textRadioButton, &QRadioButton::toggled, [this](bool checked) {
-        if (checked)
-            ui->mainLyrics->SetMode(LyricsEditor::Mode::Text);
-    });
-    connect(ui->rawRadioButton, &QRadioButton::toggled, [this](bool checked) {
-        if (checked)
-            ui->mainLyrics->SetMode(LyricsEditor::Mode::Raw);
-    });
-    ui->textRadioButton->setChecked(true);
-
-    ui->timingRadioButton->setFocusPolicy(Qt::FocusPolicy::TabFocus);
-    ui->textRadioButton->setFocusPolicy(Qt::FocusPolicy::TabFocus);
-    ui->rawRadioButton->setFocusPolicy(Qt::FocusPolicy::TabFocus);
+    ui->modeTabBar->setCurrentIndex(static_cast<int>(LyricsEditor::Mode::Text));
 
     // TODO: Add a way to create a Soramimi song instead of having to use Load
     m_song = KaraokeData::Load({});
