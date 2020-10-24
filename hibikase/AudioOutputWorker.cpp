@@ -40,14 +40,18 @@ void AudioOutputWorker::Initialize()
         return;
     }
 
-    m_audio_output = std::make_unique<QAudioOutput>(m_audio_file->GetPCMFormat(), this);
+    QAudioFormat float_format(m_audio_file->GetPCMFormat());
+    float_format.setSampleSize(32);
+    float_format.setSampleType(QAudioFormat::SampleType::Float);
+
+    m_audio_output = std::make_unique<QAudioOutput>(float_format, this);
     m_audio_output->setNotifyInterval(10);
 
-    m_stretcher_float_buffers.resize(m_audio_output->format().channelCount());
-    m_stretcher_float_buffers_pointers.resize(m_audio_output->format().channelCount());
+    m_stretcher_float_buffers.resize(float_format.channelCount());
+    m_stretcher_float_buffers_pointers.resize(float_format.channelCount());
 
     m_stretcher = std::make_unique<RubberBand::RubberBandStretcher>(
-                m_audio_output->format().sampleRate(), m_audio_output->format().channelCount(),
+                float_format.sampleRate(), float_format.channelCount(),
                 RubberBand::RubberBandStretcher::Option::OptionProcessRealTime);
 
     connect(m_audio_output.get(), &QAudioOutput::stateChanged, this, &AudioOutputWorker::OnStateChanged);
@@ -76,7 +80,7 @@ void AudioOutputWorker::Play()
 
 void AudioOutputWorker::Seek(std::chrono::microseconds to)
 {
-    const qint32 offset = m_audio_output->format().bytesForDuration(to.count());
+    const qint32 offset = m_audio_file->GetPCMFormat().bytesForDuration(to.count());
     m_start_offset += static_cast<qint32>((offset - m_current_offset) *
                                           m_stretcher->getTimeRatio());
     m_current_offset = offset;
@@ -108,7 +112,7 @@ void AudioOutputWorker::SetSpeed(double slowdown)
 }
 
 template <typename T>
-static void ToFloat(const T* in, std::vector<std::vector<float>>* out)
+static void SeparateChannels(const T* in, std::vector<std::vector<float>>* out)
 {
     static_assert(std::is_integral<T>() && std::is_signed<T>(), "Incompatible type");
     const float scale = 1.0f / (std::numeric_limits<T>::max() + 1.0f);
@@ -124,20 +128,14 @@ static void ToFloat(const T* in, std::vector<std::vector<float>>* out)
     }
 }
 
-template <typename T>
-static void FromFloat(const std::vector<std::vector<float>>& in, T* out)
+static void InterleaveChannels(const std::vector<std::vector<float>>& in, float* out)
 {
-    static_assert(std::is_integral<T>() && std::is_signed<T>() && sizeof(T) < sizeof(int),
-                  "Incompatible type");
-    const int min = std::numeric_limits<T>::min();
-    const int max = std::numeric_limits<T>::max();
-
     for (size_t i = 0; i < in.size(); ++i)
     {
-        T* ptr = out + i;
+        float* ptr = out + i;
         for (size_t j = 0; j < in[i].size(); ++j)
         {
-            *ptr = static_cast<T>(qBound(min, static_cast<int>(in[i][j] * (max + 1)), max));
+            *ptr = in[i][j];
             ptr += in.size();
         }
     }
@@ -149,7 +147,7 @@ bool AudioOutputWorker::PushSamplesToStretcher()
     if (m_current_offset >= audio_buffer.size())
         return false;
 
-    const size_t bytes_per_frame = m_audio_output->format().bytesPerFrame();
+    const size_t bytes_per_frame = m_audio_file->GetPCMFormat().bytesPerFrame();
     const size_t frames = std::min<size_t>((audio_buffer.size() - m_current_offset) / bytes_per_frame,
                                            m_stretcher->getSamplesRequired());
     for (size_t i = 0; i < m_stretcher_float_buffers.size(); ++i)
@@ -160,9 +158,9 @@ bool AudioOutputWorker::PushSamplesToStretcher()
 
     const size_t bytes_per_sample = bytes_per_frame / m_stretcher_float_buffers.size();
     Q_ASSERT(bytes_per_sample == 2 &&
-             m_audio_output->format().sampleType() == QAudioFormat::SampleType::SignedInt);
-    ToFloat(reinterpret_cast<const int16_t*>(audio_buffer.data() + m_current_offset),
-            &m_stretcher_float_buffers);
+             m_audio_file->GetPCMFormat().sampleType() == QAudioFormat::SampleType::SignedInt);
+    SeparateChannels(reinterpret_cast<const int16_t*>(audio_buffer.data() + m_current_offset),
+                     &m_stretcher_float_buffers);
 
     m_current_offset += frames * bytes_per_frame;
     const bool final = m_current_offset == audio_buffer.size();
@@ -181,7 +179,6 @@ void AudioOutputWorker::PushSamplesToOutput()
         if (frames == 0)
             continue;
 
-        const size_t channels = m_stretcher_float_buffers.size();
         for (size_t i = 0; i < m_stretcher_float_buffers.size(); ++i)
         {
             m_stretcher_float_buffers[i].resize(frames);
@@ -192,11 +189,8 @@ void AudioOutputWorker::PushSamplesToOutput()
         if (frames == 0)
             continue;
 
-        const size_t bytes_per_sample = bytes_per_frame / channels;
-        Q_ASSERT(bytes_per_sample == 2 &&
-                 m_audio_output->format().sampleType() == QAudioFormat::SampleType::SignedInt);
         m_stretcher_buffer.resize(frames * bytes_per_frame);
-        FromFloat(m_stretcher_float_buffers, reinterpret_cast<int16_t*>(m_stretcher_buffer.data()));
+        InterleaveChannels(m_stretcher_float_buffers, reinterpret_cast<float*>(m_stretcher_buffer.data()));
 
         m_output_buffer->write(m_stretcher_buffer.data(), m_stretcher_buffer.size());
     } while (m_audio_output->bytesFree() && PushSamplesToStretcher());
@@ -208,7 +202,7 @@ void AudioOutputWorker::PushSamplesToOutput()
 std::chrono::microseconds AudioOutputWorker::DurationForBytes(qint32 bytes)
 {
     return std::chrono::microseconds((bytes < 0 ? -1 : 1) *
-                                     m_audio_output->format().durationForBytes(std::abs(bytes)));
+                                     m_audio_file->GetPCMFormat().durationForBytes(std::abs(bytes)));
 }
 
 void AudioOutputWorker::OnNotify()
