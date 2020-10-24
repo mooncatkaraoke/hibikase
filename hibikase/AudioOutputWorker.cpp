@@ -19,6 +19,7 @@
 #include <utility>
 
 #include <QByteArray>
+#include <QDebug>
 
 AudioOutputWorker::AudioOutputWorker(std::unique_ptr<QIODevice> io_device, QObject* parent)
     : QObject(parent), m_io_device(std::move(io_device))
@@ -62,20 +63,30 @@ void AudioOutputWorker::Initialize()
 
 void AudioOutputWorker::Play()
 {
-    if (m_audio_output->state() != QAudio::State::StoppedState)
-    {
-        m_audio_output->resume();
-    }
-    else
+    if (m_audio_output->state() == QAudio::State::StoppedState)
     {
         m_start_offset = 0;
         m_current_offset = 0;
         m_last_seek_offset = 0;
         m_last_speed_change_offset = 0;
-
         m_output_buffer = m_audio_output->start();
-        PushSamplesToOutput();
     }
+    else if (m_audio_output->state() == QAudio::State::SuspendedState)
+    {
+        m_audio_output->resume();
+    }
+    else
+    {
+        qInfo() << "Audio playback got stuck (probably a buffer underrun), attempting to restart.";
+        m_audio_output->stop();
+        m_start_offset = m_current_offset;
+        m_output_buffer = m_audio_output->start();
+        // When QAudioOutput suffers a buffer underrun on macOS in particular,
+        // a suspend-resume may be required to fix the timing events.
+        m_audio_output->suspend();
+        m_audio_output->resume();
+    }
+    PushSamplesToOutput();
 }
 
 void AudioOutputWorker::Seek(std::chrono::microseconds to)
@@ -224,5 +235,16 @@ void AudioOutputWorker::OnNotify()
 
 void AudioOutputWorker::OnStateChanged(QAudio::State state)
 {
+#define CASE(n) case QAudio::State::n: qDebug() << "QAudioOuput state change:" << #n; break
+    switch (state)
+    {
+        CASE(IdleState);
+        CASE(ActiveState);
+        CASE(StoppedState);
+        CASE(SuspendedState);
+        CASE(InterruptedState);
+    }
+#undef CASE
+
     emit StateChanged(state);
 }
