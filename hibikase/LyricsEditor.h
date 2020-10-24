@@ -86,6 +86,8 @@ public:
 
     void SetMode(Mode mode);
 
+    void AddActionsToMenu(QMenu* menu);
+
 signals:
     void Modified();
 
@@ -99,7 +101,6 @@ private slots:
     void OnRawContentsChange(int position, int chars_removed, int chars_added);
     void OnCursorPositionChanged();
     void GoToPosition(QPoint pos);
-    void ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edit);
     void AddSyllabificationLanguages(QMenu* menu);
     void Syllabify(const QString& language_code);
     void RomanizeHangul();
@@ -109,6 +110,8 @@ private slots:
     void ToggleSyllable();
 
 private:
+    void AddLyricsActionsToMenu(QMenu* menu, QPlainTextEdit* text_edit);
+    void ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edit);
     void ApplyLineTransformation(int start_line, int end_line,
                                  std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);
     void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);

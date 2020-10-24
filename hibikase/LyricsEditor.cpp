@@ -457,12 +457,10 @@ void LyricsEditor::GoToPosition(QPoint pos)
     }
 }
 
-void LyricsEditor::ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edit)
+void LyricsEditor::AddLyricsActionsToMenu(QMenu* menu, QPlainTextEdit* text_edit)
 {
     bool has_selection = text_edit->textCursor().hasSelection();
     has_selection = true; // TODO: Remove this line once the selection actually is used
-
-    QMenu* menu = text_edit->createStandardContextMenu(point);
 
     menu->addSeparator();
 
@@ -477,10 +475,27 @@ void LyricsEditor::ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edi
 
     menu->addAction(QStringLiteral("Shift Timings..."), this,
                     SLOT(ShiftTimings()))->setEnabled(has_selection);
+}
 
+void LyricsEditor::ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edit)
+{
+    std::unique_ptr<QMenu> menu(text_edit->createStandardContextMenu(point));
+    AddLyricsActionsToMenu(menu.get(), text_edit);
     menu->exec(text_edit->mapToGlobal(point));
+}
 
-    delete menu;
+void LyricsEditor::AddActionsToMenu(QMenu* menu)
+{
+    QPlainTextEdit* text_edit = (m_mode == Mode::Raw) ? m_raw_text_edit : m_rich_text_edit;
+
+    std::unique_ptr<QMenu> menu_template(text_edit->createStandardContextMenu());
+    for (QAction* action : menu_template->actions())
+    {
+        menu->addAction(action);
+        action->setParent(menu);
+    }
+
+    AddLyricsActionsToMenu(menu, text_edit);
 }
 
 void LyricsEditor::AddSyllabificationLanguages(QMenu* menu)
