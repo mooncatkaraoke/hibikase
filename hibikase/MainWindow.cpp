@@ -38,6 +38,11 @@ MainWindow::MainWindow(QWidget* parent) :
 {
     ui->setupUi(this);
 
+    connect(ui->menuEdit, &QMenu::aboutToShow, [this]() {
+        ui->menuEdit->clear();
+        ui->mainLyrics->AddActionsToMenu(ui->menuEdit);
+    });
+
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
     connect(ui->playbackWidget, &PlaybackWidget::TimeUpdated, ui->mainLyrics, &LyricsEditor::UpdateTime);
     connect(ui->mainLyrics, &LyricsEditor::Modified, this, &MainWindow::OnSongModified);
