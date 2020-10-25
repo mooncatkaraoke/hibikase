@@ -68,7 +68,7 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
     connect(m_stop_button, &QPushButton::clicked, this, &PlaybackWidget::OnStopButtonClicked);
     connect(m_time_slider, &QSlider::sliderMoved, this, &PlaybackWidget::OnTimeSliderMoved);
     connect(m_time_slider, &QSlider::sliderReleased, this, &PlaybackWidget::OnTimeSliderReleased);
-    connect(m_speed_slider, &QSlider::sliderMoved, this, &PlaybackWidget::OnSpeedSliderMoved);
+    connect(m_speed_slider, &QSlider::valueChanged, this, &PlaybackWidget::OnSpeedSliderUpdated);
     LoadAudio(nullptr);
 
     m_thread.start();
@@ -171,7 +171,7 @@ void PlaybackWidget::OnTimeSliderReleased()
     QMetaObject::invokeMethod(m_worker, "Seek", Q_ARG(std::chrono::microseconds, new_pos));
 }
 
-void PlaybackWidget::OnSpeedSliderMoved(int value)
+void PlaybackWidget::OnSpeedSliderUpdated(int value)
 {
     UpdateSpeedLabel(value);
 
