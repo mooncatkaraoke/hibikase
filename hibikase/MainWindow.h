@@ -49,6 +49,8 @@ private slots:
     void OnSongModified();
 
 private:
+    const QString FILTER = QStringLiteral("Soramimi Lyrics (*.txt);;All Files (*.*)");
+
     void UpdateWindowTitle();
     void LoadAudio();
     bool Save(QString path);
