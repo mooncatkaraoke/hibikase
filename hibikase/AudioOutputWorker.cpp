@@ -19,6 +19,7 @@
 #include <utility>
 
 #include <QByteArray>
+#include <QDebug>
 
 AudioOutputWorker::AudioOutputWorker(std::unique_ptr<QIODevice> io_device, QObject* parent)
     : QObject(parent), m_io_device(std::move(io_device))
@@ -224,5 +225,16 @@ void AudioOutputWorker::OnNotify()
 
 void AudioOutputWorker::OnStateChanged(QAudio::State state)
 {
+#define CASE(n) case QAudio::State::n: qDebug() << "QAudioOutput state change:" << #n; break
+    switch (state)
+    {
+        CASE(IdleState);
+        CASE(ActiveState);
+        CASE(StoppedState);
+        CASE(SuspendedState);
+        CASE(InterruptedState);
+    }
+#undef CASE
+
     emit StateChanged(state);
 }
