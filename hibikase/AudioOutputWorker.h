@@ -33,6 +33,13 @@ class AudioOutputWorker final : public QObject
 public:
     explicit AudioOutputWorker(std::unique_ptr<QIODevice> io_device, QObject* parent = nullptr);
 
+    enum class PlaybackState
+    {
+        Stopped,
+        Paused,
+        Playing,
+    };
+
 public slots:
     void Initialize();
     void Play();
@@ -43,7 +50,7 @@ public slots:
 
 signals:
     void LoadFinished(QString error);
-    void StateChanged(QAudio::State state);
+    void PlaybackStateChanged(PlaybackState state);
     void TimeUpdated(std::chrono::microseconds current, std::chrono::microseconds length);
 
 private slots:
@@ -62,7 +69,7 @@ private:
     std::vector<char> m_stretcher_buffer;
     std::vector<std::vector<float>> m_stretcher_float_buffers;
     std::vector<float*> m_stretcher_float_buffers_pointers;
-    QIODevice* m_output_buffer;
+    QIODevice* m_output_buffer = nullptr;
     qint32 m_start_offset;
     qint32 m_current_offset;
     qint32 m_last_seek_offset;
@@ -70,3 +77,4 @@ private:
 };
 
 Q_DECLARE_METATYPE(std::chrono::microseconds);
+Q_DECLARE_METATYPE(AudioOutputWorker::PlaybackState);

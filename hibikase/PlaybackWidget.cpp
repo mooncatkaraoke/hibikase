@@ -87,7 +87,7 @@ void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
 {
     if (m_worker)
     {
-        disconnect(m_worker, &AudioOutputWorker::StateChanged, this, &PlaybackWidget::OnStateChanged);
+        disconnect(m_worker, &AudioOutputWorker::PlaybackStateChanged, this, &PlaybackWidget::OnStateChanged);
         disconnect(m_worker, &AudioOutputWorker::TimeUpdated, this, &PlaybackWidget::UpdateTime);
         QMetaObject::invokeMethod(m_worker, "deleteLater");
         m_worker = nullptr;
@@ -96,7 +96,7 @@ void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
     m_play_button->setEnabled(false);
     m_stop_button->setEnabled(false);
     m_time_slider->setEnabled(false);
-    OnStateChanged(QAudio::State::StoppedState);
+    OnStateChanged(AudioOutputWorker::PlaybackState::Stopped);
 
     if (!io_device)
     {
@@ -112,7 +112,7 @@ void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
     connect(m_worker, &AudioOutputWorker::LoadFinished, this, &PlaybackWidget::OnLoadResult);
     QMetaObject::invokeMethod(m_worker, "Initialize");
 
-    connect(m_worker, &AudioOutputWorker::StateChanged, this, &PlaybackWidget::OnStateChanged);
+    connect(m_worker, &AudioOutputWorker::PlaybackStateChanged, this, &PlaybackWidget::OnStateChanged);
     connect(m_worker, &AudioOutputWorker::TimeUpdated, this, &PlaybackWidget::UpdateTime);
 }
 
@@ -126,7 +126,7 @@ void PlaybackWidget::OnLoadResult(QString result)
 
     m_play_button->setEnabled(true);
     m_time_slider->setEnabled(true);
-    OnStateChanged(QAudio::State::StoppedState);
+    OnStateChanged(AudioOutputWorker::PlaybackState::Stopped);
 }
 
 void PlaybackWidget::OnPlayButtonClicked()
@@ -134,7 +134,7 @@ void PlaybackWidget::OnPlayButtonClicked()
     if (!m_worker)
         return;
 
-    if (m_state != QAudio::State::ActiveState)
+    if (m_state != AudioOutputWorker::PlaybackState::Playing)
     {
         QMetaObject::invokeMethod(m_worker, "SetSpeed",
                                   Q_ARG(double, ConvertSpeed(m_speed_slider->value())));
@@ -184,18 +184,18 @@ void PlaybackWidget::UpdateSpeedLabel(int value)
     m_speed_label->setText(QStringLiteral("Speed: %1%").arg(QString::number(value * 10), 3, QChar(' ')));
 }
 
-void PlaybackWidget::OnStateChanged(QAudio::State state)
+void PlaybackWidget::OnStateChanged(AudioOutputWorker::PlaybackState state)
 {
     m_state = state;
 
-    if (state != QAudio::State::ActiveState)
+    if (state != AudioOutputWorker::PlaybackState::Playing)
         m_play_button->setText(QStringLiteral("Play"));
     else
         m_play_button->setText(QStringLiteral("Pause"));
 
-    m_stop_button->setEnabled(state != QAudio::State::StoppedState);
+    m_stop_button->setEnabled(state != AudioOutputWorker::PlaybackState::Stopped);
 
-    if (state == QAudio::State::StoppedState)
+    if (state == AudioOutputWorker::PlaybackState::Stopped)
         UpdateTime(std::chrono::microseconds(-1), std::chrono::microseconds(-1));
 }
 
