@@ -44,7 +44,7 @@ private slots:
     void OnStopButtonClicked();
     void OnTimeSliderMoved(int value);
     void OnTimeSliderReleased();
-    void OnSpeedSliderMoved(int value);
+    void OnSpeedSliderUpdated(int value);
     void OnStateChanged(QAudio::State state);
     void UpdateTime(std::chrono::microseconds current, std::chrono::microseconds length);
 
