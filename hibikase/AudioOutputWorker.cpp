@@ -19,11 +19,13 @@
 #include <utility>
 
 #include <QByteArray>
+#include <QDebug>
 
 AudioOutputWorker::AudioOutputWorker(std::unique_ptr<QIODevice> io_device, QObject* parent)
     : QObject(parent), m_io_device(std::move(io_device))
 {
     qRegisterMetaType<std::chrono::microseconds>();
+    qRegisterMetaType<PlaybackState>("PlaybackState");
 }
 
 void AudioOutputWorker::Initialize()
@@ -74,8 +76,11 @@ void AudioOutputWorker::Play()
         m_last_speed_change_offset = 0;
 
         m_output_buffer = m_audio_output->start();
-        PushSamplesToOutput();
     }
+
+    // Not only starting playback from 0 requires samples, but also resuming
+    // from a buffer underrun. It can't hurt for resuming from pause too.
+    PushSamplesToOutput();
 }
 
 void AudioOutputWorker::Seek(std::chrono::microseconds to)
@@ -99,6 +104,7 @@ void AudioOutputWorker::Stop()
 {
     m_audio_output->stop();
     m_audio_output->reset();
+    m_output_buffer = nullptr;
     m_stretcher->reset();
 }
 
@@ -224,5 +230,41 @@ void AudioOutputWorker::OnNotify()
 
 void AudioOutputWorker::OnStateChanged(QAudio::State state)
 {
-    emit StateChanged(state);
+#define CASE(n) case QAudio::State::n: qDebug() << "QAudioOutput state change:" << #n; break
+    switch (state)
+    {
+        CASE(IdleState);
+        CASE(ActiveState);
+        CASE(StoppedState);
+        CASE(SuspendedState);
+        CASE(InterruptedState);
+    }
+#undef CASE
+
+    // A transition to IdleState from ActiveState means a buffer underrun. When
+    // this happens we'll stop receiving `notify` events which normally drive
+    // our sample-pushing, so if we don't push more here, the audio will stop.
+    if (m_output_buffer && state == QAudio::State::IdleState)
+    {
+        qInfo() << "Audio playback buffer underrun, pushing more samples.";
+        PushSamplesToOutput();
+    }
+
+    PlaybackState simplified_state;
+    switch (state)
+    {
+    case QAudio::State::ActiveState: // Normal playback
+    case QAudio::State::IdleState:   // Buffer underrun during playback
+        simplified_state = PlaybackState::Playing;
+        break;
+    case QAudio::State::SuspendedState:
+    case QAudio::State::InterruptedState:
+        simplified_state = PlaybackState::Paused;
+        break;
+    case QAudio::State::StoppedState:
+        simplified_state = PlaybackState::Stopped;
+        break;
+    }
+
+    emit PlaybackStateChanged(simplified_state);
 }

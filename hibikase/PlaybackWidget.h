@@ -16,7 +16,6 @@
 #include <chrono>
 #include <memory>
 
-#include <QAudio>
 #include <QLabel>
 #include <QPushButton>
 #include <QSlider>
@@ -45,7 +44,7 @@ private slots:
     void OnTimeSliderMoved(int value);
     void OnTimeSliderReleased();
     void OnSpeedSliderUpdated(int value);
-    void OnStateChanged(QAudio::State state);
+    void OnStateChanged(AudioOutputWorker::PlaybackState state);
     void UpdateTime(std::chrono::microseconds current, std::chrono::microseconds length);
 
 private:
@@ -61,5 +60,5 @@ private:
     AudioOutputWorker* m_worker = nullptr;
     QThread m_thread;
 
-    QAudio::State m_state;
+    AudioOutputWorker::PlaybackState m_state;
 };
