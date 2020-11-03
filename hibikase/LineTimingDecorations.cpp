@@ -25,6 +25,7 @@
 #include <QPen>
 #include <QPoint>
 #include <QRect>
+#include <QRegularExpression>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QWidget>
@@ -74,12 +75,16 @@ static QColor GetPlayedColor()
     return col;
 }
 
-static void SetColor(QTextDocument* document, int start_index, int end_index, TimingState state)
+static void UpdateTextCharFormat(QTextDocument* document, int start_index, int end_index, QTextCharFormat modifier)
 {
     QTextCursor cursor(document);
     cursor.setPosition(start_index, QTextCursor::MoveAnchor);
     cursor.setPosition(end_index, QTextCursor::KeepAnchor);
+    cursor.mergeCharFormat(modifier);
+}
 
+static void SetColor(QTextDocument* document, int start_index, int end_index, TimingState state)
+{
     QTextCharFormat color;
     if (state == TimingState::NotPlayed)
         color.setForeground(GetNotPlayedColor());
@@ -87,7 +92,7 @@ static void SetColor(QTextDocument* document, int start_index, int end_index, Ti
         color.setForeground(GetPlayingColor());
     else
         color.setForeground(GetPlayedColor());
-    cursor.setCharFormat(color);
+    UpdateTextCharFormat(document, start_index, end_index, color);
 }
 
 SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int start_index,
@@ -182,10 +187,32 @@ void SyllableDecorations::CalculateGeometry()
     setGeometry(QRect(left, top, width, height));
 }
 
+static void FindAndStyleColorTags(QTextDocument* document, QString line, int start_index)
+{
+    static QRegularExpression REGEX("<FONT COLOR = \"(#[0-9a-f]+)\">", QRegularExpression::CaseInsensitiveOption);
+
+    for (QRegularExpressionMatchIterator it = REGEX.globalMatch(line); it.hasNext(); )
+    {
+        QRegularExpressionMatch m = it.next();
+
+        QString hex = m.captured(1);
+        int hex_start = start_index + m.capturedStart(1);
+        int hex_end = start_index + m.capturedEnd(1);
+
+        QTextCharFormat format;
+        format.setFontFamily(QFontDatabase::systemFont(QFontDatabase::FixedFont).family());
+        format.setBackground(QColor(hex));
+        format.setTextOutline(QPen(Qt::GlobalColor::gray));
+        UpdateTextCharFormat(document, hex_start, hex_end, format);
+    }
+}
+
 LineTimingDecorations::LineTimingDecorations(const KaraokeData::Line& line, int position,
                                              QPlainTextEdit* text_edit, Milliseconds time, QObject* parent)
     : QObject(parent), m_line(line), m_start_index(position)
 {
+    FindAndStyleColorTags(text_edit->document(), m_line.GetText(), m_start_index);
+
     m_state = GetTimingState(time, m_line.GetStart(), m_line.GetEnd());
 
     const QVector<const KaraokeData::Syllable*> syllables = m_line.GetSyllables();
