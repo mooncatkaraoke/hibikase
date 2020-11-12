@@ -15,6 +15,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <memory>
+#include <cctype>
 
 #include <QBrush>
 #include <QColor>
@@ -189,7 +190,27 @@ void SyllableDecorations::CalculateGeometry()
 
 static void FindAndStyleColorTags(QTextDocument* document, QString line, int start_index)
 {
-    static QRegularExpression REGEX("<FONT COLOR = \"(#[0-9a-f]+)\">", QRegularExpression::CaseInsensitiveOption);
+    // Soramimi splits the lyrics into lines, then on each line matches tags
+    // beginning with < and ending with >, lower-cases the content, and uses
+    // strtok(, " ,\t\n<>=\"") to tokenise the attributes within.
+    // The first character (e.g. #) of the color code is ignored. There must be
+    // at least 6 remaining characters, and the first 6 are interpreted as hex.
+
+#define SEP             " ,\t=\""       // <>\n are excluded because they can't exist within a tag
+#define REQUIRED_GAP    "[" SEP "]+"
+#define OPTIONAL_GAP    "[" SEP "]*"
+#define ANY_CHAR        "[^" SEP "]"
+    static QRegularExpression REGEX(
+        "<" OPTIONAL_GAP
+        "font" REQUIRED_GAP
+        "color" REQUIRED_GAP
+        ANY_CHAR "(" ANY_CHAR "{6})" ANY_CHAR "*" OPTIONAL_GAP
+        ">",
+        QRegularExpression::CaseInsensitiveOption);
+#undef SEP
+#undef REQUIRED_GAP
+#undef OPTIONAL_GAP
+#undef ANY_CHAR
 
     for (QRegularExpressionMatchIterator it = REGEX.globalMatch(line); it.hasNext(); )
     {
@@ -199,9 +220,22 @@ static void FindAndStyleColorTags(QTextDocument* document, QString line, int sta
         int hex_start = start_index + m.capturedStart(1);
         int hex_end = start_index + m.capturedEnd(1);
 
+        int channels[6] = {0};
+        for (unsigned i = 0; i < 6; i++)
+        {
+            int c = tolower(hex.data()[i].unicode());
+            const char HEX_DIGITS[] = "0123456789abcdef";
+            const char *pos = strchr(HEX_DIGITS, c);
+            if (!pos) // Soramimi treats non-hex digits as being zero
+            {
+                continue;
+            }
+            channels[i / 2] |= static_cast<int>((pos - HEX_DIGITS) << ((1 - (i & 1)) * 4));
+        }
+
         QTextCharFormat format;
         format.setFontFamily(QFontDatabase::systemFont(QFontDatabase::FixedFont).family());
-        format.setBackground(QColor(hex));
+        format.setBackground(QColor(channels[0], channels[1], channels[2]));
         format.setTextOutline(QPen(Qt::GlobalColor::gray));
         UpdateTextCharFormat(document, hex_start, hex_end, format);
     }
