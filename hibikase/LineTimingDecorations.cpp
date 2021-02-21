@@ -91,9 +91,12 @@ static void SetColor(QTextDocument* document, int start_index, int end_index, Ti
 }
 
 SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int start_index,
-        int end_index, Milliseconds start_time, Milliseconds end_time, TimingState state)
+                                         int end_index, Milliseconds start_time,
+                                         Milliseconds end_time, bool show_end_marker,
+                                         TimingState state)
     : QWidget(text_edit->viewport()), m_text_edit(text_edit), m_start_index(start_index),
-      m_end_index(end_index), m_start_time(start_time), m_end_time(end_time), m_state(state)
+      m_end_index(end_index), m_start_time(start_time), m_end_time(end_time),
+      m_show_end_marker(show_end_marker), m_state(state)
 {
     CalculateGeometry();
 
@@ -140,6 +143,30 @@ void SyllableDecorations::AddToPosition(int diff)
     CalculateGeometry();
 }
 
+static QPainterPath GetStartMarkerPath()
+{
+    QPainterPath path;
+
+    path.moveTo(QPoint(0, 0));
+    path.lineTo(QPoint(SYLLABLE_MARKER_WIDTH, SYLLABLE_MARKER_HEIGHT));
+    path.lineTo(QPoint(0, SYLLABLE_MARKER_HEIGHT));
+    path.lineTo(QPoint(0, 0));
+
+    return path;
+}
+
+static QPainterPath GetEndMarkerPath()
+{
+    QPainterPath path;
+
+    path.moveTo(QPoint(0, 0));
+    path.lineTo(QPoint(-SYLLABLE_MARKER_WIDTH, SYLLABLE_MARKER_HEIGHT));
+    path.lineTo(QPoint(0, SYLLABLE_MARKER_HEIGHT));
+    path.lineTo(QPoint(0, 0));
+
+    return path;
+}
+
 void SyllableDecorations::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
@@ -152,13 +179,9 @@ void SyllableDecorations::paintEvent(QPaintEvent*)
                                 width() * m_progress, PROGRESS_LINE_HEIGHT));
     }
 
-    QPainterPath path;
-    path.moveTo(QPoint(0, 0));
-    path.lineTo(QPoint(SYLLABLE_MARKER_WIDTH, SYLLABLE_MARKER_HEIGHT));
-    path.lineTo(QPoint(0, SYLLABLE_MARKER_HEIGHT));
-    path.lineTo(QPoint(0, 0));
-
-    painter.fillPath(path, QBrush(Qt::gray));
+    painter.fillPath(GetStartMarkerPath(), QBrush(Qt::gray));
+    if (m_show_end_marker)
+        painter.fillPath(GetEndMarkerPath().translated(width(), 0), QBrush(Qt::gray));
 }
 
 void SyllableDecorations::moveEvent(QMoveEvent*)
@@ -182,23 +205,32 @@ void SyllableDecorations::CalculateGeometry()
 }
 
 LineTimingDecorations::LineTimingDecorations(const KaraokeData::Line& line, int position,
-                                             QPlainTextEdit* text_edit, Milliseconds time, QObject* parent)
+                                             QPlainTextEdit* text_edit, Milliseconds time,
+                                             QObject* parent)
     : QObject(parent), m_line(line), m_start_index(position)
 {
     m_state = GetTimingState(time, m_line.GetStart(), m_line.GetEnd());
 
     const QVector<const KaraokeData::Syllable*> syllables = m_line.GetSyllables();
     m_syllables.reserve(syllables.size());
-    int i = m_start_index + m_line.GetPrefix().size();
-    for (const KaraokeData::Syllable* syllable : syllables)
+    int text_index = m_start_index + m_line.GetPrefix().size();
+    for (int i = 0; i < syllables.size(); ++i)
     {
-        const int start_index = i;
-        i += syllable->GetText().size();
-        m_syllables.emplace_back(std::make_unique<SyllableDecorations>(
-                        text_edit, start_index, i, syllable->GetStart(), syllable->GetEnd(), m_state));
+        const KaraokeData::Syllable* syllable = syllables[i];
+
+        const int text_start_index = text_index;
+        text_index += syllable->GetText().size();
+
+        const bool last_syllable = i == syllables.size() - 1;
+        const bool show_end_marker = syllable->GetEnd() !=
+                (last_syllable ? KaraokeData::PLACEHOLDER_TIME : syllables[i + 1]->GetStart());
+
+        m_syllables.emplace_back(std::make_unique<SyllableDecorations>(text_edit,
+                                         text_start_index, text_index, syllable->GetStart(),
+                                         syllable->GetEnd(), show_end_marker, m_state));
     }
 
-    m_end_index = i;
+    m_end_index = text_index;
     SetColor(text_edit->document(), m_start_index, m_end_index, m_state);
 }
 

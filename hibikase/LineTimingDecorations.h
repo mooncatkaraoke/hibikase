@@ -41,7 +41,8 @@ class SyllableDecorations final : public QWidget
 
 public:
     explicit SyllableDecorations(const QPlainTextEdit* text_edit, int start_index, int end_index,
-                                 Milliseconds start_time, Milliseconds end_time, TimingState state);
+                                 Milliseconds start_time, Milliseconds end_time,
+                                 bool show_end_marker, TimingState state);
 
     void Update(Milliseconds time, bool line_is_active);
     int GetPosition() const;
@@ -59,6 +60,7 @@ private:
     int m_end_index;
     const Milliseconds m_start_time;
     const Milliseconds m_end_time;
+    const bool m_show_end_marker;
     qreal m_progress = 0;
     bool m_line_is_active = false;
     TimingState m_state;
