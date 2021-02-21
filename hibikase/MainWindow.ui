@@ -16,37 +16,15 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QGroupBox" name="modeGroupBox">
-      <property name="title">
-       <string>Mode</string>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QRadioButton" name="timingRadioButton">
-         <property name="text">
-          <string>&amp;Timing</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QRadioButton" name="textRadioButton">
-         <property name="text">
-          <string>Te&amp;xt</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QRadioButton" name="rawRadioButton">
-         <property name="text">
-          <string>&amp;Raw</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="LyricsEditor" name="mainLyrics" native="true"/>
+     <layout class="QVBoxLayout" name="tabLayout">
+      <item>
+       <widget class="QTabBar" name="modeTabBar">
+       </widget>
+      </item>
+      <item>
+       <widget class="LyricsEditor" name="mainLyrics" native="true"/>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="PlaybackWidget" name="playbackWidget" native="true"/>
