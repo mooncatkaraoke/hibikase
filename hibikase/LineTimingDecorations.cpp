@@ -148,16 +148,15 @@ void SyllableDecorations::paintEvent(QPaintEvent*)
 
     if (m_progress != 0)
     {
-        const int max_width = width() - SYLLABLE_MARKER_WIDTH;
-        painter.drawRect(QRectF(SYLLABLE_MARKER_WIDTH, SYLLABLE_MARKER_HEIGHT,
-                                max_width * m_progress, PROGRESS_LINE_HEIGHT));
+        painter.drawRect(QRectF(0, SYLLABLE_MARKER_HEIGHT,
+                                width() * m_progress, PROGRESS_LINE_HEIGHT));
     }
 
     QPainterPath path;
-    path.moveTo(QPoint(SYLLABLE_MARKER_WIDTH, 0));
-    path.lineTo(QPoint(0, SYLLABLE_MARKER_HEIGHT));
+    path.moveTo(QPoint(0, 0));
     path.lineTo(QPoint(SYLLABLE_MARKER_WIDTH, SYLLABLE_MARKER_HEIGHT));
-    path.lineTo(QPoint(SYLLABLE_MARKER_WIDTH, 0));
+    path.lineTo(QPoint(0, SYLLABLE_MARKER_HEIGHT));
+    path.lineTo(QPoint(0, 0));
 
     painter.fillPath(path, QBrush(Qt::gray));
 }
@@ -175,9 +174,9 @@ void SyllableDecorations::CalculateGeometry()
     cursor.setPosition(m_end_index);
     const QRect end_rect = m_text_edit->cursorRect(cursor);
 
-    const int left = std::min(start_rect.left(), end_rect.left()) - SYLLABLE_MARKER_WIDTH;
+    const int left = std::min(start_rect.left(), end_rect.left());
     const int top = std::max(start_rect.bottom(), end_rect.bottom());
-    const int width = std::abs(end_rect.left() - start_rect.left()) + SYLLABLE_MARKER_WIDTH;
+    const int width = std::abs(end_rect.left() - start_rect.left());
     const int height = SYLLABLE_MARKER_HEIGHT + PROGRESS_LINE_HEIGHT;
     setGeometry(QRect(left, top, width, height));
 }
