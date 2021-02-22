@@ -7,6 +7,9 @@ TARGET = hibikase
 TEMPLATE = app
 CONFIG += c++14
 
+ICON = ../resources/icon.icns
+RC_ICONS = ../resources/icon.ico
+
 win32-msvc* {
     msvc:QMAKE_CXXFLAGS += /utf-8
 }

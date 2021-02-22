@@ -29,6 +29,9 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
     if (!git_version.isEmpty())
         git_version.prepend(QStringLiteral("<br>"));
 
+    QLabel* logo_label = new QLabel(this);
+    logo_label->setPixmap(QPixmap(":/logo.png"));
+
     QLabel* label = new QLabel(QStringLiteral(
                 "<p><b>Hibikase, a karaoke editor by MoonCat Karaoke%1</b></p>\n"
                 "\n"
@@ -43,6 +46,10 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
                 ).arg(git_version));
     label->setWordWrap(true);
 
+    QHBoxLayout* top_layout = new QHBoxLayout();
+    top_layout->addWidget(logo_label);
+    top_layout->addWidget(label);
+
     QFrame* divider = new QFrame();
     divider->setFrameShape(QFrame::HLine);
     divider->setFrameShadow(QFrame::Sunken);
@@ -53,17 +60,17 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
     QPushButton* about_qt = new QPushButton(QStringLiteral("About &Qt"));
     QPushButton* close = new QPushButton(QStringLiteral("&Close"));
 
-    QHBoxLayout* h_layout = new QHBoxLayout();
-    h_layout->setAlignment(Qt::AlignRight);
-    h_layout->addWidget(about_qt);
-    h_layout->addWidget(close);
+    QHBoxLayout* buttons_layout = new QHBoxLayout();
+    buttons_layout->setAlignment(Qt::AlignRight);
+    buttons_layout->addWidget(about_qt);
+    buttons_layout->addWidget(close);
 
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->addWidget(label);
+    layout->addLayout(top_layout);
     layout->addWidget(divider);
     layout->addWidget(m_combo_box);
     layout->addWidget(m_text_browser);
-    layout->addLayout(h_layout);
+    layout->addLayout(buttons_layout);
     setLayout(layout);
 
     PopulateComboBox();
