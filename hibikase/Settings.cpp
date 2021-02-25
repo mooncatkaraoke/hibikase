@@ -48,3 +48,11 @@ QTextCodec* Settings::GetSaveCodec()
 {
     return QTextCodec::codecForName("UTF-8");
 }
+
+Setting<qreal> Settings::timing_text_font_size{"TimingTextFontSize", "Font size in Timing/Text view", 14};
+Setting<qreal> Settings::raw_font_size{"RawFontSize", "Font size in Raw view", 9};
+
+Setting<qreal>* const Settings::REAL_SETTINGS[] = {
+    &timing_text_font_size,
+    &raw_font_size,
+};

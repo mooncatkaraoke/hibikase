@@ -32,6 +32,7 @@
 #include "KaraokeData/Song.h"
 #include "KaraokeData/SoramimiSong.h"
 #include "LyricsEditor.h"
+#include "SettingsDialog.h"
 
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent), ui(new Ui::MainWindow)
@@ -41,6 +42,11 @@ MainWindow::MainWindow(QWidget* parent) :
     connect(ui->menuEdit, &QMenu::aboutToShow, [this]() {
         ui->menuEdit->clear();
         ui->mainLyrics->AddActionsToMenu(ui->menuEdit);
+        ui->menuEdit->addSeparator();
+        ui->menuEdit->addAction(QStringLiteral("Preferences..."), [this]{
+            SettingsDialog dialog(this);
+            dialog.exec();
+        });
     });
 
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);

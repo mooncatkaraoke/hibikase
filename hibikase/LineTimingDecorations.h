@@ -46,14 +46,13 @@ public:
     void Update(Milliseconds time, bool line_is_active);
     int GetPosition() const;
     void AddToPosition(int diff);
+    void Relayout();
 
 protected:
     void paintEvent(QPaintEvent*) override;
     void moveEvent(QMoveEvent*) override;
 
 private:
-    void CalculateGeometry();
-
     const QPlainTextEdit* const m_text_edit;
     int m_start_index;
     int m_end_index;
@@ -79,6 +78,7 @@ public:
     void AddToPosition(int diff);
     int TextPositionToSyllable(int position) const;
     int TextPositionFromSyllable(int position) const;
+    void Relayout();
 
 private:
     std::vector<std::unique_ptr<SyllableDecorations>> m_syllables;
