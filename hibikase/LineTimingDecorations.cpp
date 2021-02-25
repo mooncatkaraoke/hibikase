@@ -33,8 +33,9 @@
 
 #include "LineTimingDecorations.h"
 
-static constexpr int SYLLABLE_MARKER_WIDTH = 4;
-static constexpr int SYLLABLE_MARKER_HEIGHT = 4;
+static constexpr int VERTICAL_OFFSET = -2;
+static constexpr int SYLLABLE_MARKER_WIDTH = 5;
+static constexpr int SYLLABLE_MARKER_HEIGHT = 5;
 static constexpr int PROGRESS_LINE_HEIGHT = 1;
 
 using Milliseconds = std::chrono::milliseconds;
@@ -198,7 +199,7 @@ void SyllableDecorations::CalculateGeometry()
     const QRect end_rect = m_text_edit->cursorRect(cursor);
 
     const int left = std::min(start_rect.left(), end_rect.left());
-    const int top = std::max(start_rect.bottom(), end_rect.bottom());
+    const int top = std::max(start_rect.bottom(), end_rect.bottom()) + VERTICAL_OFFSET;
     const int width = std::abs(end_rect.left() - start_rect.left());
     const int height = SYLLABLE_MARKER_HEIGHT + PROGRESS_LINE_HEIGHT;
     setGeometry(QRect(left, top, width, height));
