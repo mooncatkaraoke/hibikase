@@ -31,6 +31,7 @@
 
 #include "KaraokeData/ReadOnlySong.h"
 #include "LyricsEditor.h"
+#include "Settings.h"
 #include "TextTransform/RomanizeHangul.h"
 #include "TextTransform/Syllabify.h"
 
@@ -176,8 +177,18 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     m_raw_text_edit->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_rich_text_edit->setLineWrapMode(QPlainTextEdit::NoWrap);
 
-    m_rich_text_edit->setFont(WithPointSize(QFont(), 14));
-    m_raw_text_edit->setFont(WithPointSize(QFont(), 9));
+    m_rich_text_edit->setFont(WithPointSize(QFont(), Settings::timing_text_font_size.Get()));
+    Settings::timing_text_font_size.SetCallback([this](qreal new_value) {
+        m_rich_text_edit->setFont(WithPointSize(m_rich_text_edit->font(), new_value));
+        for (auto &decorations : m_line_timing_decorations)
+        {
+            decorations->Relayout();
+        }
+    });
+    m_raw_text_edit->setFont(WithPointSize(QFont(), Settings::raw_font_size.Get()));
+    Settings::raw_font_size.SetCallback([this](qreal new_value) {
+        m_raw_text_edit->setFont(WithPointSize(m_raw_text_edit->font(), new_value));
+    });
 
     SetMode(Mode::Text);
 

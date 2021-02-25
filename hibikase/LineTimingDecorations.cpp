@@ -99,7 +99,7 @@ SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int st
       m_end_index(end_index), m_start_time(start_time), m_end_time(end_time),
       m_show_end_marker(show_end_marker), m_state(state)
 {
-    CalculateGeometry();
+    Relayout();
 
     setPalette(Qt::transparent);
     setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -141,7 +141,7 @@ void SyllableDecorations::AddToPosition(int diff)
     m_start_index += diff;
     m_end_index += diff;
 
-    CalculateGeometry();
+    Relayout();
 }
 
 static QPainterPath GetStartMarkerPath()
@@ -187,10 +187,10 @@ void SyllableDecorations::paintEvent(QPaintEvent*)
 
 void SyllableDecorations::moveEvent(QMoveEvent*)
 {
-    CalculateGeometry();
+    Relayout();
 }
 
-void SyllableDecorations::CalculateGeometry()
+void SyllableDecorations::Relayout()
 {
     QTextCursor cursor(m_text_edit->document());
     cursor.setPosition(m_start_index);
@@ -276,4 +276,12 @@ int LineTimingDecorations::TextPositionFromSyllable(int position) const
         return m_end_index;
     else
         return m_syllables[position]->GetPosition();
+}
+
+void LineTimingDecorations::Relayout()
+{
+    for (std::unique_ptr<SyllableDecorations>& syllable : m_syllables)
+    {
+        syllable->Relayout();
+    }
 }
