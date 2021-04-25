@@ -136,8 +136,7 @@ void PlaybackWidget::OnPlayButtonClicked()
 
     if (m_state != AudioOutputWorker::PlaybackState::Playing)
     {
-        QMetaObject::invokeMethod(m_worker, "SetSpeed",
-                                  Q_ARG(double, ConvertSpeed(m_speed_slider->value())));
+        UpdateSpeed(m_speed_slider->value());
         QMetaObject::invokeMethod(m_worker, "Play");
     }
     else
@@ -174,14 +173,22 @@ void PlaybackWidget::OnTimeSliderReleased()
 void PlaybackWidget::OnSpeedSliderUpdated(int value)
 {
     UpdateSpeedLabel(value);
-
-    if (m_worker)
-        QMetaObject::invokeMethod(m_worker, "SetSpeed", Q_ARG(double, ConvertSpeed(value)));
+    UpdateSpeed(value);
 }
 
 void PlaybackWidget::UpdateSpeedLabel(int value)
 {
     m_speed_label->setText(QStringLiteral("Speed: %1%").arg(QString::number(value * 10), 3, QChar(' ')));
+}
+
+void PlaybackWidget::UpdateSpeed(int value)
+{
+    const double speed = ConvertSpeed(value);
+
+    emit SpeedUpdated(speed);
+
+    if (m_worker)
+        QMetaObject::invokeMethod(m_worker, "SetSpeed", Q_ARG(double, speed));
 }
 
 void PlaybackWidget::OnStateChanged(AudioOutputWorker::PlaybackState state)

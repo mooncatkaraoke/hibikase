@@ -52,7 +52,15 @@ QTextCodec* Settings::GetSaveCodec()
 Setting<qreal> Settings::timing_text_font_size{"TimingTextFontSize", "Font size in Timing/Text view", 14};
 Setting<qreal> Settings::raw_font_size{"RawFontSize", "Font size in Raw view", 9};
 
+Setting<int> Settings::audio_latency{"AudioLatency", "Audio latency (ms)", 0};
+Setting<int> Settings::video_latency{"VideoLatency", "Video latency (ms)", 0};
+
 Setting<qreal>* const Settings::REAL_SETTINGS[] = {
     &timing_text_font_size,
     &raw_font_size,
+};
+
+Setting<int>* const Settings::INT_SETTINGS[] = {
+    &audio_latency,
+    &video_latency,
 };

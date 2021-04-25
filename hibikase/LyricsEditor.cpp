@@ -235,6 +235,11 @@ void LyricsEditor::UpdateTime(std::chrono::milliseconds time)
     m_time = time;
 }
 
+void LyricsEditor::UpdateSpeed(double speed)
+{
+    m_speed = speed;
+}
+
 void LyricsEditor::SetMode(Mode mode)
 {
     if (mode == Mode::Timing)
@@ -683,7 +688,7 @@ void LyricsEditor::SetSyllableStart()
     KaraokeData::Syllable* previous_syllable = GetSyllable(GetPreviousSyllable());
     const SyllablePosition next_syllable = GetNextSyllable();
 
-    const KaraokeData::Centiseconds time = std::chrono::duration_cast<KaraokeData::Centiseconds>(m_time);
+    const KaraokeData::Centiseconds time = GetLatencyCompensatedTime();
     if (previous_syllable && previous_syllable->GetEnd() == current_syllable->GetStart())
         previous_syllable->SetEnd(time);
     current_syllable->SetStart(time);
@@ -701,7 +706,7 @@ void LyricsEditor::SetSyllableEnd()
     QTextCursor cursor = m_rich_text_edit->textCursor();
     const int cursor_position = cursor.position();
 
-    syllable->SetEnd(std::chrono::duration_cast<KaraokeData::Centiseconds>(m_time));
+    syllable->SetEnd(GetLatencyCompensatedTime());
 
     cursor.setPosition(cursor_position);
     m_rich_text_edit->setTextCursor(cursor);
@@ -848,6 +853,13 @@ KaraokeData::Syllable* LyricsEditor::GetSyllable(SyllablePosition position) cons
         return nullptr;
 
     return syllables[position.syllable];
+}
+
+KaraokeData::Centiseconds LyricsEditor::GetLatencyCompensatedTime() const
+{
+    const std::chrono::milliseconds latency(static_cast<int>(Settings::video_latency.Get() / m_speed));
+
+    return std::chrono::duration_cast<KaraokeData::Centiseconds>(m_time - latency);
 }
 
 void LyricsEditor::ToggleSyllable()

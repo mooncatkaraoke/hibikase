@@ -21,6 +21,8 @@
 #include <QByteArray>
 #include <QDebug>
 
+#include "Settings.h"
+
 AudioOutputWorker::AudioOutputWorker(std::unique_ptr<QIODevice> io_device, QObject* parent)
     : QObject(parent), m_io_device(std::move(io_device))
 {
@@ -213,14 +215,19 @@ std::chrono::microseconds AudioOutputWorker::DurationForBytes(qint32 bytes)
 
 void AudioOutputWorker::OnNotify()
 {
-    const qint64 latency = m_audio_output->format().durationForFrames(
+    const qint64 stretcher_latency_us = m_audio_output->format().durationForFrames(
             static_cast<qint32>(m_stretcher->getLatency()));
-    const std::chrono::microseconds time = DurationForBytes(m_start_offset) +
-            std::chrono::microseconds(m_audio_output->processedUSecs() - latency);
+    const std::chrono::milliseconds setting_latency(
+            Settings::audio_latency.Get() - Settings::video_latency.Get());
+
+    const std::chrono::microseconds time = DurationForBytes(m_start_offset) - setting_latency +
+            std::chrono::microseconds(m_audio_output->processedUSecs() - stretcher_latency_us);
+
     const std::chrono::microseconds last_speed_change = DurationForBytes(m_last_speed_change_offset);
     const std::chrono::microseconds scaled_time = last_speed_change +
             std::chrono::microseconds(static_cast<long long>(
                     (time - last_speed_change).count() / m_stretcher->getTimeRatio()));
+
     const std::chrono::microseconds last_seek = DurationForBytes(m_last_seek_offset);
 
     emit TimeUpdated(std::max(scaled_time, last_seek), m_audio_file->GetDuration());

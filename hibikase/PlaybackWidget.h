@@ -35,7 +35,8 @@ public:
     void LoadAudio(std::unique_ptr<QIODevice> io_device);  // Can be nullptr
 
 signals:
-    void TimeUpdated(std::chrono::milliseconds current);
+    void TimeUpdated(std::chrono::milliseconds time);
+    void SpeedUpdated(double speed);
 
 private slots:
     void OnLoadResult(QString result);
@@ -49,6 +50,7 @@ private slots:
 
 private:
     void UpdateSpeedLabel(int value);
+    void UpdateSpeed(int value);
 
     QPushButton* m_play_button;
     QPushButton* m_stop_button;
