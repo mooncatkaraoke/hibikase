@@ -712,7 +712,7 @@ void LyricsEditor::SetSyllableEnd()
     m_rich_text_edit->setTextCursor(cursor);
 }
 
-void LyricsEditor::GoTo(LyricsEditor::SyllablePosition position)
+void LyricsEditor::GoTo(SyllablePosition position)
 {
     if (!position.IsValid())
         return;
@@ -759,7 +759,7 @@ LyricsEditor::SyllablePosition LyricsEditor::TextPositionToSyllable(int position
     return SyllablePosition{line, syllable};
 }
 
-int LyricsEditor::TextPositionFromSyllable(LyricsEditor::SyllablePosition position) const
+int LyricsEditor::TextPositionFromSyllable(SyllablePosition position) const
 {
     return m_line_timing_decorations[position.line]->TextPositionFromSyllable(position.syllable);
 }

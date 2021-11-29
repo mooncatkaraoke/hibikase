@@ -125,12 +125,12 @@ private:
     SyllablePosition TextPositionToSyllable(int position) const;
     int TextPositionFromSyllable(SyllablePosition position) const;
 
-    LyricsEditor::SyllablePosition GetPreviousSyllable() const;
-    LyricsEditor::SyllablePosition GetPreviousSyllable(SyllablePosition pos) const;
-    LyricsEditor::SyllablePosition GetCurrentSyllable() const;
-    LyricsEditor::SyllablePosition GetNextSyllable() const;
-    LyricsEditor::SyllablePosition GetPreviousLine() const;
-    LyricsEditor::SyllablePosition GetNextLine() const;
+    SyllablePosition GetPreviousSyllable() const;
+    SyllablePosition GetPreviousSyllable(SyllablePosition pos) const;
+    SyllablePosition GetCurrentSyllable() const;
+    SyllablePosition GetNextSyllable() const;
+    SyllablePosition GetPreviousLine() const;
+    SyllablePosition GetNextLine() const;
     KaraokeData::Syllable* GetSyllable(SyllablePosition pos) const;
 
     KaraokeData::Centiseconds GetLatencyCompensatedTime() const;
