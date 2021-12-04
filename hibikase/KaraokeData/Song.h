@@ -41,6 +41,7 @@ namespace
 
 namespace KaraokeData
 {
+class ReadOnlyLine;
 
 typedef std::chrono::duration<int32_t, std::centi> Centiseconds;
 
@@ -84,6 +85,10 @@ public:
     virtual int PositionFromRaw(int) const { throw not_supported; }
     virtual int PositionToRaw(int) const { throw not_supported; }
 
+    void Split(int split_position, ReadOnlyLine* first_out, ReadOnlyLine* second_out,
+               bool* syllable_boundary_at_split_point_out) const;
+    void Join(const Line& other, bool syllable_boundary_at_split_point, ReadOnlyLine* out) const;
+
 protected slots:
     virtual void BuildText();
 
@@ -95,6 +100,12 @@ struct SongPosition final
 {
     int line;
     int position_in_line;
+
+    bool operator==(SongPosition other)
+    {
+        return line == other.line && position_in_line == other.position_in_line;
+    }
+    bool operator!=(SongPosition other) { return !operator==(other); }
 };
 
 class Song : public QObject
@@ -117,6 +128,26 @@ public:
     virtual void RemoveAllLines() = 0;
     virtual QString GetText(int start_line, int end_line) const;
     virtual QString GetText() const;
+
+    // For lines which are fully covered by the supplied range (the start and end arguments),
+    // a direct pointer to the line is added to the result vector. For lines which are partially
+    // covered by the supplied range, the covered and non-covered parts of the line are stored
+    // into one out parameter each, and a pointer to the covered part is added to the result vector.
+    virtual QVector<const Line*> GetLines(SongPosition start, SongPosition end,
+                                          ReadOnlyLine* first_line_first_half_out,
+                                          ReadOnlyLine* first_line_last_half_out,
+                                          ReadOnlyLine* last_line_first_half_out,
+                                          ReadOnlyLine* last_line_last_half_out,
+                                          bool* syllable_boundary_at_start_out,
+                                          bool* syllable_boundary_at_end_out) const;
+
+    // For the result to make sense, first_line_first_half, last_line_last_half,
+    // syllable_boundary_at_start and syllable_boundary_at_end should be set as if
+    // obtained from a call to GetLines that used the same start and end arguments.
+    virtual void ReplaceLines(SongPosition start, SongPosition end,
+                              const QVector<const Line*>& replace_with,
+                              const Line* first_line_first_half, const Line* last_line_last_half,
+                              bool syllable_boundary_at_start, bool syllable_boundary_at_end);
 
     virtual bool SupportsPositionConversion() const { return false; }
     virtual SongPosition PositionFromRaw(int raw_position) const

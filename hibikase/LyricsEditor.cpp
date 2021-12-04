@@ -11,6 +11,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include "LyricsEditor.h"
+
 #include <algorithm>
 #include <chrono>
 #include <functional>
@@ -30,7 +32,7 @@
 #include <QVBoxLayout>
 
 #include "KaraokeData/ReadOnlySong.h"
-#include "LyricsEditor.h"
+#include "KaraokeData/Song.h"
 #include "Settings.h"
 #include "TextTransform/RomanizeHangul.h"
 #include "TextTransform/Syllabify.h"
@@ -286,10 +288,8 @@ void LyricsEditor::SetMode(Mode mode)
         else
         {
             const int position = m_rich_text_edit->textCursor().position();
-            const int line = TextPositionToLine(position);
-            const int line_pos = m_line_timing_decorations[line]->GetPosition();
-            const int raw_position = m_song_ref->PositionToRaw(
-                                     KaraokeData::SongPosition{line, position - line_pos});
+            const KaraokeData::SongPosition song_position = ToSongPosition(position, m_mode);
+            const int raw_position = m_song_ref->PositionToRaw(song_position);
 
             raw_cursor.setPosition(raw_position);
         }
@@ -298,7 +298,7 @@ void LyricsEditor::SetMode(Mode mode)
     if (mode != Mode::Raw && m_mode == Mode::Raw)
     {
         const int position = m_raw_text_edit->textCursor().position();
-        const KaraokeData::SongPosition song_position = m_song_ref->PositionFromRaw(position);
+        const KaraokeData::SongPosition song_position = ToSongPosition(position, m_mode);
         QTextCursor cursor = m_rich_text_edit->textCursor();
         if (static_cast<size_t>(song_position.line) < m_line_timing_decorations.size())
         {
@@ -475,8 +475,7 @@ void LyricsEditor::GoToPosition(QPoint pos)
 
 void LyricsEditor::AddLyricsActionsToMenu(QMenu* menu, QPlainTextEdit* text_edit)
 {
-    bool has_selection = text_edit->textCursor().hasSelection();
-    has_selection = true; // TODO: Remove this line once the selection actually is used
+    const bool has_selection = text_edit->textCursor().hasSelection();
 
     menu->addSeparator();
 
@@ -502,7 +501,7 @@ void LyricsEditor::ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edi
 
 void LyricsEditor::AddActionsToMenu(QMenu* menu)
 {
-    QPlainTextEdit* text_edit = (m_mode == Mode::Raw) ? m_raw_text_edit : m_rich_text_edit;
+    QPlainTextEdit* text_edit = GetActiveTextEdit();
 
     std::unique_ptr<QMenu> menu_template(text_edit->createStandardContextMenu());
     for (QAction* action : menu_template->actions())
@@ -569,46 +568,70 @@ void LyricsEditor::AddSyllabificationLanguages(QMenu* menu)
         menu->addAction(language.second, [this, language]{ Syllabify(language.first); });
 }
 
-void LyricsEditor::ApplyLineTransformation(int start_line, int end_line,
-        std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f)
+void LyricsEditor::ApplyLineTransformation(KaraokeData::SongPosition start_position,
+            KaraokeData::SongPosition end_position, bool split_syllables_at_start_and_end,
+            std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f)
 {
-    const QVector<KaraokeData::Line*> old_lines = m_song_ref->GetLines();
+    KaraokeData::ReadOnlyLine first_line_first_half;
+    KaraokeData::ReadOnlyLine first_line_last_half;
+    KaraokeData::ReadOnlyLine last_line_first_half;
+    KaraokeData::ReadOnlyLine last_line_last_half;
+    bool syllable_boundary_at_start;
+    bool syllable_boundary_at_end;
+
+    const QVector<const KaraokeData::Line*> old_lines = m_song_ref->GetLines(start_position,
+                end_position, &first_line_first_half, &first_line_last_half, &last_line_first_half,
+                &last_line_last_half, &syllable_boundary_at_start, &syllable_boundary_at_end);
+
     std::vector<std::unique_ptr<KaraokeData::Line>> new_lines;
     QVector<const KaraokeData::Line*> new_line_pointers;
-    new_lines.reserve(end_line - start_line);
-    new_line_pointers.reserve(end_line - start_line);
+    new_lines.reserve(old_lines.size());
+    new_line_pointers.reserve(old_lines.size());
 
-    for (int i = 0; i < end_line - start_line; ++i)
+    for (const KaraokeData::Line* old_line : old_lines)
     {
-        new_lines.push_back(f(*old_lines[start_line + i]));
+        new_lines.push_back(f(*old_line));
         new_line_pointers.push_back(new_lines.back().get());
     }
 
-    m_song_ref->ReplaceLines(start_line, new_lines.size(), new_line_pointers);
+    if (split_syllables_at_start_and_end)
+    {
+        syllable_boundary_at_start = true;
+        syllable_boundary_at_end = true;
+    }
+
+    m_song_ref->ReplaceLines(start_position, end_position, new_line_pointers,
+                             &first_line_first_half, &last_line_last_half,
+                             syllable_boundary_at_start, syllable_boundary_at_end);
 }
 
-void LyricsEditor::ApplyLineTransformation(
-        std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f)
+void LyricsEditor::ApplyLineTransformation(bool split_syllables_at_start_and_end,
+            std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f)
 {
-    // TODO: Only use the selection, not the whole document
-    /*QTextCursor cursor = m_raw_text_edit->textCursor();
+    const QTextCursor cursor = GetActiveTextEdit()->textCursor();
     int start = cursor.position();
-    int end = cursor.anchor();*/
+    int end = cursor.anchor();
+    if (start > end)
+        std::swap(start, end);
 
-    ApplyLineTransformation(0, m_song_ref->GetLines().size(), std::move(f));
+    const KaraokeData::SongPosition start_position = ToSongPosition(start, m_mode);
+    const KaraokeData::SongPosition end_position = ToSongPosition(end, m_mode);
+
+    return ApplyLineTransformation(start_position, end_position,
+                                   split_syllables_at_start_and_end, std::move(f));
 }
 
 void LyricsEditor::Syllabify(const QString& language_code)
 {
     const TextTransform::Syllabifier syllabifier(language_code);
-    ApplyLineTransformation([&syllabifier](const KaraokeData::Line& line) {
+    ApplyLineTransformation(true, [&syllabifier](const KaraokeData::Line& line) {
         return syllabifier.Syllabify(line);
     });
 }
 
 void LyricsEditor::RomanizeHangul()
 {
-    ApplyLineTransformation([](const KaraokeData::Line& line) {
+    ApplyLineTransformation(false, [](const KaraokeData::Line& line) {
         return TextTransform::RomanizeHangul(line.GetSyllables(), line.GetPrefix());
     });
 }
@@ -621,7 +644,12 @@ void LyricsEditor::ShiftTimings()
     KaraokeData::Centiseconds min_safe_offset = -KaraokeData::MAXIMUM_TIME;
     KaraokeData::Centiseconds max_safe_offset = KaraokeData::MAXIMUM_TIME;
 
-    for (const KaraokeData::Line* line : m_song_ref->GetLines())
+    KaraokeData::ReadOnlyLine partial_first_line;
+    KaraokeData::ReadOnlyLine partial_last_line;
+    const QVector<const KaraokeData::Line*> selected_lines =
+            GetSelectedLines(&partial_first_line, &partial_last_line);
+
+    for (const KaraokeData::Line* line : selected_lines)
     {
         for (const KaraokeData::Syllable* syllable : line->GetSyllables())
         {
@@ -654,7 +682,7 @@ void LyricsEditor::ShiftTimings()
         return;
 
     KaraokeData::Centiseconds offset_cs(static_cast<int>(offset * 100));
-    ApplyLineTransformation([offset_cs](const KaraokeData::Line& line) {
+    ApplyLineTransformation(false, [offset_cs](const KaraokeData::Line& line) {
         const QVector<const KaraokeData::Syllable*> syllables = line.GetSyllables();
 
         auto shifted_line = std::make_unique<KaraokeData::ReadOnlyLine>();
@@ -853,6 +881,51 @@ KaraokeData::Syllable* LyricsEditor::GetSyllable(SyllablePosition position) cons
         return nullptr;
 
     return syllables[position.syllable];
+}
+
+KaraokeData::SongPosition LyricsEditor::ToSongPosition(int position, Mode mode) const
+{
+    if (mode == Mode::Raw)
+    {
+        return m_song_ref->PositionFromRaw(position);
+    }
+    else
+    {
+        const int line = TextPositionToLine(position);
+        if (line >= m_line_timing_decorations.size())
+            return KaraokeData::SongPosition{line, 0};
+
+        const int line_pos = m_line_timing_decorations[line]->GetPosition();
+        return KaraokeData::SongPosition{line, position - line_pos};
+    }
+}
+
+QVector<const KaraokeData::Line*> LyricsEditor::GetSelectedLines(
+        KaraokeData::ReadOnlyLine* partial_first_line_out,
+        KaraokeData::ReadOnlyLine* partial_last_line_out)
+{
+    QTextCursor cursor = GetActiveTextEdit()->textCursor();
+    int start = cursor.position();
+    int end = cursor.anchor();
+    if (start > end)
+        std::swap(start, end);
+
+    const KaraokeData::SongPosition start_position = ToSongPosition(start, m_mode);
+    const KaraokeData::SongPosition end_position = ToSongPosition(end, m_mode);
+
+    KaraokeData::ReadOnlyLine first_line_first_half;
+    KaraokeData::ReadOnlyLine last_line_last_half;
+    bool syllable_boundary_at_start;
+    bool syllable_boundary_at_end;
+
+    return m_song_ref->GetLines(start_position, end_position, &first_line_first_half,
+                                partial_first_line_out, partial_last_line_out, &last_line_last_half,
+                                &syllable_boundary_at_start, &syllable_boundary_at_end);
+}
+
+QPlainTextEdit* LyricsEditor::GetActiveTextEdit()
+{
+    return m_mode == Mode::Raw ? m_raw_text_edit : m_rich_text_edit;
 }
 
 KaraokeData::Centiseconds LyricsEditor::GetLatencyCompensatedTime() const

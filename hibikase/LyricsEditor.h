@@ -116,9 +116,11 @@ private slots:
 private:
     void AddLyricsActionsToMenu(QMenu* menu, QPlainTextEdit* text_edit);
     void ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edit);
-    void ApplyLineTransformation(int start_line, int end_line,
-                                 std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);
-    void ApplyLineTransformation(std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);
+    void ApplyLineTransformation(KaraokeData::SongPosition start_position,
+                KaraokeData::SongPosition end_position, bool split_syllables_at_start_and_end,
+                std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);
+    void ApplyLineTransformation(bool split_syllables_at_start_and_end,
+                std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);
 
     void GoTo(SyllablePosition position);
     int TextPositionToLine(int position) const;
@@ -132,6 +134,17 @@ private:
     SyllablePosition GetPreviousLine() const;
     SyllablePosition GetNextLine() const;
     KaraokeData::Syllable* GetSyllable(SyllablePosition pos) const;
+    KaraokeData::SongPosition ToSongPosition(int position, Mode mode) const;
+
+    // For lines which are selected by the user in their entirety, a direct pointer
+    // to the line is added to the result vector. For lines which are partially selected
+    // by the user, a copy of the selected part of the line is stored in one of the out
+    // parameters, and a pointer to that new copy is added to the result vector.
+    QVector<const KaraokeData::Line*> GetSelectedLines(
+            KaraokeData::ReadOnlyLine* partial_first_line_out,
+            KaraokeData::ReadOnlyLine* partial_last_line_out);
+
+    QPlainTextEdit* GetActiveTextEdit();
 
     KaraokeData::Centiseconds GetLatencyCompensatedTime() const;
 
