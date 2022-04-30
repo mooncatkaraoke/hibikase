@@ -112,7 +112,8 @@ void MainWindow::on_actionOpen_triggered()
     if (!SaveUnsavedChanges())
         return;
 
-    QString load_path = QFileDialog::getOpenFileName(this, "Open lyrics file", QString(), FILTER);
+    QString load_path = QFileDialog::getOpenFileName(this, "Open lyrics file", QString(),
+                                                     LOAD_FILTER);
     if (load_path.isEmpty())
         return;
 
@@ -201,7 +202,8 @@ bool MainWindow::Save(QString path)
 
 bool MainWindow::SaveAs()
 {
-    const QString save_path = QFileDialog::getSaveFileName(this, "Save lyrics file", QString(), FILTER);
+    const QString save_path = QFileDialog::getSaveFileName(this, "Save lyrics file", QString(),
+                                                           SAVE_FILTER);
     if (save_path.isEmpty())
         return false;
 
