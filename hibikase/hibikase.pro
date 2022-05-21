@@ -11,7 +11,10 @@ ICON = ../resources/icon.icns
 RC_ICONS = ../resources/icon.ico
 
 win32-msvc* {
-    msvc:QMAKE_CXXFLAGS += /utf-8
+    QMAKE_CXXFLAGS += /utf-8
+
+    QMAKE_CXXFLAGS += /Zi
+    QMAKE_LFLAGS += /INCREMENTAL:NO /Debug
 }
 
 GIT_VERSION = $$system(git --git-dir $$PWD/../.git --work-tree $$PWD/.. describe --always --tags)
