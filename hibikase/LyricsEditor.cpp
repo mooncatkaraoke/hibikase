@@ -934,7 +934,7 @@ void LyricsEditor::ToggleSyllable()
 
     const KaraokeData::Line* line = m_song_ref->GetLines()[line_index];
     const int index_in_line = cursor_position - m_line_timing_decorations[line_index]->GetPosition();
-    if (index_in_line == 0 || index_in_line >= line->GetText().size())
+    if (index_in_line >= line->GetText().size())
         return;
 
     QVector<const KaraokeData::Syllable*> old_syllables = line->GetSyllables();
