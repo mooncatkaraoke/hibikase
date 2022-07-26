@@ -66,6 +66,7 @@ public:
 
     void Update(Milliseconds time);
     int GetPosition() const;
+    int GetSyllableCount() const;
     void AddToPosition(int diff);
     int TextPositionToSyllable(int position) const;
     int TextPositionFromSyllable(int position) const;

@@ -240,6 +240,11 @@ int LineTimingDecorations::GetPosition() const
     return m_start_index;
 }
 
+int LineTimingDecorations::GetSyllableCount() const
+{
+    return m_syllables.size();
+}
+
 void LineTimingDecorations::AddToPosition(int diff)
 {
     m_start_index += diff;

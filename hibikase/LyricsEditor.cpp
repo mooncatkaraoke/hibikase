@@ -762,12 +762,12 @@ LyricsEditor::SyllablePosition LyricsEditor::TextPositionToSyllable(int position
     if (m_line_timing_decorations.empty())
         return SyllablePosition{-1, 0};
 
-    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
     int line = TextPositionToLine(position);
     int syllable = m_line_timing_decorations[line]->TextPositionToSyllable(position);
 
     // If we're at the end of a line, skip to the next line that has a syllable
-    while (line + 1 < lines.size() && lines[line]->GetSyllables().size() <= syllable)
+    while (line + 1 < m_line_timing_decorations.size() &&
+           m_line_timing_decorations[line]->GetSyllableCount() <= syllable)
     {
         line++;
         syllable = 0;
@@ -790,16 +790,14 @@ LyricsEditor::SyllablePosition LyricsEditor::GetPreviousSyllable(SyllablePositio
 {
     if (pos.syllable == 0)
     {
-        const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
-
         int line = pos.line - 1;
-        while (line >= 0 && lines[line]->GetSyllables().empty())
+        while (line >= 0 && m_line_timing_decorations[line]->GetSyllableCount() == 0)
             line--;
 
         if (line < 0)
             return SyllablePosition{-1, 0};
         else
-            return SyllablePosition{line, lines[line]->GetSyllables().size() - 1};
+            return SyllablePosition{line, m_line_timing_decorations[line]->GetSyllableCount() - 1};
     }
     else
     {
@@ -819,14 +817,16 @@ LyricsEditor::SyllablePosition LyricsEditor::GetNextSyllable() const
 
 LyricsEditor::SyllablePosition LyricsEditor::GetPreviousLine() const
 {
-    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
     const SyllablePosition syllable = TextPositionToSyllable(m_rich_text_edit->textCursor().position());
 
-    // If we're at the very end of the last line (past the last syllable), go to its beginning
-    if (syllable.line == lines.size() - 1 && syllable.syllable != 0 &&
-        syllable.syllable == lines[lines.size() - 1]->GetSyllables().size())
+    // It needs to be possible to place the cursor "after" the last line, because otherwise
+    // it would be impossible to set the end time of the last syllable of the last line.
+    // Because of this, treat the very end of the last line as if it's after the last line.
+    const int last_line = m_line_timing_decorations.size() - 1;
+    if (syllable.line == last_line && syllable.syllable != 0 &&
+        syllable.syllable == m_line_timing_decorations[last_line]->GetSyllableCount())
     {
-        return SyllablePosition{lines.size() - 1, 0};
+        return SyllablePosition{last_line, 0};
     }
 
     int line = syllable.line - 1;
@@ -835,7 +835,7 @@ LyricsEditor::SyllablePosition LyricsEditor::GetPreviousLine() const
         return SyllablePosition{0, 0};
 
     // Skip lines that don't contain syllables
-    while (line > 0 && lines[line]->GetSyllables().empty())
+    while (line > 0 && m_line_timing_decorations[line]->GetSyllableCount())
         line--;
 
     return SyllablePosition{line, 0};
@@ -843,15 +843,23 @@ LyricsEditor::SyllablePosition LyricsEditor::GetPreviousLine() const
 
 LyricsEditor::SyllablePosition LyricsEditor::GetNextLine() const
 {
-    const QVector<KaraokeData::Line*> lines = m_song_ref->GetLines();
     int line = TextPositionToSyllable(m_rich_text_edit->textCursor().position()).line + 1;
 
-    if (line >= lines.size())
-        return SyllablePosition{lines.size() - 1, std::max(lines[lines.size() - 1]->GetSyllables().size(), 0)};
+    // It needs to be possible to place the cursor "after" the last line, because otherwise
+    // it would be impossible to set the end time of the last syllable of the last line.
+    // Because of this, treat the very end of the last line as if it's after the last line.
+    if (line >= m_line_timing_decorations.size())
+    {
+        const int last_line = m_line_timing_decorations.size() - 1;
+        return SyllablePosition{last_line, m_line_timing_decorations[last_line]->GetSyllableCount()};
+    }
 
     // Skip lines that don't contain syllables
-    while (line + 1 < lines.size() && lines[line]->GetSyllables().empty())
+    while (line + 1 < m_line_timing_decorations.size() &&
+           m_line_timing_decorations[line]->GetSyllableCount() == 0)
+    {
         line++;
+    }
 
     return SyllablePosition{line, 0};
 }
