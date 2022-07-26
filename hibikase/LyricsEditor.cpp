@@ -697,20 +697,27 @@ void LyricsEditor::ShiftTimings()
 
 void LyricsEditor::SetSyllableStart()
 {
-    KaraokeData::Syllable* current_syllable = GetSyllable(GetCurrentSyllable());
+    const SyllablePosition current_syllable_pos = GetCurrentSyllable();
+    KaraokeData::Syllable* current_syllable = GetSyllable(current_syllable_pos);
 
     if (!current_syllable)
         return;
 
-    KaraokeData::Syllable* previous_syllable = GetSyllable(GetPreviousSyllable());
-    const SyllablePosition next_syllable = GetNextSyllable();
+    const SyllablePosition previous_syllable_pos = GetPreviousSyllable();
+    const SyllablePosition next_syllable_pos = GetNextSyllable();
 
     const KaraokeData::Centiseconds time = GetLatencyCompensatedTime();
-    if (previous_syllable && previous_syllable->GetEnd() == current_syllable->GetStart())
-        previous_syllable->SetEnd(time);
+
+    if (current_syllable_pos != previous_syllable_pos)
+    {
+        KaraokeData::Syllable* previous_syllable = GetSyllable(previous_syllable_pos);
+        if (previous_syllable && previous_syllable->GetEnd() == current_syllable->GetStart())
+            previous_syllable->SetEnd(time);
+    }
+
     current_syllable->SetStart(time);
 
-    GoTo(next_syllable);
+    GoTo(next_syllable_pos);
 }
 
 void LyricsEditor::SetSyllableEnd()
@@ -746,25 +753,113 @@ void LyricsEditor::GoTo(SyllablePosition position)
 
 LyricsEditor::SyllablePosition LyricsEditor::SkipLinesWithoutSyllablesForward(SyllablePosition pos) const
 {
-    while (pos.line + 1 < m_line_timing_decorations.size() &&
-           m_line_timing_decorations[pos.line]->GetSyllableCount() <= pos.syllable)
+    if (m_line_timing_decorations.empty())
+        return SyllablePosition{-1, 0};
+
+    if (!pos.IsValid())
     {
-        pos.line++;
-        pos.syllable = 0;
+        const int last_line = m_line_timing_decorations.size() - 1;
+        pos = SyllablePosition{last_line, m_line_timing_decorations[last_line]->GetSyllableCount()};
     }
 
-    return pos;
+    SyllablePosition new_pos = pos;
+
+    // Seek forward until we find a line with syllables.
+    while (new_pos.line < m_line_timing_decorations.size() &&
+           m_line_timing_decorations[new_pos.line]->GetSyllableCount() <= new_pos.syllable)
+    {
+        new_pos.line++;
+        new_pos.syllable = 0;
+    }
+
+    if (new_pos.line >= m_line_timing_decorations.size())
+    {
+        // No lines with syllables were found when seeking forwards.
+        // Seek backwards instead to find the last line of the song that has syllables.
+
+        new_pos = pos;
+
+        if (new_pos.line >= m_line_timing_decorations.size())
+            new_pos.line = m_line_timing_decorations.size() - 1;
+
+        while (new_pos.line >= 0 &&
+               m_line_timing_decorations[new_pos.line]->GetSyllableCount() == 0)
+        {
+            new_pos.line--;
+            new_pos.syllable = 0;
+        }
+
+        if (new_pos.line >= 0 && new_pos.line < m_line_timing_decorations.size())
+        {
+            // It needs to be possible to place the cursor "after" the last line that has a syllable,
+            // because otherwise it's impossible to set the end time of the last syllable of that line.
+            // Because of this, treat the very end of that line as if it's a separate line.
+            // (If there is a line with no syllables after the line, it would be valid to pick
+            // that as the position instead, but this doesn't work when there are no such lines.)
+            new_pos.syllable = m_line_timing_decorations[new_pos.line]->GetSyllableCount();
+        }
+    }
+
+    if (new_pos.line < 0)
+    {
+        // No lines with syllables were found when seeking backwards either.
+        // In other words, the song contains no syllables. Give up and return an invalid position.
+        return SyllablePosition{-1, 0};
+    }
+
+    return new_pos;
 }
 
 LyricsEditor::SyllablePosition LyricsEditor::SkipLinesWithoutSyllablesBackward(SyllablePosition pos) const
 {
-    while (pos.line > 0 && m_line_timing_decorations[pos.line]->GetSyllableCount() == 0)
+    if (m_line_timing_decorations.empty())
+        return SyllablePosition{-1, 0};
+
+    if (!pos.IsValid())
+        pos = SyllablePosition{0, 0};
+
+    SyllablePosition new_pos = pos;
+
+    // It needs to be possible to place the cursor "after" the last line that has a syllable,
+    // because otherwise it's impossible to set the end time of the last syllable of that line.
+    // Because of this, treat the very end of that line as if it's a separate line.
+    const int last_line = GetLastLineWithSyllables();
+    if (pos.line == last_line && pos.syllable != 0 &&
+        pos.syllable == m_line_timing_decorations[last_line]->GetSyllableCount())
     {
-        pos.line--;
-        pos.syllable = 0;
+        return SyllablePosition{last_line, 0};
     }
 
-    return pos;
+    // Seek backward until we find a line with syllables.
+    while (new_pos.line >= 0 && m_line_timing_decorations[new_pos.line]->GetSyllableCount() == 0)
+    {
+        new_pos.line--;
+        new_pos.syllable = 0;
+    }
+
+    if (new_pos.line < 0)
+    {
+        // No lines with syllables were found when seeking backwards.
+        // Seek forwards instead to find the last line of the song that has syllables.
+
+        new_pos = SyllablePosition{pos.line, 0};
+
+        while (new_pos.line < m_line_timing_decorations.size() &&
+               m_line_timing_decorations[new_pos.line]->GetSyllableCount() == 0)
+        {
+            new_pos.line++;
+            new_pos.syllable = 0;
+        }
+    }
+
+    if (new_pos.line >= m_line_timing_decorations.size())
+    {
+        // No lines with syllables were found when seeking forwards either.
+        // In other words, the song contains no syllables. Give up and return an invalid position.
+        return SyllablePosition{-1, 0};
+    }
+
+    return new_pos;
 }
 
 int LyricsEditor::TextPositionToLine(int position) const
@@ -809,7 +904,7 @@ LyricsEditor::SyllablePosition LyricsEditor::GetPreviousSyllable(SyllablePositio
         const SyllablePosition new_pos =
                 SkipLinesWithoutSyllablesBackward(SyllablePosition{pos.line - 1, 0});
 
-        if (!new_pos.IsValid())
+        if (!new_pos.IsValid() || new_pos.line >= pos.line)
             return new_pos;
 
         return SyllablePosition{new_pos.line,
@@ -831,41 +926,39 @@ LyricsEditor::SyllablePosition LyricsEditor::GetNextSyllable() const
     return TextPositionToSyllable(m_rich_text_edit->textCursor().position() + 1);
 }
 
+int LyricsEditor::GetLastLineWithSyllables() const
+{
+    int line = m_line_timing_decorations.size() - 1;
+
+    while (line >= 0 && m_line_timing_decorations[line]->GetSyllableCount() == 0)
+        line--;
+
+    return line;
+}
+
 LyricsEditor::SyllablePosition LyricsEditor::GetPreviousLine() const
 {
-    const SyllablePosition syllable = TextPositionToSyllable(m_rich_text_edit->textCursor().position());
+    const SyllablePosition pos = TextPositionToSyllable(m_rich_text_edit->textCursor().position());
 
-    // It needs to be possible to place the cursor "after" the last line, because otherwise
-    // it would be impossible to set the end time of the last syllable of the last line.
-    // Because of this, treat the very end of the last line as if it's after the last line.
-    const int last_line = m_line_timing_decorations.size() - 1;
-    if (syllable.line == last_line && syllable.syllable != 0 &&
-        syllable.syllable == m_line_timing_decorations[last_line]->GetSyllableCount())
+    if (pos.IsValid())
     {
-        return SyllablePosition{last_line, 0};
+        // It needs to be possible to place the cursor "after" the last line that has a syllable,
+        // because otherwise it's impossible to set the end time of the last syllable of that line.
+        // Because of this, treat the very end of that line as if it's a valid position.
+        const int last_line = GetLastLineWithSyllables();
+        if (pos.line == last_line && pos.syllable != 0 &&
+            pos.syllable == m_line_timing_decorations[last_line]->GetSyllableCount())
+        {
+            return SyllablePosition{pos.line, 0};
+        }
     }
 
-    int line = syllable.line - 1;
-
-    if (line < 0)
-        return SyllablePosition{0, 0};
-
-    return SkipLinesWithoutSyllablesBackward(SyllablePosition{line, 0});
+    return SkipLinesWithoutSyllablesBackward(SyllablePosition{pos.line - 1, 0});
 }
 
 LyricsEditor::SyllablePosition LyricsEditor::GetNextLine() const
 {
     int line = TextPositionToSyllable(m_rich_text_edit->textCursor().position()).line + 1;
-
-    // It needs to be possible to place the cursor "after" the last line, because otherwise
-    // it would be impossible to set the end time of the last syllable of the last line.
-    // Because of this, treat the very end of the last line as if it's after the last line.
-    if (line >= m_line_timing_decorations.size())
-    {
-        const int last_line = m_line_timing_decorations.size() - 1;
-        return SyllablePosition{last_line, m_line_timing_decorations[last_line]->GetSyllableCount()};
-    }
-
     return SkipLinesWithoutSyllablesForward(SyllablePosition{line, 0});
 }
 

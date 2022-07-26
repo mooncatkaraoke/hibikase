@@ -69,6 +69,16 @@ public:
         int syllable;
 
         bool IsValid() const { return line >= 0 && syllable >= 0; }
+
+        bool operator==(const SyllablePosition& other) const
+        {
+            return line == other.line && syllable == other.syllable;
+        }
+
+        bool operator!=(const SyllablePosition& other) const
+        {
+            return !operator==(other);
+        }
     };
 
     explicit LyricsEditor(QWidget* parent = nullptr);
@@ -129,6 +139,7 @@ private:
     SyllablePosition GetPreviousSyllable(SyllablePosition pos) const;
     SyllablePosition GetCurrentSyllable() const;
     SyllablePosition GetNextSyllable() const;
+    int GetLastLineWithSyllables() const;
     SyllablePosition GetPreviousLine() const;
     SyllablePosition GetNextLine() const;
 
