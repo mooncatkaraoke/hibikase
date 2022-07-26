@@ -112,6 +112,15 @@ private:
                 std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);
 
     void GoTo(SyllablePosition position);
+
+    // Skips to the next line for as long as the current position is on a line that has no
+    // syllables or the current position is at the end of a line, then returns the new position.
+    SyllablePosition SkipLinesWithoutSyllablesForward(SyllablePosition position) const;
+
+    // Skips to the previous line for as long as the current position is on a line that has no
+    // syllables, then returns the new position.
+    SyllablePosition SkipLinesWithoutSyllablesBackward(SyllablePosition position) const;
+
     int TextPositionToLine(int position) const;
     SyllablePosition TextPositionToSyllable(int position) const;
     int TextPositionFromSyllable(SyllablePosition position) const;
@@ -122,6 +131,7 @@ private:
     SyllablePosition GetNextSyllable() const;
     SyllablePosition GetPreviousLine() const;
     SyllablePosition GetNextLine() const;
+
     KaraokeData::Syllable* GetSyllable(SyllablePosition pos) const;
     KaraokeData::SongPosition ToSongPosition(int position, Mode mode) const;
 

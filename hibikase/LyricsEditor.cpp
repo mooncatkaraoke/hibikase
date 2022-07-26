@@ -744,6 +744,29 @@ void LyricsEditor::GoTo(SyllablePosition position)
     m_rich_cursor_updates_disabled = updates_disabled;
 }
 
+LyricsEditor::SyllablePosition LyricsEditor::SkipLinesWithoutSyllablesForward(SyllablePosition pos) const
+{
+    while (pos.line + 1 < m_line_timing_decorations.size() &&
+           m_line_timing_decorations[pos.line]->GetSyllableCount() <= pos.syllable)
+    {
+        pos.line++;
+        pos.syllable = 0;
+    }
+
+    return pos;
+}
+
+LyricsEditor::SyllablePosition LyricsEditor::SkipLinesWithoutSyllablesBackward(SyllablePosition pos) const
+{
+    while (pos.line > 0 && m_line_timing_decorations[pos.line]->GetSyllableCount() == 0)
+    {
+        pos.line--;
+        pos.syllable = 0;
+    }
+
+    return pos;
+}
+
 int LyricsEditor::TextPositionToLine(int position) const
 {
     if (m_line_timing_decorations.empty())
@@ -766,14 +789,7 @@ LyricsEditor::SyllablePosition LyricsEditor::TextPositionToSyllable(int position
     int syllable = m_line_timing_decorations[line]->TextPositionToSyllable(position);
 
     // If we're at the end of a line, skip to the next line that has a syllable
-    while (line + 1 < m_line_timing_decorations.size() &&
-           m_line_timing_decorations[line]->GetSyllableCount() <= syllable)
-    {
-        line++;
-        syllable = 0;
-    }
-
-    return SyllablePosition{line, syllable};
+    return SkipLinesWithoutSyllablesForward(SyllablePosition{line, syllable});
 }
 
 int LyricsEditor::TextPositionFromSyllable(SyllablePosition position) const
@@ -790,14 +806,14 @@ LyricsEditor::SyllablePosition LyricsEditor::GetPreviousSyllable(SyllablePositio
 {
     if (pos.syllable == 0)
     {
-        int line = pos.line - 1;
-        while (line >= 0 && m_line_timing_decorations[line]->GetSyllableCount() == 0)
-            line--;
+        const SyllablePosition new_pos =
+                SkipLinesWithoutSyllablesBackward(SyllablePosition{pos.line - 1, 0});
 
-        if (line < 0)
-            return SyllablePosition{-1, 0};
-        else
-            return SyllablePosition{line, m_line_timing_decorations[line]->GetSyllableCount() - 1};
+        if (!new_pos.IsValid())
+            return new_pos;
+
+        return SyllablePosition{new_pos.line,
+                    m_line_timing_decorations[new_pos.line]->GetSyllableCount() - 1};
     }
     else
     {
@@ -834,11 +850,7 @@ LyricsEditor::SyllablePosition LyricsEditor::GetPreviousLine() const
     if (line < 0)
         return SyllablePosition{0, 0};
 
-    // Skip lines that don't contain syllables
-    while (line > 0 && m_line_timing_decorations[line]->GetSyllableCount())
-        line--;
-
-    return SyllablePosition{line, 0};
+    return SkipLinesWithoutSyllablesBackward(SyllablePosition{line, 0});
 }
 
 LyricsEditor::SyllablePosition LyricsEditor::GetNextLine() const
@@ -854,14 +866,7 @@ LyricsEditor::SyllablePosition LyricsEditor::GetNextLine() const
         return SyllablePosition{last_line, m_line_timing_decorations[last_line]->GetSyllableCount()};
     }
 
-    // Skip lines that don't contain syllables
-    while (line + 1 < m_line_timing_decorations.size() &&
-           m_line_timing_decorations[line]->GetSyllableCount() == 0)
-    {
-        line++;
-    }
-
-    return SyllablePosition{line, 0};
+    return SkipLinesWithoutSyllablesForward(SyllablePosition{line, 0});
 }
 
 KaraokeData::Syllable* LyricsEditor::GetSyllable(SyllablePosition position) const
