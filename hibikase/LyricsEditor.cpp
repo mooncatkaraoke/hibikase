@@ -407,7 +407,13 @@ void LyricsEditor::OnCursorPositionChanged()
     const SyllablePosition syllable = TextPositionToSyllable(position);
     const SyllablePosition previous_syllable = GetPreviousSyllable(syllable);
     const int line = TextPositionToLine(position);
-    if (!syllable.IsValid() && !previous_syllable.IsValid())
+    if (syllable.IsValid() && line != TextPositionToLine(position + 1))
+    {
+        // Clicked on the end of a line. Go to the start of the next line,
+        // since that's the position you have to be at to edit the end time of a line.
+        GoTo(syllable);
+    }
+    else if (!syllable.IsValid() && !previous_syllable.IsValid())
     {
     }
     else if (!syllable.IsValid() || (syllable.line != line && previous_syllable.line == line))
@@ -437,7 +443,13 @@ void LyricsEditor::GoToPosition(QPoint pos)
     const SyllablePosition syllable = TextPositionToSyllable(position);
     const SyllablePosition previous_syllable = GetPreviousSyllable(syllable);
     const int line = TextPositionToLine(position);
-    if (!syllable.IsValid() && !previous_syllable.IsValid())
+    if (syllable.IsValid() && line != TextPositionToLine(position + 1))
+    {
+        // Clicked on the end of a line. Go to the start of the next line,
+        // since that's the position you have to be at to edit the end time of a line.
+        GoTo(syllable);
+    }
+    else if (!syllable.IsValid() && !previous_syllable.IsValid())
     {
     }
     else if (!syllable.IsValid() || (syllable.line != line && previous_syllable.line == line))
