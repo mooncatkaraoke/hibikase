@@ -55,7 +55,16 @@ void AudioOutputWorker::Initialize()
 
 void AudioOutputWorker::Play()
 {
-    if (m_audio_output->state() != QAudio::State::StoppedState)
+    if (m_audio_output->state() == QAudio::State::IdleState)
+    {
+        // "idle state" means the audio output ran out of samples to play.
+        // In general this will immediately be resolved by pushing more samples
+        // in the state-change callback, but there can be edge cases where this
+        // does not happen. Pushing more samples should make the "Play" button
+        // useful here.
+        PushSamplesToOutput();
+    }
+    else if (m_audio_output->state() != QAudio::State::StoppedState)
     {
         m_audio_output->resume();
     }
@@ -67,11 +76,8 @@ void AudioOutputWorker::Play()
         m_last_speed_change_offset = 0;
 
         m_output_buffer = m_audio_output->start();
+        PushSamplesToOutput();
     }
-
-    // Not only starting playback from 0 requires samples, but also resuming
-    // from a buffer underrun. It can't hurt for resuming from pause too.
-    PushSamplesToOutput();
 }
 
 void AudioOutputWorker::Seek(std::chrono::microseconds to)
@@ -244,17 +250,18 @@ void AudioOutputWorker::OnStateChanged(QAudio::State state)
     {
         qInfo() << "Audio playback buffer underrun, pushing more samples.";
         PushSamplesToOutput();
+        state = m_audio_output->state(); // hopefully it's now Active again
     }
 
     PlaybackState simplified_state;
     switch (state)
     {
     case QAudio::State::ActiveState: // Normal playback
-    case QAudio::State::IdleState:   // Buffer underrun during playback
         simplified_state = PlaybackState::Playing;
         break;
     case QAudio::State::SuspendedState:
     case QAudio::State::InterruptedState:
+    case QAudio::State::IdleState:   // Buffer underrun that wasn't fixed above
         simplified_state = PlaybackState::Paused;
         break;
     case QAudio::State::StoppedState:
