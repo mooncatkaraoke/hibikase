@@ -47,8 +47,21 @@ void AudioOutputWorker::Initialize()
                 float_format.sampleRate(), float_format.channelCount(),
                 RubberBand::RubberBandStretcher::Option::OptionProcessRealTime);
 
-    connect(m_audio_output.get(), &QAudioOutput::stateChanged, this, &AudioOutputWorker::OnStateChanged);
-    connect(m_audio_output.get(), &QAudioOutput::notify, this, &AudioOutputWorker::OnNotify);
+    // On macOS, the AudioOutputWorker could get stuck in a deadlock with a
+    // stack-trace like:
+    // - AudioOutputWorker::Play()
+    //   - <Qt stackframes>
+    //     - AudioOutputWorker::OnStateChanged()
+    //       - AudioOutputWorker::PushSamplesToOutput()
+    //         - <Qt stackframes>
+    //           - QBasicMutex::lockInternal()
+    // Apparently, the recursive handling of events causes Qt to attempt to lock
+    // a mutex it already holds a lock on, hanging the thread.
+    // Making the connection be queued fixes this.
+    connect(m_audio_output.get(), &QAudioOutput::stateChanged, this,
+            &AudioOutputWorker::OnStateChanged, Qt::ConnectionType::QueuedConnection);
+    connect(m_audio_output.get(), &QAudioOutput::notify, this,
+            &AudioOutputWorker::OnNotify, Qt::ConnectionType::QueuedConnection);
 
     emit LoadFinished(QString());
 }
