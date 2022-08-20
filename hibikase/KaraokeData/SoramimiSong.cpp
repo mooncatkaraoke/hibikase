@@ -263,6 +263,11 @@ void SoramimiLine::CalculateStartAndEnd()
         if (syllable->GetEnd() != PLACEHOLDER_TIME)
             m_end = std::max(syllable->GetEnd(), m_end);
     }
+
+    if (m_start == Centiseconds::max())
+        m_start = PLACEHOLDER_TIME;
+    if (m_end == Centiseconds::min())
+        m_end = PLACEHOLDER_TIME;
 }
 
 void SoramimiLine::AddSyllable(int start, int end,
