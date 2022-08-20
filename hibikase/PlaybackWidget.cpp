@@ -71,6 +71,11 @@ PlaybackWidget::~PlaybackWidget()
     m_thread.wait();
 }
 
+void PlaybackWidget::ReloadSong(KaraokeData::Song* song)
+{
+    m_playback_bar->ReloadSong(song);
+}
+
 void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
 {
     if (m_worker)

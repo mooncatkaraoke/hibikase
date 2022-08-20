@@ -39,6 +39,7 @@ MainWindow::MainWindow(QWidget* parent) :
     });
 
     connect(this, &MainWindow::SongReplaced, ui->mainLyrics, &LyricsEditor::ReloadSong);
+    connect(this, &MainWindow::SongReplaced, ui->playbackWidget, &PlaybackWidget::ReloadSong);
     connect(ui->playbackWidget, &PlaybackWidget::TimeUpdated, ui->mainLyrics, &LyricsEditor::UpdateTime);
     connect(ui->playbackWidget, &PlaybackWidget::SpeedUpdated, ui->mainLyrics, &LyricsEditor::UpdateSpeed);
     connect(ui->mainLyrics, &LyricsEditor::Modified, this, &MainWindow::OnSongModified);

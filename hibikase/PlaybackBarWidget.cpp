@@ -2,7 +2,8 @@
 
 // This file implements a slider control that represents the current playback
 // position. Hibikase previously used QSlider for this, but its behaviour is not
-// consistent across platforms, and it can be quite glitchy.
+// consistent across platforms, and it can be quite glitchy. Using a custom
+// slider also lets us show what parts of the song have timed lines.
 
 #include <algorithm>
 #include <chrono>
@@ -24,7 +25,8 @@ const int LINE_HEIGHT = 4;
 const int HANDLE_WIDTH = 8;
 
 PlaybackBarWidget::PlaybackBarWidget(QWidget *parent)
-    : QWidget(parent), m_current_time{}, m_song_length{}, m_being_dragged(false)
+    : QWidget(parent), m_current_time{}, m_song_length{}, m_being_dragged{},
+      m_song_ref{}
 {
     setMinimumHeight(HEIGHT);
     setVisible(true);
@@ -71,9 +73,34 @@ void PlaybackBarWidget::paintEvent(QPaintEvent* e)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
+    auto line_color = QColor(~(QPalette().color(QPalette::Text).rgb()));
+    line_color.setAlpha(255);
+
     auto line_rect = ComputeLineRect();
     auto handle_rect = ComputeHandleRect();
-    painter.fillRect(line_rect, Qt::gray);
+    painter.fillRect(line_rect, line_color);
+
+    if (m_song_ref)
+    {
+        auto song_length = qreal(std::chrono::duration_cast<KaraokeData::Centiseconds>(m_song_length).count());
+        for (const KaraokeData::Line* line : m_song_ref->GetLines())
+        {
+            KaraokeData::Centiseconds start = line->GetStart();
+            KaraokeData::Centiseconds end = line->GetEnd();
+
+            if (start == KaraokeData::PLACEHOLDER_TIME || end == KaraokeData::PLACEHOLDER_TIME)
+                continue;
+
+            QRectF lyric_rect {
+                qreal(line_rect.x()) + line_rect.width() * (start.count() / song_length),
+                qreal(line_rect.y()),
+                qreal(line_rect.x()) + line_rect.width() * ((end - start).count() / song_length),
+                qreal(line_rect.height()),
+            };
+            painter.fillRect(lyric_rect, Qt::gray);
+        }
+    }
+
     painter.fillRect(handle_rect, QPalette().color(QPalette::Text));
 
     QWidget::paintEvent(e);
@@ -140,4 +167,16 @@ void PlaybackBarWidget::mouseReleaseEvent(QMouseEvent*)
 {
     m_being_dragged = false;
     emit PlaybackBarWidget::DragEnd();
+}
+
+void PlaybackBarWidget::ReloadSong(KaraokeData::Song* song)
+{
+    m_song_ref = song;
+    connect(m_song_ref, &KaraokeData::Song::LinesChanged, this, &PlaybackBarWidget::OnLinesChanged);
+}
+
+void PlaybackBarWidget::OnLinesChanged(int, int, int, int, int, int)
+{
+    // Redraw in case timing has changed
+    update();
 }

@@ -12,6 +12,7 @@
 #include <QWidget>
 
 #include "AudioOutputWorker.h"
+#include "KaraokeData/Song.h"
 #include "PlaybackBarWidget.h"
 
 class PlaybackWidget : public QWidget
@@ -27,6 +28,9 @@ public:
 signals:
     void TimeUpdated(std::chrono::milliseconds time);
     void SpeedUpdated(double speed);
+
+public slots:
+    void ReloadSong(KaraokeData::Song* song);
 
 private slots:
     void OnLoadResult(QString result);

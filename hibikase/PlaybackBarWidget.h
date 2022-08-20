@@ -7,6 +7,8 @@
 #include <QObject>
 #include <QWidget>
 
+#include "KaraokeData/Song.h"
+
 class QPaintEvent;
 
 class PlaybackBarWidget final : public QWidget
@@ -26,11 +28,17 @@ signals:
     void Dragged(Microseconds new_time);
     void DragEnd();
 
+public slots:
+    void ReloadSong(KaraokeData::Song* song);
+
 protected:
     void paintEvent(QPaintEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
     void mouseReleaseEvent(QMouseEvent*) override;
+
+private slots:
+    void OnLinesChanged(int, int, int, int, int, int);
 
 private:
     Microseconds m_current_time;
@@ -40,6 +48,8 @@ private:
     bool m_drag_relative;
     int m_drag_relative_to_x;
     Microseconds m_drag_relative_to_time;
+
+    KaraokeData::Song* m_song_ref;
 
     QRect ComputeLineRect() const;
     QRectF ComputeHandleRect() const;
