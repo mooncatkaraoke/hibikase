@@ -187,6 +187,11 @@ bool AudioOutputWorker::PushSamplesToStretcher()
 
 void AudioOutputWorker::PushSamplesToOutput()
 {
+    // Handle race condition where there are queued events that trigger pushing
+    // samples, but the audio has already been stopped.
+    if (!m_output_buffer)
+        return;
+
     do
     {
         const size_t bytes_per_frame = m_audio_output->format().bytesPerFrame();
