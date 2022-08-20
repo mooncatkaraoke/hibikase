@@ -48,6 +48,7 @@ SOURCES += main.cpp \
     KaraokeContainer/PlainContainer.cpp \
     KaraokeData/VsqxParser.cpp \
     LyricsEditor.cpp \
+    PlaybackBarWidget.cpp \
     PlaybackWidget.cpp \
     Settings.cpp \
     SettingsDialog.cpp \
@@ -67,6 +68,7 @@ HEADERS  += MainWindow.h \
     KaraokeData/ReadOnlySong.h \
     KaraokeData/VsqxParser.h \
     LyricsEditor.h \
+    PlaybackBarWidget.h \
     PlaybackWidget.h \
     Settings.h \
     SettingsDialog.h \

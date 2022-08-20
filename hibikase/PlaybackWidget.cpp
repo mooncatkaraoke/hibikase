@@ -19,12 +19,11 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
     m_stop_button = new QPushButton(QStringLiteral("Stop"), this);
     m_time_label = new QLabel(this);
     m_speed_label = new QLabel(this);
-    m_time_slider = new QSlider(Qt::Orientation::Horizontal, this);
+    m_playback_bar = new PlaybackBarWidget(this);
     m_speed_slider = new QSlider(Qt::Orientation::Horizontal, this);
 
     m_play_button->setFocusPolicy(Qt::FocusPolicy::TabFocus);
     m_stop_button->setFocusPolicy(Qt::FocusPolicy::TabFocus);
-    m_time_slider->setFocusPolicy(Qt::FocusPolicy::TabFocus);
     m_speed_slider->setFocusPolicy(Qt::FocusPolicy::TabFocus);
 
     // We want a font where all numbers have the same width, so that labels don't change in size
@@ -43,7 +42,7 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
     main_layout->setMargin(0);
 
     first_row->addWidget(m_time_label);
-    first_row->addWidget(m_time_slider);
+    first_row->addWidget(m_playback_bar);
     second_row->addWidget(m_play_button, 1);
     second_row->addWidget(m_stop_button, 1);
     second_row->addWidget(m_speed_label, 0);
@@ -55,8 +54,8 @@ PlaybackWidget::PlaybackWidget(QWidget* parent) : QWidget(parent)
 
     connect(m_play_button, &QPushButton::clicked, this, &PlaybackWidget::OnPlayButtonClicked);
     connect(m_stop_button, &QPushButton::clicked, this, &PlaybackWidget::OnStopButtonClicked);
-    connect(m_time_slider, &QSlider::sliderMoved, this, &PlaybackWidget::OnTimeSliderMoved);
-    connect(m_time_slider, &QSlider::sliderReleased, this, &PlaybackWidget::OnTimeSliderReleased);
+    connect(m_playback_bar, &PlaybackBarWidget::Dragged, this, &PlaybackWidget::OnPlaybackBarDragged);
+    connect(m_playback_bar, &PlaybackBarWidget::DragEnd, this, &PlaybackWidget::OnPlaybackBarReleased);
     connect(m_speed_slider, &QSlider::valueChanged, this, &PlaybackWidget::OnSpeedSliderUpdated);
     LoadAudio(nullptr);
 
@@ -84,7 +83,6 @@ void PlaybackWidget::LoadAudio(std::unique_ptr<QIODevice> io_device)
 
     m_play_button->setEnabled(false);
     m_stop_button->setEnabled(false);
-    m_time_slider->setEnabled(false);
     OnStateChanged(AudioOutputWorker::PlaybackState::Stopped);
 
     if (!io_device)
@@ -114,7 +112,6 @@ void PlaybackWidget::OnLoadResult(QString result)
     }
 
     m_play_button->setEnabled(true);
-    m_time_slider->setEnabled(true);
     OnStateChanged(AudioOutputWorker::PlaybackState::Stopped);
 }
 
@@ -140,22 +137,19 @@ void PlaybackWidget::OnStopButtonClicked()
         QMetaObject::invokeMethod(m_worker, "Stop");
 }
 
-void PlaybackWidget::OnTimeSliderMoved(int value)
+void PlaybackWidget::OnPlaybackBarDragged(std::chrono::microseconds value)
 {
-    if (!m_time_slider->isSliderDown())
-        return;
-
     // Update karaoke text but not audio when dragging slider
     // (It would also be possible to update audio, but you may not like the sound)
-    emit TimeUpdated(std::chrono::milliseconds(value));
+    emit TimeUpdated(std::chrono::duration_cast<std::chrono::milliseconds>(value));
 }
 
-void PlaybackWidget::OnTimeSliderReleased()
+void PlaybackWidget::OnPlaybackBarReleased()
 {
     if (!m_worker)
         return;
 
-    std::chrono::microseconds new_pos(m_time_slider->value() * 1000);
+    std::chrono::microseconds new_pos(m_playback_bar->GetCurrentTime());
     QMetaObject::invokeMethod(m_worker, "Seek", Q_ARG(std::chrono::microseconds, new_pos));
 }
 
@@ -192,7 +186,7 @@ void PlaybackWidget::OnStateChanged(AudioOutputWorker::PlaybackState state)
     m_stop_button->setEnabled(state != AudioOutputWorker::PlaybackState::Stopped);
 
     if (state == AudioOutputWorker::PlaybackState::Stopped)
-        UpdateTime(std::chrono::microseconds(-1), std::chrono::microseconds(-1));
+        UpdateTime(std::chrono::microseconds(0), std::chrono::microseconds(0));
 }
 
 static QString formatTime(std::chrono::microseconds time)
@@ -211,24 +205,20 @@ void PlaybackWidget::UpdateTime(std::chrono::microseconds current, std::chrono::
     if (m_worker && current.count() >= 0)
     {
         text = QStringLiteral("%1 / %2").arg(formatTime(current), formatTime(length));
-        // Don't undo the user's actions when they are dragging the slider
-        if (!m_time_slider->isSliderDown())
+        // Don't fight the user when they are dragging the slider
+        if (!m_playback_bar->IsBeingDragged())
         {
-            // Range and value in milliseconds because `int` is usually 32-bit
-            // and INT_MAX is not even enough for 36 minutes in microseconds
-            m_time_slider->setRange(0, length.count() / 1000);
-            m_time_slider->setValue(current.count() / 1000);
+            m_playback_bar->Update(current, length);
         }
     }
     else
     {
-        m_time_slider->setRange(0, 0);
-        m_time_slider->setValue(0);
+        m_playback_bar->Update(current, length);
     }
     m_time_label->setText(text);
 
     // Slider issues time signals itself when being dragged (ignore audio's time signals)
-    if (!m_time_slider->isSliderDown())
+    if (!m_playback_bar->IsBeingDragged())
     {
         emit TimeUpdated(std::chrono::duration_cast<std::chrono::milliseconds>(current));
     }
