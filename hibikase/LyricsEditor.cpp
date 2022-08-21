@@ -59,71 +59,10 @@ bool TimingEventFilter::eventFilter(QObject* obj, QEvent* event)
             return QObject::eventFilter(obj, event);
         }
     }
-    else if (event->type() == QEvent::KeyPress)
-    {
-        QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
-
-        switch (key_event->key())
-        {
-        case Qt::Key_Space:
-            if (!key_event->isAutoRepeat())
-                emit SetSyllableStart();
-            return true;
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
-            if (!key_event->isAutoRepeat())
-                emit SetSyllableEnd();
-            return true;
-        case Qt::Key_Left:
-            emit GoToPreviousSyllable();
-            return true;
-        case Qt::Key_Right:
-            emit GoToNextSyllable();
-            return true;
-        case Qt::Key_Up:
-            emit GoToPreviousLine();
-            return true;
-        case Qt::Key_Down:
-            emit GoToNextLine();
-            return true;
-        default:
-            return QObject::eventFilter(obj, event);
-        }
-    }
     else
     {
         return QObject::eventFilter(obj, event);
     }
-}
-
-TextEventFilter::TextEventFilter(QObject* parent) : QObject(parent)
-{
-}
-
-bool TextEventFilter::eventFilter(QObject* obj, QEvent* event)
-{
-    if (event->type() == QEvent::KeyPress)
-    {
-        QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
-
-        if (key_event->key() == Qt::Key_Space &&
-#if defined(Q_OS_MACOS) || defined(Q_OS_OSX)
-            // on macOS, ControlModifier is mapped to ⌘ (Command), but ⌘+Space
-            // is the default input method switching shortcut, which we can't
-            // override, so let's use MetaModifier which /actually/ maps to Ctrl
-            // on macOS. Ctrl+Space seems to be fine as a shortcut.
-            key_event->modifiers().testFlag(Qt::MetaModifier))
-#else
-            // on other platforms the shortcut is also Ctrl+Space
-            key_event->modifiers().testFlag(Qt::ControlModifier))
-#endif
-        {
-            emit ToggleSyllable();
-            return true;
-        }
-    }
-
-    return QObject::eventFilter(obj, event);
 }
 
 LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
@@ -144,20 +83,26 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     connect(m_raw_text_edit, &QPlainTextEdit::customContextMenuRequested,
             [this](const QPoint& point) { ShowContextMenu(point, m_raw_text_edit); });
 
-    connect(&m_timing_event_filter, &TimingEventFilter::SetSyllableStart,
+    m_set_syllable_start_shortcut = new QShortcut(SET_SYLLABLE_START, this);
+    connect(m_set_syllable_start_shortcut, &QShortcut::activated,
             this, &LyricsEditor::SetSyllableStart);
-    connect(&m_timing_event_filter, &TimingEventFilter::SetSyllableEnd,
+    m_set_syllable_end_shortcut = new QShortcut(SET_SYLLABLE_END, this);
+    connect(m_set_syllable_end_shortcut, &QShortcut::activated,
             this, &LyricsEditor::SetSyllableEnd);
-    connect(&m_timing_event_filter, &TimingEventFilter::GoToPreviousSyllable,
+    m_previous_syllable_shortcut = new QShortcut(PREVIOUS_SYLLABLE, this);
+    connect(m_previous_syllable_shortcut, &QShortcut::activated,
             [this]() { GoTo(GetPreviousSyllable()); });
-    connect(&m_timing_event_filter, &TimingEventFilter::GoToNextSyllable,
+    m_next_syllable_shortcut = new QShortcut(NEXT_SYLLABLE, this);
+    connect(m_next_syllable_shortcut, &QShortcut::activated,
             [this]() { GoTo(GetNextSyllable()); });
-    connect(&m_timing_event_filter, &TimingEventFilter::GoToPreviousLine,
+    m_previous_line_shortcut = new QShortcut(PREVIOUS_LINE, this);
+    connect(m_previous_line_shortcut, &QShortcut::activated,
             [this]() { GoTo(GetPreviousLine()); });
-    connect(&m_timing_event_filter, &TimingEventFilter::GoToNextLine,
+    m_next_line_shortcut = new QShortcut(NEXT_LINE, this);
+    connect(m_next_line_shortcut, &QShortcut::activated,
             [this]() { GoTo(GetNextLine()); });
-
-    connect(&m_text_event_filter, &TextEventFilter::ToggleSyllable,
+    m_toggle_syllable_shortcut = new QShortcut(TOGGLE_SYLLABLE, this);
+    connect(m_toggle_syllable_shortcut, &QShortcut::activated,
             this, &LyricsEditor::ToggleSyllable);
 
     m_rich_text_edit->setReadOnly(true);
@@ -233,15 +178,22 @@ void LyricsEditor::UpdateSpeed(double speed)
 
 void LyricsEditor::SetMode(Mode mode)
 {
+    m_set_syllable_start_shortcut->setEnabled(mode == Mode::Timing);
+    m_set_syllable_end_shortcut->setEnabled(mode == Mode::Timing);
+    m_previous_syllable_shortcut->setEnabled(mode == Mode::Timing);
+    m_next_syllable_shortcut->setEnabled(mode == Mode::Timing);
+    m_previous_line_shortcut->setEnabled(mode == Mode::Timing);
+    m_next_line_shortcut->setEnabled(mode == Mode::Timing);
+
+    m_toggle_syllable_shortcut->setEnabled(mode == Mode::Text);
+
     if (mode == Mode::Timing)
     {
-        m_rich_text_edit->removeEventFilter(&m_text_event_filter);
         m_rich_text_edit->installEventFilter(&m_timing_event_filter);
     }
     else
     {
         m_rich_text_edit->removeEventFilter(&m_timing_event_filter);
-        m_rich_text_edit->installEventFilter(&m_text_event_filter);
     }
 
     switch (mode)

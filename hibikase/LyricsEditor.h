@@ -11,6 +11,7 @@
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QPoint>
+#include <QShortcut>
 #include <QWidget>
 
 #include "KaraokeData/Song.h"
@@ -37,24 +38,24 @@ private:
     bool eventFilter(QObject* obj, QEvent* event) override;
 };
 
-class TextEventFilter : public QObject
-{
-    Q_OBJECT
-
-public:
-    TextEventFilter(QObject* parent = nullptr);
-
-signals:
-    void ToggleSyllable();
-
-private:
-    bool eventFilter(QObject* obj, QEvent* event) override;
-};
-
 class LyricsEditor : public QWidget
 {
     Q_OBJECT
 public:
+
+    const QKeySequence SET_SYLLABLE_START = QKeySequence(Qt::Key_Space);
+    const QKeySequence SET_SYLLABLE_END = QKeySequence(Qt::Key_Return);
+    const QKeySequence PREVIOUS_SYLLABLE = QKeySequence::MoveToPreviousChar;
+    const QKeySequence NEXT_SYLLABLE = QKeySequence::MoveToNextChar;
+    const QKeySequence PREVIOUS_LINE = QKeySequence::MoveToPreviousLine;
+    const QKeySequence NEXT_LINE = QKeySequence::MoveToNextLine;
+#ifdef Q_OS_MACOS
+    // On macOS, ControlModifier = ⌘ and MetaModifier = Ctrl.
+    // ⌘+Space is the OS shortcut for switching IME, so use Ctrl+Space here too.
+    const QKeySequence TOGGLE_SYLLABLE = Qt::Key_Space | Qt::MetaModifier;
+#else
+    const QKeySequence TOGGLE_SYLLABLE = Qt::Key_Space | Qt::ControlModifier;
+#endif
 
     enum class Mode
     {
@@ -158,9 +159,16 @@ private:
 
     KaraokeData::Centiseconds GetLatencyCompensatedTime() const;
 
+    QShortcut* m_set_syllable_start_shortcut;
+    QShortcut* m_set_syllable_end_shortcut;
+    QShortcut* m_previous_syllable_shortcut;
+    QShortcut* m_next_syllable_shortcut;
+    QShortcut* m_previous_line_shortcut;
+    QShortcut* m_next_line_shortcut;
+    QShortcut* m_toggle_syllable_shortcut;
+
     TimingEventFilter m_timing_event_filter;
 
-    TextEventFilter m_text_event_filter;
     QPlainTextEdit* m_raw_text_edit;
     QPlainTextEdit* m_rich_text_edit;
 
