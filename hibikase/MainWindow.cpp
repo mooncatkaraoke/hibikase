@@ -24,7 +24,7 @@
 #include "SettingsDialog.h"
 
 MainWindow::MainWindow(QWidget* parent) :
-    QMainWindow(parent), ui(new Ui::MainWindow)
+    QMainWindow(parent), ui(new Ui::MainWindow), m_keyboard_shortcuts_help{}
 {
     ui->setupUi(this);
 
@@ -143,6 +143,71 @@ void MainWindow::on_actionAbout_Hibikase_triggered()
 {
     AboutDialog dialog(this);
     dialog.exec();
+}
+
+void MainWindow::on_actionKeyboard_Shortcuts_triggered()
+{
+    if (m_keyboard_shortcuts_help)
+    {
+        m_keyboard_shortcuts_help->show();
+        // Try to bring the window into focus if it's already open
+        m_keyboard_shortcuts_help->raise();
+        m_keyboard_shortcuts_help->activateWindow();
+        return;
+    }
+
+    struct Shortcut
+    {
+        const char* name;
+        const QKeySequence& key;
+    };
+    const std::initializer_list<Shortcut> TEXT_SHORTCUTS = {
+        {"Create or delete syllable", LyricsEditor::TOGGLE_SYLLABLE},
+    };
+    const std::initializer_list<Shortcut> TIMING_SHORTCUTS = {
+        {"Time syllable and advance", LyricsEditor::SET_SYLLABLE_START},
+        {"Time end of previous syllable", LyricsEditor::SET_SYLLABLE_END},
+        {"Go to previous syllable", LyricsEditor::PREVIOUS_SYLLABLE},
+        {"Go to next syllable", LyricsEditor::NEXT_SYLLABLE},
+        {"Go to start of previous line", LyricsEditor::PREVIOUS_LINE},
+        {"Go to start of next line", LyricsEditor::NEXT_LINE},
+    };
+
+    QString text{};
+    text.append("<table>");
+    for (auto shortcuts : {
+        std::make_pair("Text view", &TEXT_SHORTCUTS),
+        std::make_pair("Timing view", &TIMING_SHORTCUTS),
+    })
+    {
+        text.append("<tr>");
+        text.append("<th width\"400\" colspan=\"2\">");
+        text.append(shortcuts.first);
+        text.append("</th>");
+        text.append("</tr>");
+        for (auto shortcut : *shortcuts.second)
+        {
+            text.append("<tr>");
+            text.append("<td style=\"padding-right: 1em;\">");
+            text.append(shortcut.name);
+            text.append("</td>");
+            text.append("<td>");
+            text.append(shortcut.key.toString(QKeySequence::SequenceFormat::NativeText));
+            text.append("</td>");
+            text.append("</tr>");
+        }
+    }
+    text.append("</table>");
+
+    QMessageBox* box = new QMessageBox(this);
+    box->setWindowTitle("Keyboard Shortcuts Help");
+    box->setTextFormat(Qt::TextFormat::RichText);
+    box->setInformativeText(text);
+    box->setWindowModality(Qt::WindowModality::NonModal);
+    box->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+    box->show();
+
+    m_keyboard_shortcuts_help = box;
 }
 
 void MainWindow::OnSongModified()

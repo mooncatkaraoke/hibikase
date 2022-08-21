@@ -26,6 +26,20 @@
 #include "TextTransform/RomanizeHangul.h"
 #include "TextTransform/Syllabify.h"
 
+const QKeySequence LyricsEditor::SET_SYLLABLE_START = Qt::Key_Space;
+const QKeySequence LyricsEditor::SET_SYLLABLE_END = Qt::Key_Return;
+const QKeySequence LyricsEditor::PREVIOUS_SYLLABLE = Qt::Key_Left;
+const QKeySequence LyricsEditor::NEXT_SYLLABLE = Qt::Key_Right;
+const QKeySequence LyricsEditor::PREVIOUS_LINE = Qt::Key_Up;
+const QKeySequence LyricsEditor::NEXT_LINE = Qt::Key_Down;
+#ifdef Q_OS_MACOS
+// On macOS, ControlModifier = ⌘ and MetaModifier = Ctrl.
+// ⌘+Space is the OS shortcut for switching IME, so use Ctrl+Space here too.
+const QKeySequence LyricsEditor::TOGGLE_SYLLABLE = Qt::Key_Space | Qt::MetaModifier;
+#else
+const QKeySequence LyricsEditor::TOGGLE_SYLLABLE = Qt::Key_Space | Qt::ControlModifier;
+#endif
+
 static QFont WithPointSize(QFont font, qreal size)
 {
     // For historical reasons,[0] points are one-third bigger on Windows than

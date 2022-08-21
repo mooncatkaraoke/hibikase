@@ -43,19 +43,13 @@ class LyricsEditor : public QWidget
     Q_OBJECT
 public:
 
-    const QKeySequence SET_SYLLABLE_START = QKeySequence(Qt::Key_Space);
-    const QKeySequence SET_SYLLABLE_END = QKeySequence(Qt::Key_Return);
-    const QKeySequence PREVIOUS_SYLLABLE = QKeySequence::MoveToPreviousChar;
-    const QKeySequence NEXT_SYLLABLE = QKeySequence::MoveToNextChar;
-    const QKeySequence PREVIOUS_LINE = QKeySequence::MoveToPreviousLine;
-    const QKeySequence NEXT_LINE = QKeySequence::MoveToNextLine;
-#ifdef Q_OS_MACOS
-    // On macOS, ControlModifier = ⌘ and MetaModifier = Ctrl.
-    // ⌘+Space is the OS shortcut for switching IME, so use Ctrl+Space here too.
-    const QKeySequence TOGGLE_SYLLABLE = Qt::Key_Space | Qt::MetaModifier;
-#else
-    const QKeySequence TOGGLE_SYLLABLE = Qt::Key_Space | Qt::ControlModifier;
-#endif
+    static const QKeySequence SET_SYLLABLE_START;
+    static const QKeySequence SET_SYLLABLE_END;
+    static const QKeySequence PREVIOUS_SYLLABLE;
+    static const QKeySequence NEXT_SYLLABLE;
+    static const QKeySequence PREVIOUS_LINE;
+    static const QKeySequence NEXT_LINE;
+    static const QKeySequence TOGGLE_SYLLABLE;
 
     enum class Mode
     {

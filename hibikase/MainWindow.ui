@@ -18,8 +18,7 @@
     <item>
      <layout class="QVBoxLayout" name="tabLayout">
       <item>
-       <widget class="QTabBar" name="modeTabBar">
-       </widget>
+       <widget class="QTabBar" name="modeTabBar" native="true"/>
       </item>
       <item>
        <widget class="LyricsEditor" name="mainLyrics" native="true"/>
@@ -62,6 +61,7 @@
      <string>&amp;Help</string>
     </property>
     <addaction name="actionAbout_Hibikase"/>
+    <addaction name="actionKeyboard_Shortcuts"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -104,6 +104,11 @@
     <string>&amp;About Hibikase</string>
    </property>
   </action>
+  <action name="actionKeyboard_Shortcuts">
+   <property name="text">
+    <string>&amp;Keyboard Shortcuts</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -116,6 +121,11 @@
    <class>PlaybackWidget</class>
    <extends>QWidget</extends>
    <header>PlaybackWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QTabBar</class>
+   <extends>QWidget</extends>
+   <header>qtabbar.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
