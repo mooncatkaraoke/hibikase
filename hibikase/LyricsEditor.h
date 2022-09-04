@@ -11,6 +11,7 @@
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QPoint>
+#include <QShortcut>
 #include <QWidget>
 
 #include "KaraokeData/Song.h"
@@ -37,24 +38,18 @@ private:
     bool eventFilter(QObject* obj, QEvent* event) override;
 };
 
-class TextEventFilter : public QObject
-{
-    Q_OBJECT
-
-public:
-    TextEventFilter(QObject* parent = nullptr);
-
-signals:
-    void ToggleSyllable();
-
-private:
-    bool eventFilter(QObject* obj, QEvent* event) override;
-};
-
 class LyricsEditor : public QWidget
 {
     Q_OBJECT
 public:
+
+    static const QKeySequence SET_SYLLABLE_START;
+    static const QKeySequence SET_SYLLABLE_END;
+    static const QKeySequence PREVIOUS_SYLLABLE;
+    static const QKeySequence NEXT_SYLLABLE;
+    static const QKeySequence PREVIOUS_LINE;
+    static const QKeySequence NEXT_LINE;
+    static const QKeySequence TOGGLE_SYLLABLE;
 
     enum class Mode
     {
@@ -158,9 +153,16 @@ private:
 
     KaraokeData::Centiseconds GetLatencyCompensatedTime() const;
 
+    QShortcut* m_set_syllable_start_shortcut;
+    QShortcut* m_set_syllable_end_shortcut;
+    QShortcut* m_previous_syllable_shortcut;
+    QShortcut* m_next_syllable_shortcut;
+    QShortcut* m_previous_line_shortcut;
+    QShortcut* m_next_line_shortcut;
+    QShortcut* m_toggle_syllable_shortcut;
+
     TimingEventFilter m_timing_event_filter;
 
-    TextEventFilter m_text_event_filter;
     QPlainTextEdit* m_raw_text_edit;
     QPlainTextEdit* m_rich_text_edit;
 

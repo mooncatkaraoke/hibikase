@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <QMainWindow>
+#include <QMessageBox>
 
 #include "KaraokeContainer/Container.h"
 #include "KaraokeData/Song.h"
@@ -34,6 +35,7 @@ private slots:
     void on_actionSave_triggered();
     void on_actionSave_As_triggered();
     void on_actionAbout_Hibikase_triggered();
+    void on_actionKeyboard_Shortcuts_triggered();
 
     void OnSongModified();
 
@@ -53,4 +55,6 @@ private:
     std::unique_ptr<KaraokeData::Song> m_song;
     QString m_save_path;
     bool m_unsaved_changes = false;
+
+    QMessageBox* m_keyboard_shortcuts_help;
 };
