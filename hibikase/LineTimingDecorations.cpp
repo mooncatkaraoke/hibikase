@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <memory>
+#include <cctype>
 
 #include <QBrush>
 #include <QColor>
@@ -14,6 +15,7 @@
 #include <QPen>
 #include <QPoint>
 #include <QRect>
+#include <QRegularExpression>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QWidget>
@@ -64,12 +66,16 @@ static QColor GetPlayedColor()
     return col;
 }
 
-static void SetColor(QTextDocument* document, int start_index, int end_index, TimingState state)
+static void UpdateTextCharFormat(QTextDocument* document, int start_index, int end_index, QTextCharFormat modifier)
 {
     QTextCursor cursor(document);
     cursor.setPosition(start_index, QTextCursor::MoveAnchor);
     cursor.setPosition(end_index, QTextCursor::KeepAnchor);
+    cursor.mergeCharFormat(modifier);
+}
 
+static void SetColor(QTextDocument* document, int start_index, int end_index, TimingState state)
+{
     QTextCharFormat color;
     if (state == TimingState::NotPlayed)
         color.setForeground(GetNotPlayedColor());
@@ -77,7 +83,7 @@ static void SetColor(QTextDocument* document, int start_index, int end_index, Ti
         color.setForeground(GetPlayingColor());
     else
         color.setForeground(GetPlayedColor());
-    cursor.setCharFormat(color);
+    UpdateTextCharFormat(document, start_index, end_index, color);
 }
 
 SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int start_index,
@@ -194,11 +200,66 @@ void SyllableDecorations::Relayout()
     setGeometry(QRect(left, top, width, height));
 }
 
+static void FindAndStyleColorTags(QTextDocument* document, QString line, int start_index)
+{
+    // Soramimi splits the lyrics into lines, then on each line matches tags
+    // beginning with < and ending with >, lower-cases the content, and uses
+    // strtok(, " ,\t\n<>=\"") to tokenise the attributes within.
+    // The first character (e.g. #) of the color code is ignored. There must be
+    // at least 6 remaining characters, and the first 6 are interpreted as hex.
+
+#define SEP             " ,\t=\""       // <>\n are excluded because they can't exist within a tag
+#define REQUIRED_GAP    "[" SEP "]+"
+#define OPTIONAL_GAP    "[" SEP "]*"
+#define ANY_CHAR        "[^" SEP "]"
+    static QRegularExpression REGEX(
+        "<" OPTIONAL_GAP
+        "font" REQUIRED_GAP
+        "color" REQUIRED_GAP
+        ANY_CHAR "(" ANY_CHAR "{6})" ANY_CHAR "*" OPTIONAL_GAP
+        ">",
+        QRegularExpression::CaseInsensitiveOption);
+#undef SEP
+#undef REQUIRED_GAP
+#undef OPTIONAL_GAP
+#undef ANY_CHAR
+
+    for (QRegularExpressionMatchIterator it = REGEX.globalMatch(line); it.hasNext(); )
+    {
+        QRegularExpressionMatch m = it.next();
+
+        QString hex = m.captured(1);
+        int hex_start = start_index + m.capturedStart(1);
+        int hex_end = start_index + m.capturedEnd(1);
+
+        int channels[6] = {0};
+        for (unsigned i = 0; i < 6; i++)
+        {
+            int c = tolower(hex.data()[i].unicode());
+            const char HEX_DIGITS[] = "0123456789abcdef";
+            const char *pos = strchr(HEX_DIGITS, c);
+            if (!pos) // Soramimi treats non-hex digits as being zero
+            {
+                continue;
+            }
+            channels[i / 2] |= static_cast<int>((pos - HEX_DIGITS) << ((1 - (i & 1)) * 4));
+        }
+
+        QTextCharFormat format;
+        format.setFontFamily(QFontDatabase::systemFont(QFontDatabase::FixedFont).family());
+        format.setBackground(QColor(channels[0], channels[1], channels[2]));
+        format.setTextOutline(QPen(Qt::GlobalColor::gray));
+        UpdateTextCharFormat(document, hex_start, hex_end, format);
+    }
+}
+
 LineTimingDecorations::LineTimingDecorations(const KaraokeData::Line& line, int position,
                                              QPlainTextEdit* text_edit, Milliseconds time,
                                              QObject* parent)
     : QObject(parent), m_line(line), m_start_index(position)
 {
+    FindAndStyleColorTags(text_edit->document(), m_line.GetText(), m_start_index);
+
     m_state = GetTimingState(time, m_line.GetStart(), m_line.GetEnd());
 
     const QVector<const KaraokeData::Syllable*> syllables = m_line.GetSyllables();
