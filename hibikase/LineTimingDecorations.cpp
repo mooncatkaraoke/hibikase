@@ -64,20 +64,28 @@ static QColor GetPlayedColor()
     return col;
 }
 
-static void SetColor(QTextDocument* document, int start_index, int end_index, TimingState state)
+static void SetColor(QTextDocument* document, int start_index, int end_index, QColor color)
 {
     QTextCursor cursor(document);
     cursor.setPosition(start_index, QTextCursor::MoveAnchor);
     cursor.setPosition(end_index, QTextCursor::KeepAnchor);
 
-    QTextCharFormat color;
+    QTextCharFormat format;
+    format.setForeground(color);
+    cursor.setCharFormat(format);
+}
+
+static void SetColor(QTextDocument* document, int start_index, int end_index, TimingState state)
+{
+    QColor color;
     if (state == TimingState::NotPlayed)
-        color.setForeground(GetNotPlayedColor());
+        color = GetNotPlayedColor();
     else if (state == TimingState::Playing)
-        color.setForeground(GetPlayingColor());
+        color = GetPlayingColor();
     else
-        color.setForeground(GetPlayedColor());
-    cursor.setCharFormat(color);
+        color = GetPlayedColor();
+
+    return SetColor(document, start_index, end_index, color);
 }
 
 SyllableDecorations::SyllableDecorations(const QPlainTextEdit* text_edit, int start_index,
@@ -201,9 +209,11 @@ LineTimingDecorations::LineTimingDecorations(const KaraokeData::Line& line, int 
 {
     m_state = GetTimingState(time, m_line.GetStart(), m_line.GetEnd());
 
+
     const QVector<const KaraokeData::Syllable*> syllables = m_line.GetSyllables();
     m_syllables.reserve(syllables.size());
-    int text_index = m_start_index + m_line.GetPrefix().size();
+    const int prefix_end_index = m_start_index + m_line.GetPrefix().size();
+    int text_index = prefix_end_index;
     for (int i = 0; i < syllables.size(); ++i)
     {
         const KaraokeData::Syllable* syllable = syllables[i];
@@ -221,7 +231,8 @@ LineTimingDecorations::LineTimingDecorations(const KaraokeData::Line& line, int 
     }
 
     m_end_index = text_index;
-    SetColor(text_edit->document(), m_start_index, m_end_index, m_state);
+    SetColor(text_edit->document(), m_start_index, prefix_end_index, GetPlayingColor());
+    SetColor(text_edit->document(), prefix_end_index, m_end_index, m_state);
 }
 
 void LineTimingDecorations::Update(Milliseconds time)
