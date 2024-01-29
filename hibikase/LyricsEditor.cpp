@@ -325,6 +325,14 @@ void LyricsEditor::OnLinesChanged(int line_position, int lines_removed, int line
         if (lines_removed > lines_added)
         {
             m_line_timing_decorations.erase(replace_it, replace_it + (lines_removed - lines_added));
+
+            // If the document is scrolled so far down that erasing lines causes the document to
+            // scroll up, line timing decorations above the erased line need to be relayouted.
+            // We call ensureCursorVisible first to ensure the scroll happens before the relayout.
+
+            m_rich_text_edit->ensureCursorVisible();
+            for (size_t i = 0; i < line_position; ++i)
+                m_line_timing_decorations[i]->Relayout();
         }
         else if (lines_removed < lines_added)
         {
