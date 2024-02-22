@@ -166,7 +166,7 @@ void MainWindow::on_actionKeyboard_Shortcuts_triggered()
     };
     const std::initializer_list<Shortcut> TIMING_SHORTCUTS = {
         {"Time syllable and advance", LyricsEditor::SET_SYLLABLE_START},
-        {"Time end of previous syllable", LyricsEditor::SET_SYLLABLE_END},
+        {"Time end of previous syllable", LyricsEditor::SET_SYLLABLE_END_1},
         {"Go to previous syllable", LyricsEditor::PREVIOUS_SYLLABLE},
         {"Go to next syllable", LyricsEditor::NEXT_SYLLABLE},
         {"Go to start of previous line", LyricsEditor::PREVIOUS_LINE},

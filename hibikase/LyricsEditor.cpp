@@ -27,7 +27,8 @@
 #include "TextTransform/Syllabify.h"
 
 const QKeySequence LyricsEditor::SET_SYLLABLE_START = Qt::Key_Space;
-const QKeySequence LyricsEditor::SET_SYLLABLE_END = Qt::Key_Return;
+const QKeySequence LyricsEditor::SET_SYLLABLE_END_1 = Qt::Key_Return;
+const QKeySequence LyricsEditor::SET_SYLLABLE_END_2 = Qt::Key_Enter;
 const QKeySequence LyricsEditor::PREVIOUS_SYLLABLE = Qt::Key_Left;
 const QKeySequence LyricsEditor::NEXT_SYLLABLE = Qt::Key_Right;
 const QKeySequence LyricsEditor::PREVIOUS_LINE = Qt::Key_Up;
@@ -100,8 +101,11 @@ LyricsEditor::LyricsEditor(QWidget* parent) : QWidget(parent)
     m_set_syllable_start_shortcut = new QShortcut(SET_SYLLABLE_START, this);
     connect(m_set_syllable_start_shortcut, &QShortcut::activated,
             this, &LyricsEditor::SetSyllableStart);
-    m_set_syllable_end_shortcut = new QShortcut(SET_SYLLABLE_END, this);
-    connect(m_set_syllable_end_shortcut, &QShortcut::activated,
+    m_set_syllable_end_shortcut_1 = new QShortcut(SET_SYLLABLE_END_1, this);
+    connect(m_set_syllable_end_shortcut_1, &QShortcut::activated,
+            this, &LyricsEditor::SetSyllableEnd);
+    m_set_syllable_end_shortcut_2 = new QShortcut(SET_SYLLABLE_END_2, this);
+    connect(m_set_syllable_end_shortcut_2, &QShortcut::activated,
             this, &LyricsEditor::SetSyllableEnd);
     m_previous_syllable_shortcut = new QShortcut(PREVIOUS_SYLLABLE, this);
     connect(m_previous_syllable_shortcut, &QShortcut::activated,
@@ -193,7 +197,8 @@ void LyricsEditor::UpdateSpeed(double speed)
 void LyricsEditor::SetMode(Mode mode)
 {
     m_set_syllable_start_shortcut->setEnabled(mode == Mode::Timing);
-    m_set_syllable_end_shortcut->setEnabled(mode == Mode::Timing);
+    m_set_syllable_end_shortcut_1->setEnabled(mode == Mode::Timing);
+    m_set_syllable_end_shortcut_2->setEnabled(mode == Mode::Timing);
     m_previous_syllable_shortcut->setEnabled(mode == Mode::Timing);
     m_next_syllable_shortcut->setEnabled(mode == Mode::Timing);
     m_previous_line_shortcut->setEnabled(mode == Mode::Timing);

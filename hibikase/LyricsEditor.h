@@ -44,7 +44,8 @@ class LyricsEditor : public QWidget
 public:
 
     static const QKeySequence SET_SYLLABLE_START;
-    static const QKeySequence SET_SYLLABLE_END;
+    static const QKeySequence SET_SYLLABLE_END_1;
+    static const QKeySequence SET_SYLLABLE_END_2;
     static const QKeySequence PREVIOUS_SYLLABLE;
     static const QKeySequence NEXT_SYLLABLE;
     static const QKeySequence PREVIOUS_LINE;
@@ -154,7 +155,8 @@ private:
     KaraokeData::Centiseconds GetLatencyCompensatedTime() const;
 
     QShortcut* m_set_syllable_start_shortcut;
-    QShortcut* m_set_syllable_end_shortcut;
+    QShortcut* m_set_syllable_end_shortcut_1;
+    QShortcut* m_set_syllable_end_shortcut_2;
     QShortcut* m_previous_syllable_shortcut;
     QShortcut* m_next_syllable_shortcut;
     QShortcut* m_previous_line_shortcut;
