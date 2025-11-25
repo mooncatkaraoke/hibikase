@@ -2,6 +2,7 @@
 
 #include <QChar>
 #include <QHash>
+#include <QSet>
 #include <QString>
 #include <QVector>
 
@@ -213,7 +214,17 @@ static void Palatalize(Syllable* syllable)
         {QChar(u'ᄐ'), QChar(u'ᄎ')},
     };
 
-    if (syllable->medials != QStringLiteral(u"ᅵ"))
+    static const QSet<QChar> PALATALIZATION_MEDIALS = {
+        QChar(u'ᅣ'),
+        QChar(u'ᅤ'),
+        QChar(u'ᅧ'),
+        QChar(u'ᅨ'),
+        QChar(u'ᅭ'),
+        QChar(u'ᅲ'),
+        QChar(u'ᅵ'),
+    };
+
+    if (syllable->medials.isEmpty() || !PALATALIZATION_MEDIALS.contains(syllable->medials[0]))
         return;
 
     const int last_index = syllable->initials.size() - 1;
