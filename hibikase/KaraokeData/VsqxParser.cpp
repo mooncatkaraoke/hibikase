@@ -10,12 +10,14 @@
 
 #include "KaraokeData/ReadOnlySong.h"
 #include "KaraokeData/Song.h"
+#include "KaraokeData/TempoMap.h"
 #include "KaraokeData/VsqxParser.h"
 
 namespace KaraokeData
 {
 
-enum VsqVersion {
+enum VsqVersion
+{
     VSQ3,
     VSQ4
 };
@@ -42,37 +44,9 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
     static const QString durTickName{version == VSQ3 ? QStringLiteral("durTick") : QStringLiteral("dur")};
     static const QString lyricName{version == VSQ3 ? QStringLiteral("lyric") : QStringLiteral("y")};
 
-    struct TempoEntry
-    {
-        std::chrono::nanoseconds tick_duration = std::chrono::nanoseconds::zero();
-        std::chrono::nanoseconds start_time = std::chrono::nanoseconds::zero();
-        int start_ticks = 0;
-    };
-
-    std::map<int, TempoEntry> tempo_map;
-    std::chrono::nanoseconds offset = std::chrono::nanoseconds::zero();
-
-    auto tick_position_to_time = [&tempo_map](int ticks)
-    {
-        auto it = tempo_map.upper_bound(ticks);
-        if (it == tempo_map.end())
-        {
-            if (tempo_map.empty())
-                return std::chrono::nanoseconds::zero();
-            else
-                it--;
-        }
-
-        const TempoEntry& entry = it->second;
-        return entry.start_time + (ticks - entry.start_ticks) * entry.tick_duration;
-    };
-    auto tick_position_to_time_fast = [&tempo_map](int ticks)
-    {
-        const TempoEntry& entry = tempo_map.upper_bound(ticks)->second;
-        return entry.start_time + (ticks - entry.start_ticks) * entry.tick_duration;
-    };
-
     std::unique_ptr<ReadOnlySong> song = std::make_unique<ReadOnlySong>();
+    TempoMap tempo_map;
+    std::chrono::nanoseconds offset = std::chrono::nanoseconds::zero();
 
     while (reader.readNextStartElement())
     {
@@ -82,7 +56,6 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
             int resolution = 0;
             int pre_measure = 0;
             int time_signature_numerator = 0;
-            TempoEntry last_tempo_entry;
 
             while (reader.readNextStartElement())
             {
@@ -122,14 +95,10 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
 
                     if (resolution != 0 && position_ticks != -1 && bpm_times_100 != -1)
                     {
-                        if (last_tempo_entry.tick_duration != std::chrono::nanoseconds::zero())
-                            tempo_map.emplace(position_ticks, last_tempo_entry);
-
                         const std::chrono::nanoseconds tick_duration =
                                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                                     std::chrono::minutes(100)) / bpm_times_100 / resolution;
-                        last_tempo_entry = TempoEntry{tick_duration,
-                                           tick_position_to_time(position_ticks), position_ticks};
+                        tempo_map.AddTempoEntry(position_ticks, tick_duration);
                     }
                 }
                 else
@@ -138,10 +107,8 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                 }
             }
 
-            tempo_map.emplace(std::numeric_limits<int>().max(), last_tempo_entry);
-
             if (time_signature_numerator != 0 && resolution != 0)
-                offset = tick_position_to_time_fast(time_signature_numerator * pre_measure * resolution);
+                offset = tempo_map.TicksToTime(time_signature_numerator * pre_measure * resolution);
         }
         else if (!tempo_map.empty() && name1 == QStringLiteral("vsTrack"))
         {
@@ -191,9 +158,9 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
                                     lyric.append(' ');
                                 }
                                 Centiseconds start = std::chrono::duration_cast<Centiseconds>(
-                                            tick_position_to_time_fast(position_ticks) - offset);
+                                            tempo_map.TicksToTime(position_ticks) - offset);
                                 Centiseconds end = std::chrono::duration_cast<Centiseconds>(
-                                            tick_position_to_time_fast(position_ticks + duration_ticks) - offset);
+                                            tempo_map.TicksToTime(position_ticks + duration_ticks) - offset);
                                 song->m_lines.back()->m_syllables.emplace_back(
                                             std::make_unique<ReadOnlySyllable>(lyric, start, end));
                             }

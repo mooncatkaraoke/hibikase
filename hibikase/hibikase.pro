@@ -41,6 +41,7 @@ SOURCES += main.cpp \
     AboutDialog.cpp \
     AudioFile.cpp \
     AudioOutputWorker.cpp \
+    KaraokeData/TempoMap.cpp \
     MainWindow.cpp \
     KaraokeData/Song.cpp \
     KaraokeData/SoramimiSong.cpp \
@@ -66,6 +67,7 @@ HEADERS  += MainWindow.h \
     KaraokeContainer/Container.h \
     KaraokeContainer/PlainContainer.h \
     KaraokeData/ReadOnlySong.h \
+    KaraokeData/TempoMap.h \
     KaraokeData/VsqxParser.h \
     LyricsEditor.h \
     PlaybackBarWidget.h \
