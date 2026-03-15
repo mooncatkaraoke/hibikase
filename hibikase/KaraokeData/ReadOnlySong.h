@@ -99,7 +99,6 @@ class ReadOnlySong final : public Song
     Q_OBJECT
 
 public:
-    bool IsValid() const override { return m_valid; }
     bool IsEditable() const override { return false; }
     QString GetRaw(int, int) const override { throw not_editable; }
     QString GetRaw() const override { throw not_editable; }
@@ -124,7 +123,6 @@ public:
     void ReplaceLines(int, int, const QVector<const Line*>&) override { throw not_editable; }
     void RemoveAllLines() override { throw not_editable; }
 
-    bool m_valid = false;
     std::vector<std::unique_ptr<ReadOnlyLine>> m_lines;
 };
 

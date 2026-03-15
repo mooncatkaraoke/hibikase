@@ -100,7 +100,6 @@ class Song : public QObject
 public:
     virtual ~Song() = default;
 
-    virtual bool IsValid() const = 0;
     virtual bool IsEditable() const = 0;
     virtual QString GetRaw(int start_line, int end_line) const = 0;
     virtual QString GetRaw() const = 0;

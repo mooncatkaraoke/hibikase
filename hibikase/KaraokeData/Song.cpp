@@ -278,7 +278,7 @@ void Song::ReplaceLines(SongPosition start, SongPosition end,
 std::unique_ptr<Song> Load(const QByteArray& data)
 {
     std::unique_ptr<Song> vsqx = ParseVsqx(data);
-    if (vsqx->IsValid())
+    if (vsqx)
         return vsqx;
 
     return std::make_unique<SoramimiSong>(data);

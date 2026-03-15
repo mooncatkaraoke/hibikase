@@ -22,13 +22,10 @@ enum VsqVersion {
 
 std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
 {
-    std::unique_ptr<ReadOnlySong> song = std::make_unique<ReadOnlySong>();
-    song->m_valid = false;
-
     QXmlStreamReader reader(data);
 
     if (!reader.readNextStartElement())
-        return song;
+        return nullptr;
 
     VsqVersion version;
     if (reader.name() == QStringLiteral("vsq3"))
@@ -36,7 +33,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
     else if (reader.name() == QStringLiteral("vsq4"))
         version = VSQ4;
     else
-        return song;
+        return nullptr;
 
     static const QString numeratorName{version == VSQ3 ? QStringLiteral("nume") : QStringLiteral("nu")};
     static const QString bpmName{version == VSQ3 ? QStringLiteral("bpm") : QStringLiteral("v")};
@@ -74,6 +71,8 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
         const TempoEntry& entry = tempo_map.upper_bound(ticks)->second;
         return entry.start_time + (ticks - entry.start_ticks) * entry.tick_duration;
     };
+
+    std::unique_ptr<ReadOnlySong> song = std::make_unique<ReadOnlySong>();
 
     while (reader.readNextStartElement())
     {
@@ -221,7 +220,8 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
         }
     }
 
-    song->m_valid = !song->m_lines.empty();
+    if (song->m_lines.empty())
+        return nullptr;
 
     return song;
 }

@@ -103,7 +103,6 @@ public:
     SoramimiSong(const QByteArray& data);
     SoramimiSong(const QVector<const Line*>& lines);
 
-    bool IsValid() const override { return true; }
     bool IsEditable() const override { return true; }
     QString GetRaw(int start_line, int end_line) const override;
     QString GetRaw() const override;
