@@ -40,7 +40,7 @@ private slots:
     void OnSongModified();
 
 private:
-    const QString LOAD_FILTER = QStringLiteral("All Lyric Files (*.txt *.vsqx);;All Files (*.*)");
+    const QString LOAD_FILTER = QStringLiteral("All Lyric Files (*.txt *.svp *.vsqx);;All Files (*.*)");
     const QString SAVE_FILTER = QStringLiteral("Soramimi Lyrics (*.txt);;All Files (*.*)");
 
     void UpdateWindowTitle();

@@ -5,12 +5,14 @@
 #include <chrono>
 #include <limits>
 
+#include <QtGlobal>
+
 namespace KaraokeData
 {
 
 TempoMap::TempoMap() = default;
 
-void TempoMap::AddTempoEntry(int start_ticks, std::chrono::nanoseconds tick_duration)
+void TempoMap::AddTempoEntry(qint64 start_ticks, std::chrono::nanoseconds tick_duration)
 {
     TempoEntry entry{
         .tick_duration = tick_duration,
@@ -40,7 +42,7 @@ void TempoMap::AddTempoEntry(int start_ticks, std::chrono::nanoseconds tick_dura
     }
 }
 
-std::chrono::nanoseconds TempoMap::TicksToTime(int ticks) const
+std::chrono::nanoseconds TempoMap::TicksToTime(qint64 ticks) const
 {
     if (m_tempo_map.empty())
         return std::chrono::nanoseconds::zero();

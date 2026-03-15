@@ -157,6 +157,6 @@ signals:
                       int raw_position, int raw_chars_removed, int raw_chars_added);
 };
 
-std::unique_ptr<Song> Load(const QByteArray& data);
+std::unique_ptr<Song> Load(QByteArray data);
 
 }

@@ -8,6 +8,7 @@
 #include "KaraokeData/ReadOnlySong.h"
 #include "KaraokeData/Song.h"
 #include "KaraokeData/SoramimiSong.h"
+#include "KaraokeData/SvpParser.h"
 #include "KaraokeData/VsqxParser.h"
 
 namespace KaraokeData
@@ -275,8 +276,17 @@ void Song::ReplaceLines(SongPosition start, SongPosition end,
     ReplaceLines(start.line, end.line - start.line + 1, result);
 }
 
-std::unique_ptr<Song> Load(const QByteArray& data)
+std::unique_ptr<Song> Load(QByteArray data)
 {
+    // At least one tested SVP file had a trailing null byte.
+    // The SVP parser can't handle that, so let's remove it here.
+    while (!data.isEmpty() && data.back() == '\0')
+        data.chop(1);
+
+    std::unique_ptr<Song> svp = ParseSvp(data);
+    if (svp)
+        return svp;
+
     std::unique_ptr<Song> vsqx = ParseVsqx(data);
     if (vsqx)
         return vsqx;
