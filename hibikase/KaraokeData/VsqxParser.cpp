@@ -46,7 +46,7 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
 
     std::unique_ptr<ReadOnlySong> song = std::make_unique<ReadOnlySong>();
     TempoMap tempo_map;
-    std::chrono::nanoseconds offset = std::chrono::nanoseconds::zero();
+    DoubleCentiseconds offset = DoubleCentiseconds::zero();
 
     while (reader.readNextStartElement())
     {
@@ -95,9 +95,9 @@ std::unique_ptr<Song> ParseVsqx(const QByteArray& data)
 
                     if (resolution != 0 && position_ticks != -1 && bpm_times_100 != -1)
                     {
-                        const std::chrono::nanoseconds tick_duration =
-                                std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                    std::chrono::minutes(100)) / bpm_times_100 / resolution;
+                        const DoubleCentiseconds hundred_minutes = std::chrono::minutes(100);
+                        const DoubleCentiseconds tick_duration =
+                                hundred_minutes / (static_cast<double>(bpm_times_100) * resolution);
                         tempo_map.AddTempoEntry(position_ticks, tick_duration);
                     }
                 }

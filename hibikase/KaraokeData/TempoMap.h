@@ -3,6 +3,7 @@
 #pragma once
 
 #include <chrono>
+#include <ratio>
 #include <map>
 
 #include <QtGlobal>
@@ -10,22 +11,24 @@
 namespace KaraokeData
 {
 
+using DoubleCentiseconds = std::chrono::duration<double, std::centi>;
+
 class TempoMap
 {
 public:
     TempoMap();
 
-    void AddTempoEntry(qint64 start_ticks, std::chrono::nanoseconds tick_duration);
+    void AddTempoEntry(qint64 start_ticks, DoubleCentiseconds tick_duration);
 
-    std::chrono::nanoseconds TicksToTime(qint64 ticks) const;
+    DoubleCentiseconds TicksToTime(qint64 ticks) const;
 
     bool empty() const { return m_tempo_map.empty(); }
 
 private:
     struct TempoEntry
     {
-        std::chrono::nanoseconds tick_duration = std::chrono::nanoseconds::zero();
-        std::chrono::nanoseconds start_time = std::chrono::nanoseconds::zero();
+        DoubleCentiseconds tick_duration = DoubleCentiseconds::zero();
+        DoubleCentiseconds start_time = DoubleCentiseconds::zero();
         qint64 start_ticks = 0;
     };
 

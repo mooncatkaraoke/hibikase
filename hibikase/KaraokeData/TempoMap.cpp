@@ -12,7 +12,7 @@ namespace KaraokeData
 
 TempoMap::TempoMap() = default;
 
-void TempoMap::AddTempoEntry(qint64 start_ticks, std::chrono::nanoseconds tick_duration)
+void TempoMap::AddTempoEntry(qint64 start_ticks, DoubleCentiseconds tick_duration)
 {
     TempoEntry entry{
         .tick_duration = tick_duration,
@@ -42,10 +42,10 @@ void TempoMap::AddTempoEntry(qint64 start_ticks, std::chrono::nanoseconds tick_d
     }
 }
 
-std::chrono::nanoseconds TempoMap::TicksToTime(qint64 ticks) const
+DoubleCentiseconds TempoMap::TicksToTime(qint64 ticks) const
 {
     if (m_tempo_map.empty())
-        return std::chrono::nanoseconds::zero();
+        return DoubleCentiseconds::zero();
 
     auto it = m_tempo_map.lower_bound(ticks);
     const TempoEntry& entry = it->second;
