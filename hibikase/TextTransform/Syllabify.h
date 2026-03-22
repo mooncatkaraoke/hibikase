@@ -24,6 +24,7 @@ public:
     QVector<int> Syllabify(const QString& text) const;
 
     std::unique_ptr<KaraokeData::Line> Syllabify(const KaraokeData::Line& line) const;
+    std::unique_ptr<KaraokeData::Line> SyllabifySynthV(const KaraokeData::Line& line) const;
 
     static QVector<QString> AvailableLanguages();
 

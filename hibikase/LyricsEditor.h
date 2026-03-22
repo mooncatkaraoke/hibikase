@@ -99,8 +99,9 @@ private slots:
 
     void GoToPosition(QPoint pos);
 
-    void AddSyllabificationLanguages(QMenu* menu);
     void Syllabify(const QString& language_code);
+    void SyllabifySynthV(const QString& language_code);
+    void AddSpacesBetweenWords();
     void RomanizeHangul();
     void ShiftTimings();
 
@@ -111,6 +112,9 @@ private slots:
 private:
     void AddLyricsActionsToMenu(QMenu* menu, QPlainTextEdit* text_edit);
     void ShowContextMenu(const QPoint& point, QPlainTextEdit* text_edit);
+    void AddSyllabificationLanguages(
+        QMenu* menu, void (LyricsEditor::*syllabify_function)(const QString&));
+
     void ApplyLineTransformation(KaraokeData::SongPosition start_position,
                 KaraokeData::SongPosition end_position, bool split_syllables_at_start_and_end,
                 std::function<std::unique_ptr<KaraokeData::Line>(const KaraokeData::Line&)> f);

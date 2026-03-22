@@ -23,6 +23,7 @@
 #include "KaraokeData/ReadOnlySong.h"
 #include "KaraokeData/Song.h"
 #include "Settings.h"
+#include "TextTransform/CleanUpImportedLyrics.h"
 #include "TextTransform/RomanizeHangul.h"
 #include "TextTransform/Syllabify.h"
 
@@ -461,9 +462,16 @@ void LyricsEditor::AddLyricsActionsToMenu(QMenu* menu, QPlainTextEdit* text_edit
 
     QMenu* syllabify = menu->addMenu(QStringLiteral("Syllabify"));
     syllabify->setEnabled(has_selection);
-    syllabify->addAction(QStringLiteral("Basic"), [this]{ Syllabify(QString()); });
+    syllabify->addAction(QStringLiteral("Basic"), this, [this]{ Syllabify(QString()); });
     syllabify->addSeparator();
-    AddSyllabificationLanguages(syllabify);
+    AddSyllabificationLanguages(syllabify, &LyricsEditor::Syllabify);
+
+    QMenu* clean_up_imported_lyrics = menu->addMenu(QStringLiteral("Clean Up Imported Lyrics"));
+    clean_up_imported_lyrics->setEnabled(has_selection);
+    QMenu* syllabify_synthv = clean_up_imported_lyrics->addMenu(QStringLiteral("Syllabify (SynthV)"));
+    AddSyllabificationLanguages(syllabify_synthv, &LyricsEditor::SyllabifySynthV);
+    clean_up_imported_lyrics->addAction(QStringLiteral("Add Spaces Between Words (SynthV)"), this,
+                                        SLOT(AddSpacesBetweenWords()));
 
     menu->addAction(QStringLiteral("Romanize Hangul"), this,
                     SLOT(RomanizeHangul()))->setEnabled(has_selection);
@@ -493,7 +501,8 @@ void LyricsEditor::AddActionsToMenu(QMenu* menu)
     AddLyricsActionsToMenu(menu, text_edit);
 }
 
-void LyricsEditor::AddSyllabificationLanguages(QMenu* menu)
+void LyricsEditor::AddSyllabificationLanguages(
+    QMenu* menu, void (LyricsEditor::*syllabify_function)(const QString&))
 {
     QVector<QPair<QString, QString>> languages;
 
@@ -545,7 +554,11 @@ void LyricsEditor::AddSyllabificationLanguages(QMenu* menu)
     });
 
     for (const QPair<QString, QString>& language : languages)
-        menu->addAction(language.second, [this, language]{ Syllabify(language.first); });
+    {
+        menu->addAction(language.second, [this, language, syllabify_function] {
+            (*this.*syllabify_function)(language.first);
+        });
+    }
 }
 
 void LyricsEditor::ApplyLineTransformation(KaraokeData::SongPosition start_position,
@@ -606,6 +619,21 @@ void LyricsEditor::Syllabify(const QString& language_code)
     const TextTransform::Syllabifier syllabifier(language_code);
     ApplyLineTransformation(true, [&syllabifier](const KaraokeData::Line& line) {
         return syllabifier.Syllabify(line);
+    });
+}
+
+void LyricsEditor::SyllabifySynthV(const QString& language_code)
+{
+    const TextTransform::Syllabifier syllabifier(language_code);
+    ApplyLineTransformation(true, [&syllabifier](const KaraokeData::Line& line) {
+        return syllabifier.SyllabifySynthV(line);
+    });
+}
+
+void LyricsEditor::AddSpacesBetweenWords()
+{
+    ApplyLineTransformation(false, [](const KaraokeData::Line& line) {
+        return TextTransform::AddSpacesBetweenWords(line.GetSyllables(), line.GetPrefix());
     });
 }
 

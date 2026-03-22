@@ -419,7 +419,7 @@ std::unique_ptr<KaraokeData::Line> Syllabifier::Syllabify(const KaraokeData::Lin
     const QString line_text = line.GetText();
     std::unique_ptr<KaraokeData::ReadOnlyLine> new_line = std::make_unique<KaraokeData::ReadOnlyLine>();
     if (line_text.isEmpty())
-        return std::move(new_line);
+        return new_line;
 
     const QVector<int> split_points = Syllabify(line_text);
     new_line->m_syllables.reserve(split_points.size() - 1);
@@ -430,7 +430,77 @@ std::unique_ptr<KaraokeData::Line> Syllabifier::Syllabify(const KaraokeData::Lin
                 KaraokeData::PLACEHOLDER_TIME, KaraokeData::PLACEHOLDER_TIME));
     }
 
-    return std::move(new_line);
+    return new_line;
+}
+
+std::unique_ptr<KaraokeData::Line> Syllabifier::SyllabifySynthV(const KaraokeData::Line& line) const
+{
+    std::unique_ptr<KaraokeData::ReadOnlyLine> new_line =
+        std::make_unique<KaraokeData::ReadOnlyLine>();
+    new_line->m_prefix = line.GetPrefix();
+
+    const QVector<const KaraokeData::Syllable*> syllables = line.GetSyllables();
+    for (int i = 0; i < syllables.size(); ++i)
+    {
+        int plus_syllables = 0;
+        int hyphen_syllables = 0;
+
+        for (int j = i + 1; j < syllables.size(); ++j)
+        {
+            const QString syllable_text = syllables[j]->GetText();
+            if (syllable_text.isEmpty())
+                break;
+            if (syllable_text.front() == QChar('+'))
+                ++plus_syllables;
+            else if (syllable_text.front() == QChar('-'))
+                ++hyphen_syllables;
+            else
+                break;
+        }
+
+        QString text;
+        QVector<int> split_points;
+        // Skip syllabification if we know this is a one-syllable word.
+        if (plus_syllables != 0)
+        {
+            text = syllables[i]->GetText();
+            split_points = Syllabify(text);
+        }
+
+        // Check if the number of syllables matches. Plus two for the start and end split points.
+        const bool syllabification_succeeded = split_points.size() == plus_syllables + 2;
+
+        int syllable_index_in_word = 0;
+        for (int j = i; j < i + plus_syllables + hyphen_syllables + 1; j++)
+        {
+            new_line->m_syllables.emplace_back(
+                std::make_unique<KaraokeData::ReadOnlySyllable>(*syllables[j]));
+
+            if (syllabification_succeeded)
+            {
+                const QString syllable_text = syllables[j]->GetText();
+                if (syllable_text.isEmpty() || syllable_text.front() != QChar('-'))
+                {
+                    const int position = split_points[syllable_index_in_word];
+                    const int n = split_points[syllable_index_in_word + 1] - position;
+                    new_line->m_syllables[j]->m_text = text.mid(position, n);
+
+                    if (!syllable_text.isEmpty() && syllable_text.front() == QChar('+'))
+                    {
+                        // If a + syllable has a space after the +, add it
+                        new_line->m_syllables[j]->m_text +=
+                            syllable_text.right(syllable_text.size() - 1);
+                    }
+
+                    ++syllable_index_in_word;
+                }
+            }
+        }
+
+        i += plus_syllables + hyphen_syllables;
+    }
+
+    return new_line;
 }
 
 QVector<QString> Syllabifier::AvailableLanguages()

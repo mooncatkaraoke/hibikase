@@ -73,14 +73,7 @@ std::unique_ptr<Song> ParseSvp(const QByteArray& data)
         auto& syllables = song->m_lines.back()->m_syllables;
         for (const auto& note : notes)
         {
-            QString lyric(note["lyrics"].toString());
-
-            if (!syllables.empty())
-            {
-                if (!lyric.isEmpty() && lyric.front() != QChar('+') && lyric.front() != QChar('-'))
-                    syllables[syllables.size() - 1]->m_text.append(QChar(' '));
-            }
-
+            const QString lyric(note["lyrics"].toString());
             const qint64 onset = ToLongLong(note["onset"]);
             const qint64 duration = ToLongLong(note["duration"]);
 

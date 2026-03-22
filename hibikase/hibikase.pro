@@ -54,6 +54,7 @@ SOURCES += main.cpp \
     PlaybackWidget.cpp \
     Settings.cpp \
     SettingsDialog.cpp \
+    TextTransform/CleanUpImportedLyrics.cpp \
     TextTransform/Syllabify.cpp \
     TextTransform/RomanizeHangul.cpp \
     TextTransform/HangulUtils.cpp \
@@ -76,6 +77,7 @@ HEADERS  += MainWindow.h \
     PlaybackWidget.h \
     Settings.h \
     SettingsDialog.h \
+    TextTransform/CleanUpImportedLyrics.h \
     TextTransform/Syllabify.h \
     TextTransform/RomanizeHangul.h \
     TextTransform/HangulUtils.h \
