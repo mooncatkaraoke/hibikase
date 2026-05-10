@@ -10,6 +10,8 @@
 namespace KaraokeData
 {
 
+static constexpr qint64 MAX_TICK = std::numeric_limits<qint64>().max();
+
 TempoMap::TempoMap() = default;
 
 void TempoMap::AddTempoEntry(qint64 start_ticks, DoubleCentiseconds tick_duration)

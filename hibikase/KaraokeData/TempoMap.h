@@ -32,8 +32,6 @@ private:
         qint64 start_ticks = 0;
     };
 
-    static constexpr qint64 MAX_TICK = std::numeric_limits<qint64>().max();
-
     // The key is the tick a given tempo entry ends at
     std::map<qint64, TempoEntry> m_tempo_map;
 };
