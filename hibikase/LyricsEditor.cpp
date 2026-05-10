@@ -220,14 +220,24 @@ void LyricsEditor::SetMode(Mode mode)
     {
     case Mode::Timing:
     case Mode::Text:
+    {
+        const bool focus = m_raw_text_edit->hasFocus();
         m_raw_text_edit->setVisible(false);
         m_rich_text_edit->setVisible(true);
         m_rich_text_edit->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+        if (focus)
+            m_rich_text_edit->setFocus();
         break;
+    }
     case Mode::Raw:
-        m_raw_text_edit->setVisible(true);
+    {
+        const bool focus = m_rich_text_edit->hasFocus();
         m_rich_text_edit->setVisible(false);
+        m_raw_text_edit->setVisible(true);
+        if (focus)
+            m_raw_text_edit->setFocus();
         break;
+    }
     }
 
     // The visibility changes above must happen before the cursor position updates below,
